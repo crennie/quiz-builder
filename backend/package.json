@@ -1,0 +1,10 @@
+{
+    "name": "quiz-builder-app",
+    "version": "0.0.1",
+    "private": true,
+    "description": "Quiz Builder backend",
+    "type": "module",
+    "engines": {
+        "node": "24.x"
+    }
+}

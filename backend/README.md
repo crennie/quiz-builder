@@ -24,7 +24,19 @@ The backend uses PostgreSQL through Drizzle ORM and a centralized `pg` connectio
 `DATABASE_URL` to a PostgreSQL connection URL before running the server or database commands.
 
 - `npm run db:check` verifies that the configured database accepts a connection.
+- `npm run db:generate -- --name=<migration-name>` generates a migration from schema changes.
 - `npm run db:migrate` applies pending migrations from `drizzle/`.
+
+For normal local development:
+
+1. Set `DATABASE_URL` to the target local PostgreSQL database.
+2. Change the Drizzle schema in `src/db/schema.ts`.
+3. Run `npm run db:generate -- --name=<migration-name>` and review the generated SQL in `drizzle/`.
+4. Run `npm run db:migrate` to apply all pending migrations to that database.
+
+Both migration commands load `drizzle.config.ts`, which uses the same validated `DATABASE_URL` as
+the application. Migration files and Drizzle metadata are committed to source control. There is no
+initial migration yet because the schema intentionally contains no tables.
 
 The server closes both its HTTP listener and database pool on `SIGINT` or `SIGTERM`. Application
 code should use the database client exported by `src/db/index.ts` rather than creating pools or

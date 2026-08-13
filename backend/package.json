@@ -10,6 +10,7 @@
     "scripts": {
         "build": "tsc --project tsconfig.build.json && node dist/openapi/write-document.js",
         "db:check": "node src/db/check-connection.ts",
+        "db:generate": "drizzle-kit generate",
         "db:migrate": "drizzle-kit migrate",
         "dev": "node --watch src/server.ts",
         "format": "prettier --write .",

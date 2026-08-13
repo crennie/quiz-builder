@@ -61,6 +61,8 @@ Available backend development commands (run from `backend/`):
 
 - `npm run dev` — start the Express development server with automatic restarts
 - `npm run build` — compile production TypeScript into `backend/dist/`
+- `npm run db:check` — verify connectivity using `DATABASE_URL`
+- `npm run db:migrate` — apply pending Drizzle migrations using `DATABASE_URL`
 - `npm start` — run the compiled production server after a build
 - `npm run lint` — run TypeScript-aware ESLint checks
 - `npm test` — run all backend tests

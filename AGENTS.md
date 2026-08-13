@@ -57,6 +57,10 @@ Use the Node and npm versions supplied by the project container.
 Development commands should reflect the actual frontend and backend tooling
 present in the repository. Do not invent commands that do not exist.
 
+Available backend development commands (run from `backend/`):
+
+- `npm run dev` — start the Express development server with automatic restarts
+
 ## Planned backend stack
 
 Backend code belongs under `backend/`.

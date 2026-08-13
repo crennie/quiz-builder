@@ -119,7 +119,7 @@ Establish the structure that all later backend APIs will build on.
   - `app.ts`
   - `server.ts`
 - [x] Add the minimum backend development/start scripts
-- [ ] Add `GET /health`
+- [x] Add `GET /health`
 - [x] Add central JSON 404 handling
 - [x] Add centralized Express error middleware
 - [x] Define a small application error convention
@@ -160,15 +160,15 @@ Establish the normal validation loop before meaningful domain code accumulates.
 
 ## Testing
 
-- [ ] Select and configure backend test framework
-- [ ] Add unit-test command
-- [ ] Add API integration-test support using the Express app without starting the production server
-- [ ] Add initial integration tests for:
+- [x] Select and configure backend test framework
+- [x] Add unit-test command
+- [x] Add API integration-test support using the Express app without starting the production server
+- [x] Add initial integration tests for:
   - `/health`
   - 404 behavior
   - centralized error behavior
-- [ ] Establish test naming/location conventions
-- [ ] Document when unit vs integration tests are expected
+- [x] Establish test naming/location conventions
+- [x] Document when unit vs integration tests are expected
 
 The normal backend development loop should become:
 
@@ -186,11 +186,11 @@ review
 
 ## Static quality
 
-- [ ] Add linting
-- [ ] Establish TypeScript-aware lint rules
-- [ ] Add formatting policy/tooling if useful
-- [ ] Avoid large style-only rewrites unrelated to feature work
-- [ ] Add a backend build command if production execution requires compiled output
+- [x] Add linting
+- [x] Establish TypeScript-aware lint rules
+- [x] Add formatting policy/tooling if useful
+- [x] Avoid large style-only rewrites unrelated to feature work
+- [x] Add a backend build command if production execution requires compiled output
 
 ### Exit criteria
 

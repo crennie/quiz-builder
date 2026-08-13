@@ -60,6 +60,13 @@ present in the repository. Do not invent commands that do not exist.
 Available backend development commands (run from `backend/`):
 
 - `npm run dev` — start the Express development server with automatic restarts
+- `npm run build` — compile production TypeScript into `backend/dist/`
+- `npm start` — run the compiled production server after a build
+- `npm run lint` — run TypeScript-aware ESLint checks
+- `npm test` — run all backend tests
+- `npm run test:unit` — run backend unit tests
+- `npm run test:integration` — run backend API integration tests
+- `npm run format:check` — check the backend formatting policy
 
 ## Planned backend stack
 
@@ -89,6 +96,9 @@ Available backend commands (run from `backend/`):
 
 - `npm run typecheck` — type-check the backend TypeScript source without
   emitting files
+- `npm run lint` — lint backend source and tests
+- `npm test` — run backend unit and integration tests
+- `npm run build` — compile backend production output
 
 As frontend and backend tooling are introduced, document their real linting,
 type-checking, testing, and build commands here.

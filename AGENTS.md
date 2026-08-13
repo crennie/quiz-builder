@@ -81,6 +81,11 @@ explicit project decision.
 
 Automated validation should use the actual commands provided by the project.
 
+Available backend commands (run from `backend/`):
+
+- `npm run typecheck` — type-check the backend TypeScript source without
+  emitting files
+
 As frontend and backend tooling are introduced, document their real linting,
 type-checking, testing, and build commands here.
 

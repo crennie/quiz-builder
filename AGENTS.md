@@ -5,35 +5,87 @@
 Quiz Builder is an application for creating and practicing question-based
 study content.
 
-The repository is currently in its initial setup phase. Core architecture,
-frameworks, tooling, and repository structure may not yet be established.
+The repository contains both the frontend and backend applications.
+
+The project is currently in its initial setup phase. Core application
+architecture and tooling are still being established.
+
+## Repository layout
+
+The repository uses separate top-level directories for the two application
+areas:
+
+- `frontend/` — frontend application
+- `backend/` — backend application
+
+Project-wide configuration and documentation may remain at the repository
+root.
+
+Shared code may be introduced later if there is a concrete need for it. Do
+not introduce a shared package structure or monorepo tooling preemptively.
+
+When adding frontend code, place it under `frontend/`.
+
+When adding backend code, place it under `backend/`.
 
 ## Current project state
 
 This is an early-stage repository.
 
-Do not assume that a package manager, framework, language runtime, directory
-structure, test framework, or build system has already been selected unless
-it is present in the repository or specified in the task.
+The Node.js development runtime is established, but the frontend and backend
+applications have not yet been fully scaffolded.
 
-## Development
+Do not assume that a frontend framework, backend directory structure, test
+framework, or shared-code architecture has been selected unless it is present
+in the repository or specified in the task.
 
-Development commands have not yet been established.
+## Development environment
 
-When project tooling is introduced, update this section with the actual
-commands used by the repository.
+The project currently uses:
 
-Do not invent development commands that do not exist.
+- Node.js 24 LTS
+- npm
+- ECMAScript modules
+
+The canonical container development environment is defined in:
+
+- `.devcontainer/Dockerfile`
+- `.devcontainer/devcontainer.json`
+
+Use the Node and npm versions supplied by the project container.
+
+Development commands should reflect the actual frontend and backend tooling
+present in the repository. Do not invent commands that do not exist.
+
+## Planned backend stack
+
+Backend code belongs under `backend/`.
+
+The backend architecture is expected to use:
+
+- Node.js
+- Express 5
+- TypeScript
+- Zod for request and domain validation
+- generated OpenAPI documentation/specification
+- Pino for structured logging
+- centralized Express error-handling middleware
+
+The exact OpenAPI generation library and detailed backend structure have not
+yet been selected.
+
+Do not replace these planned technologies with alternatives without an
+explicit project decision.
 
 ## Validation
 
-Automated validation commands have not yet been established.
+Automated validation should use the actual commands provided by the project.
 
-When linting, type checking, tests, or build tooling are introduced, document
-the actual commands here.
+As frontend and backend tooling are introduced, document their real linting,
+type-checking, testing, and build commands here.
 
-Until then, report when automated validation is unavailable rather than
-inventing validation steps.
+Until a validation command exists, report that the relevant validation
+tooling has not yet been established rather than inventing a command.
 
 ## Engineering conventions
 

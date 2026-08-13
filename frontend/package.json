@@ -1,0 +1,7 @@
+{
+    "name": "quiz-builder-web",
+    "version": "0.0.1",
+    "private": true,
+    "description": "Quiz Builder web application",
+    "type": "module"
+}

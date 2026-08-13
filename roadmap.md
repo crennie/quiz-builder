@@ -120,14 +120,14 @@ Establish the structure that all later backend APIs will build on.
   - `server.ts`
 - [x] Add the minimum backend development/start scripts
 - [ ] Add `GET /health`
-- [ ] Add central JSON 404 handling
-- [ ] Add centralized Express error middleware
-- [ ] Define a small application error convention
-- [ ] Add Zod-based environment/configuration validation
+- [x] Add central JSON 404 handling
+- [x] Add centralized Express error middleware
+- [x] Define a small application error convention
+- [x] Add Zod-based environment/configuration validation
   - `NODE_ENV`
   - `PORT`
   - future environment values added through the same boundary
-- [ ] Add structured logging
+- [x] Add structured logging
   - Pino
   - HTTP request logging
   - consistent logger usage

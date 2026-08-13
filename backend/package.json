@@ -8,11 +8,13 @@
         "node": "24.x"
     },
     "scripts": {
-        "build": "tsc --project tsconfig.build.json",
+        "build": "tsc --project tsconfig.build.json && node dist/openapi/write-document.js",
         "dev": "node --watch src/server.ts",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
         "lint": "eslint .",
+        "openapi:check": "node src/openapi/check-document.ts",
+        "openapi:generate": "node src/openapi/write-document.ts",
         "start": "node dist/server.js",
         "test": "vitest run",
         "test:integration": "vitest run tests/integration",
@@ -20,11 +22,14 @@
         "typecheck": "tsc --noEmit"
     },
     "devDependencies": {
+        "@apidevtools/swagger-parser": "^12.1.0",
+        "@asteasolutions/zod-to-openapi": "^9.1.0",
         "@eslint/js": "^10.0.1",
         "@types/express": "^5.0.6",
         "@types/node": "^24.13.3",
         "@types/supertest": "^7.2.1",
         "eslint": "^10.8.1",
+        "openapi-types": "^12.1.3",
         "prettier": "^3.9.6",
         "supertest": "^7.2.2",
         "typescript": "^6.0.3",

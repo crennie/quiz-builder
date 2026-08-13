@@ -7,6 +7,7 @@ import { healthRouter } from "./routes/health.ts";
 export const app = express();
 
 app.use(requestLogger);
+app.use(express.json());
 app.use(healthRouter);
 
 app.get("/", (_request, response) => {

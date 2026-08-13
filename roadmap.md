@@ -239,19 +239,19 @@ CI verifies the same commands developers and agents are expected to run locally.
 
 Make API conventions explicit before many real endpoints exist.
 
-- [ ] Decide how Zod schemas and OpenAPI generation relate
-- [ ] Prefer a single source of truth where practical
-- [ ] Establish request validation convention
+- [x] Decide how Zod schemas and OpenAPI generation relate
+- [x] Prefer a single source of truth where practical
+- [x] Establish request validation convention
   - path parameters
   - query parameters
   - request bodies
-- [ ] Establish response-schema convention
-- [ ] Establish API error response shape
-- [ ] Generate an initial OpenAPI document
-- [ ] Decide where generated OpenAPI output lives
-- [ ] Decide whether generated artifacts are committed or produced during build
-- [ ] Add validation/generation checks to CI where appropriate
-- [ ] Define API versioning strategy only if/when needed
+- [x] Establish response-schema convention
+- [x] Establish API error response shape
+- [x] Generate an initial OpenAPI document
+- [x] Decide where generated OpenAPI output lives
+- [x] Decide whether generated artifacts are committed or produced during build
+- [x] Add a validation/generation check ready for the initial CI phase
+- [x] Define API versioning strategy only if/when needed
 
 ### Goal
 

@@ -67,6 +67,8 @@ Available backend development commands (run from `backend/`):
 - `npm run test:unit` — run backend unit tests
 - `npm run test:integration` — run backend API integration tests
 - `npm run format:check` — check the backend formatting policy
+- `npm run openapi:check` — generate and validate the OpenAPI document in memory
+- `npm run openapi:generate` — write the generated document to `backend/dist/openapi.json`
 
 ## Planned backend stack
 
@@ -99,6 +101,7 @@ Available backend commands (run from `backend/`):
 - `npm run lint` — lint backend source and tests
 - `npm test` — run backend unit and integration tests
 - `npm run build` — compile backend production output
+- `npm run openapi:check` — validate OpenAPI generation and structure
 
 As frontend and backend tooling are introduced, document their real linting,
 type-checking, testing, and build commands here.

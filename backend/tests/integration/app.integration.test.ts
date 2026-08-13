@@ -44,4 +44,19 @@ describe("backend API", () => {
             },
         });
     });
+
+    it("returns the standard validation error for malformed JSON", async () => {
+        const response = await request(app)
+            .post("/does-not-exist")
+            .set("Content-Type", "application/json")
+            .send('{"invalidJson":');
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({
+            error: {
+                code: "VALIDATION_ERROR",
+                message: "Request body must contain valid JSON",
+            },
+        });
+    });
 });

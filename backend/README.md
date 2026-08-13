@@ -8,6 +8,7 @@ Run the normal development checks from `backend/` in this order:
 npm run typecheck
 npm run lint
 npm test
+npm run openapi:check
 npm run build
 ```
 
@@ -28,3 +29,13 @@ Vitest is the test runner. Test files use the `*.test.ts` suffix and live under:
 
 Run all tests with `npm test`, only unit tests with `npm run test:unit`, or only integration tests
 with `npm run test:integration`.
+
+## API contracts
+
+Zod schemas are the source of truth for runtime validation, response typing, and generated OpenAPI
+schemas. The conventions for requests, responses, errors, documentation, and versioning are in
+[`docs/api-conventions.md`](docs/api-conventions.md).
+
+Run `npm run openapi:check` to generate and structurally validate the document in memory. Run
+`npm run openapi:generate` to write `dist/openapi.json`; `npm run build` also writes this file after
+compilation. Generated output is a build artifact and is not committed.

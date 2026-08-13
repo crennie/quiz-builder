@@ -213,19 +213,19 @@ New backend features are expected to use these checks rather than introducing va
 
 Add CI as soon as the project has meaningful automated checks.
 
-- [ ] Add GitHub Actions CI workflow
-- [ ] Trigger CI for pull requests
-- [ ] Trigger CI for relevant pushes
-- [ ] Install dependencies reproducibly
-- [ ] Run backend typecheck
-- [ ] Run backend lint
-- [ ] Run backend tests
-- [ ] Run backend build
-- [ ] Add frontend checks once frontend tooling exists
-- [ ] Use least-privilege workflow permissions
-- [ ] Avoid unnecessary repository write permissions
-- [ ] Pin or otherwise deliberately manage third-party CI actions
-- [ ] Add dependency/security scanning appropriate to the repository
+- [x] Add GitHub Actions CI workflow
+- [x] Trigger CI for pull requests
+- [x] Trigger CI for relevant pushes
+- [x] Install dependencies reproducibly
+- [x] Run backend typecheck
+- [x] Run backend lint
+- [x] Run backend tests
+- [x] Run backend build
+- [x] Add frontend checks once frontend tooling exists (not yet applicable)
+- [x] Use least-privilege workflow permissions
+- [x] Avoid unnecessary repository write permissions
+- [x] Pin or otherwise deliberately manage third-party CI actions
+- [x] Add dependency/security scanning appropriate to the repository
 
 ### Exit criteria
 

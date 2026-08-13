@@ -5,7 +5,7 @@ import { config } from "./config.ts";
 const sensitiveFields = ["password", "token", "accessToken", "refreshToken", "apiKey"];
 
 export const logger = pino({
-    level: "info",
+    level: config.nodeEnv === "test" ? "silent" : "info",
     base: {
         service: "quiz-builder-backend",
         environment: config.nodeEnv,

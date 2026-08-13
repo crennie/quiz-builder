@@ -1,7 +1,12 @@
 import { app } from "./app.ts";
+import { config } from "./config.ts";
+import { logger } from "./logger.ts";
 
-const port = Number(process.env.PORT ?? 3000);
+const server = app.listen(config.port, () => {
+    logger.info({ port: config.port }, "Quiz Builder backend listening");
+});
 
-app.listen(port, () => {
-    console.log(`Quiz Builder backend listening on port ${port}`);
+server.on("error", (error) => {
+    logger.fatal({ err: error }, "HTTP server failed");
+    process.exitCode = 1;
 });

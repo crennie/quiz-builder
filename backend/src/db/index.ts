@@ -1,14 +1,11 @@
-import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 
 import { config } from "../config.ts";
 
-const pool = new Pool({
+export const pool = new Pool({
     connectionString: config.databaseUrl,
     connectionTimeoutMillis: 5_000,
 });
-
-export const database = drizzle({ client: pool });
 
 export async function checkDatabaseConnection(): Promise<void> {
     await pool.query("select 1");

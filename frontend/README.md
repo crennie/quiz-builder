@@ -1,6 +1,6 @@
 # Quiz Builder frontend
 
-The frontend uses React 19, Vite, strict TypeScript, TanStack Query, React Router, and Vitest.
+The frontend uses React 19, Vite, strict TypeScript, TanStack Query, TanStack Router, and Vitest.
 Vite was selected as the smallest conventional build tool for this client-rendered React app; the
 project does not currently require server rendering or a full-stack frontend framework.
 
@@ -17,12 +17,17 @@ Run from `frontend/`:
 - `npm run format:check` / `npm run format` — check or apply Prettier formatting
 
 Run the backend separately from `backend/` with `npm run dev`. During frontend development, calls
-to `/api/*` are proxied to `http://localhost:3000/*`.
+to `/api/*` are proxied to `http://localhost:3000`. The existing `/api/health` client call maps to
+the unversioned backend `/health` endpoint; future `/api/v1/*` paths retain their prefix.
 
 ## Architecture decisions
 
+The [Architecture & Implementation Plan](../architecture-plan.md) defines the target architecture.
+Supabase Auth, shared Zod contracts, and feature UI are not implemented yet.
+
 - API access lives in `src/api/`. The shared `fetch` wrapper applies configuration and translates
-  the backend's standard error envelope into `ApiError`; endpoint modules own response types.
+  the backend's standard error envelope into `ApiError`. The current health endpoint has a local
+  response type; Phase 1 shared Zod contracts should define future domain API types.
 - TanStack Query owns server state. Local UI state should remain in components until a broader
   client-state need is demonstrated.
 - Routes are declared in `src/app/router.tsx` and render inside the shared application layout.
@@ -35,10 +40,8 @@ to `/api/*` are proxied to `http://localhost:3000/*`.
 
 Do not generate a client yet. The API currently exposes only health and root endpoints, so a
 generator would add build coupling without removing meaningful maintenance. Keep the HTTP boundary
-centralized and revisit generation when the backend adds its first stable quiz endpoints. At that
-point, generating TypeScript types (and optionally request functions) from the backend's generated
-OpenAPI document should replace duplicate endpoint types in `src/api/` and run as an explicit
-generation/check step rather than at browser build time.
+centralized. Revisit OpenAPI client generation when domain endpoints exist, alongside the shared
+Zod contracts required by the architecture plan.
 
 ## Layout conventions
 

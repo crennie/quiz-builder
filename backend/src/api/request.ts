@@ -1,5 +1,3 @@
-import { z } from "zod";
-
 import { AppError } from "../errors/app-error.ts";
 
 type RequestInput = Readonly<{
@@ -8,15 +6,28 @@ type RequestInput = Readonly<{
     body: unknown;
 }>;
 
+type Parseable<Output = unknown> = Readonly<{
+    parse: (value: unknown) => Output;
+}>;
+
 type RequestSchemas = Readonly<{
-    params?: z.ZodType;
-    query?: z.ZodType;
-    body?: z.ZodType;
+    params?: Parseable;
+    query?: Parseable;
+    body?: Parseable;
 }>;
 
 export type ValidatedRequest<Schemas extends RequestSchemas> = {
-    [Key in keyof Schemas]: Schemas[Key] extends z.ZodType ? z.output<Schemas[Key]> : never;
+    [Key in keyof Schemas]: Schemas[Key] extends Parseable<infer Output> ? Output : never;
 };
+
+function isZodError(error: unknown): error is Error {
+    return (
+        error instanceof Error &&
+        error.name === "ZodError" &&
+        "issues" in error &&
+        Array.isArray(error.issues)
+    );
+}
 
 export function validateRequest<Schemas extends RequestSchemas>(
     request: RequestInput,
@@ -37,7 +48,7 @@ export function validateRequest<Schemas extends RequestSchemas>(
             validated.body = schemas.body.parse(request.body);
         }
     } catch (error) {
-        if (error instanceof z.ZodError) {
+        if (isZodError(error)) {
             throw new AppError(400, "VALIDATION_ERROR", "Request validation failed", {
                 cause: error,
             });

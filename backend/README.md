@@ -12,6 +12,9 @@ npm run openapi:check
 npm run build
 ```
 
+First run `npm ci` and `npm run build:shared` at the repository root. The backend imports the
+local `@quiz-builder/contracts` package.
+
 Use `npm run format:check` to verify formatting and `npm run format` to format backend
 files. Formatting changes should stay scoped to files already being changed.
 
@@ -20,32 +23,73 @@ with `npm start`. Development continues to run TypeScript source directly with `
 
 ## Database
 
-The backend uses PostgreSQL through Drizzle ORM and a centralized `pg` connection pool. Set
-`DATABASE_URL` to a PostgreSQL connection URL before running the server or database commands.
+The backend uses a centralized `pg` connection pool. Copy `.env.example` to the Git-ignored
+`.env.local` for local development, or set `DATABASE_URL` in the environment. The `dev` and
+`db:check` commands load `.env.local` when it exists.
 
 - `npm run db:check` verifies that the configured database accepts a connection.
-- `npm run db:generate -- --name=<migration-name>` generates a migration from schema changes.
-- `npm run db:migrate` applies pending migrations from `drizzle/`.
 
-For normal local development:
-
-1. Set `DATABASE_URL` to the target local PostgreSQL database.
-2. Change the Drizzle schema in `src/db/schema.ts`.
-3. Run `npm run db:generate -- --name=<migration-name>` and review the generated SQL in `drizzle/`.
-4. Run `npm run db:migrate` to apply all pending migrations to that database.
-
-Both migration commands load `drizzle.config.ts`, which uses the same validated `DATABASE_URL` as
-the application. Migration files and Drizzle metadata are committed to source control. There is no
-initial migration yet because the schema intentionally contains no tables.
+The [Architecture & Implementation Plan](../architecture-plan.md) defines the schema. SQL
+migrations live in `../supabase/migrations/`; the root [README](../README.md) documents the
+Supabase CLI workflow. The shared runtime contracts and generated database types live in
+`../shared/`.
 
 The server closes both its HTTP listener and database pool on `SIGINT` or `SIGTERM`. Application
-code should use the database client exported by `src/db/index.ts` rather than creating pools or
-connections directly.
+code should use the pool exported by `src/db/index.ts` rather than creating pools or connections
+directly. Use `withTransaction` from `src/db/transaction.ts` for multi-statement transactions.
+Queries must be parameterized.
+
+## Supabase Auth
+
+Set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` in ignored `.env.local` or in the process
+environment. For a hosted project, use its Project URL and publishable key from the Dashboard's
+API settings. The publishable key identifies the project; it is not a service-role or secret key.
+The local URL and key are available from `npx supabase status` when the local stack is running.
+
+The backend accepts a Supabase Auth **user access token** as `Authorization: Bearer <token>`.
+Protected routes verify it with Supabase `getClaims()` and ensure the profile exists before their
+handler runs. `GET /api/v1/me` returns that profile. Profile IDs are the exact `auth.users.id` UUID.
+Supabase Auth owns sign-up, sign-in,
+sessions, and token refresh; the backend does not store passwords or issue tokens. The initial
+display name and avatar may come from Auth user metadata; subsequent requests preserve profile
+values already stored in the database. The current-user endpoint requires a reachable database.
+
+The SDK verifies asymmetric tokens with the project's public JWKS and checks legacy symmetric
+tokens with the Auth server. The backend also checks project issuer, authenticated audience and
+role, user UUID, and session UUID. A signed access token remains usable until expiry even if its
+Auth session is revoked; operations that require immediate revocation checks will need a live
+Auth-server check when implemented. The `x-request-id` response header echoes a valid incoming
+correlation ID or contains a new UUID.
 
 Vitest supplies a test-only default URL whose database name is `quiz_builder_test`. Database
 integration tests must run against a dedicated, disposable PostgreSQL database and may override
 `DATABASE_URL` in CI. They must never point `DATABASE_URL` at a development or production database.
-The current test suite does not connect to PostgreSQL.
+The automated backend suite mocks the Auth SDK for API boundary tests and uses an in-memory
+PostgreSQL engine for question-bank persistence tests. It does not connect to the hosted dev
+database. A live Auth/profile smoke test requires a test user and hosted dev configuration.
+
+## Question bank API
+
+Phase 3 endpoints live under `/api/v1`:
+
+- `GET /questions` lists owned questions and published public questions. It accepts `tag` (slug),
+  `limit` (1–100), and `offset`; `nextOffset` is null when there are no more results.
+- `GET /questions/:questionId` returns an owned question or a published public/unlisted question.
+  Published questions include their complete current version, including answer and grading
+  configuration. Anonymous readers are allowed.
+- `POST /questions` creates the identity and first version in one transaction.
+- `POST /questions/:questionId/versions` creates the next immutable version; `GET` on the same
+  path lists all versions for the owner, newest first.
+- `PATCH /questions/:questionId` changes visibility/status without making a content version;
+  `POST /questions/:questionId/archive` marks it archived.
+- `GET /tags` and `POST /tags` manage the signed-in user's tags. `PUT` and `DELETE` on
+  `/questions/:questionId/tags/:tagId` assign and remove owned tags.
+
+Private, draft, and archived questions are visible only to their owner. Published unlisted
+questions are accessible by ID but omitted from the public list. Mutations and version history
+require ownership. Answer and grading JSONB is validated by shared Zod contracts on input and
+when read from PostgreSQL. The [architecture plan](../architecture-plan.md) defines the durable
+question and visibility rules.
 
 ## Test conventions
 
@@ -55,6 +99,7 @@ Vitest is the test runner. Test files use the `*.test.ts` suffix and live under:
   filesystem, database, and other process boundaries.
 - `tests/integration/` for interactions between application components. API integration tests use
   Supertest with the exported Express `app`; they do not bind a network port or start `server.ts`.
+  Persistence integration tests apply the SQL migration to in-memory PostgreSQL with PGlite.
 
 Run all tests with `npm test`, only unit tests with `npm run test:unit`, or only integration tests
 with `npm run test:integration`.

@@ -1,16 +1,14 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { Link, Outlet } from "@tanstack/react-router";
 
 export function AppLayout() {
     return (
         <div className="app-shell">
             <header className="site-header">
-                <NavLink className="brand" to="/">
+                <Link className="brand" to="/">
                     Quiz Builder
-                </NavLink>
+                </Link>
                 <nav aria-label="Primary navigation">
-                    <NavLink to="/" end>
-                        Home
-                    </NavLink>
+                    <Link to="/">Home</Link>
                 </nav>
             </header>
             <main className="page-content">

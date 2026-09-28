@@ -1,7 +1,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { RouterProvider } from "react-router-dom";
+import { RouterProvider } from "@tanstack/react-router";
 
 import { AppErrorBoundary } from "./app/app-error-boundary";
 import { createQueryClient } from "./app/query-client";

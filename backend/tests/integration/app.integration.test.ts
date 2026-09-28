@@ -12,6 +12,13 @@ describe("backend API", () => {
 
         expect(response.status).toBe(200);
         expect(response.body).toEqual({ status: "ok" });
+        expect(response.headers["x-request-id"]).toMatch(/^[0-9a-f-]{36}$/);
+    });
+
+    it("preserves a valid request ID for correlation", async () => {
+        const response = await request(app).get("/health").set("x-request-id", "trace-123");
+
+        expect(response.headers["x-request-id"]).toBe("trace-123");
     });
 
     it("returns the centralized JSON response for an unknown route", async () => {

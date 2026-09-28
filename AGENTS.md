@@ -1,156 +1,48 @@
 # Quiz Builder Agent Instructions
 
-## Project overview
+## Source of truth
 
-Quiz Builder is an application for creating and practicing question-based
-study content.
+Read [Architecture & Implementation Plan](architecture-plan.md) before architecture or feature
+work. It defines the domain, technology choices, invariants, and implementation order. Inspect the
+repository to determine what has actually been implemented; the plan describes the target state.
 
-The repository contains both the frontend and backend applications.
+## Repository layout and state
 
-The project is currently in its initial setup phase. Core application
-architecture and tooling are still being established.
-
-## Repository layout
-
-The repository uses separate top-level directories for the two application
-areas:
-
-- `frontend/` — frontend application
-- `backend/` — backend application
-
-Project-wide configuration and documentation may remain at the repository
-root.
-
-Shared code may be introduced later if there is a concrete need for it. Do
-not introduce a shared package structure or monorepo tooling preemptively.
-
-When adding frontend code, place it under `frontend/`.
-
-When adding backend code, place it under `backend/`.
-
-## Current project state
-
-This is an early-stage repository.
-
-The Node.js development runtime is established, but the frontend and backend
-applications have not yet been fully scaffolded.
-
-Do not assume that a frontend framework, backend directory structure, test
-framework, or shared-code architecture has been selected unless it is present
-in the repository or specified in the task.
+- `frontend/` contains the React, Vite, TypeScript, TanStack Router, and TanStack Query shell.
+- `backend/` contains the Express 5, TypeScript, Zod, Pino, OpenAPI, and `pg` foundations.
+- Shared Zod contracts, Supabase-generated DB types, and the initial SQL migration are present.
+- The backend has Supabase Auth token verification, a current-user profile endpoint, and the
+  Phase 3 question bank/tag API. Quiz, attempt, and feedback features remain to be built.
+- Keep frontend code in `frontend/`, backend code in `backend/`, and shared contracts in `shared/`.
 
 ## Development environment
 
-The project currently uses:
+Use Node.js 24 LTS, npm, and ECMAScript modules. The canonical container is defined in
+`.devcontainer/Dockerfile` and `.devcontainer/devcontainer.json`.
 
-- Node.js 24 LTS
-- npm
-- ECMAScript modules
+From `frontend/`, available commands are `npm run dev`, `npm run typecheck`, `npm run lint`,
+`npm test`, `npm run format:check`, and `npm run build`.
 
-The canonical container development environment is defined in:
+From `backend/`, available commands are `npm run dev`, `npm run typecheck`, `npm run lint`,
+`npm test`, `npm run test:unit`, `npm run test:integration`, `npm run format:check`,
+`npm run openapi:check`, `npm run build`, `npm run db:check`, and `npm start` after a build.
+`npm run openapi:generate` writes `backend/dist/openapi.json`.
 
-- `.devcontainer/Dockerfile`
-- `.devcontainer/devcontainer.json`
-
-Use the Node and npm versions supplied by the project container.
-
-Development commands should reflect the actual frontend and backend tooling
-present in the repository. Do not invent commands that do not exist.
-
-Available backend development commands (run from `backend/`):
-
-- `npm run dev` — start the Express development server with automatic restarts
-- `npm run build` — compile production TypeScript into `backend/dist/`
-- `npm run db:check` — verify connectivity using `DATABASE_URL`
-- `npm run db:generate -- --name=<migration-name>` — generate a migration from Drizzle schema changes
-- `npm run db:migrate` — apply pending Drizzle migrations using `DATABASE_URL`
-- `npm start` — run the compiled production server after a build
-- `npm run lint` — run TypeScript-aware ESLint checks
-- `npm test` — run all backend tests
-- `npm run test:unit` — run backend unit tests
-- `npm run test:integration` — run backend API integration tests
-- `npm run format:check` — check the backend formatting policy
-- `npm run openapi:check` — generate and validate the OpenAPI document in memory
-- `npm run openapi:generate` — write the generated document to `backend/dist/openapi.json`
-
-## Planned backend stack
-
-Backend code belongs under `backend/`.
-
-The backend architecture is expected to use:
-
-- Node.js
-- Express 5
-- TypeScript
-- Zod for request and domain validation
-- generated OpenAPI documentation/specification
-- Pino for structured logging
-- centralized Express error-handling middleware
-
-The exact OpenAPI generation library and detailed backend structure have not
-yet been selected.
-
-Do not replace these planned technologies with alternatives without an
-explicit project decision.
-
-## Validation
-
-Automated validation should use the actual commands provided by the project.
-
-Available backend commands (run from `backend/`):
-
-- `npm run typecheck` — type-check the backend TypeScript source without
-  emitting files
-- `npm run lint` — lint backend source and tests
-- `npm test` — run backend unit and integration tests
-- `npm run build` — compile backend production output
-- `npm run openapi:check` — validate OpenAPI generation and structure
-
-As frontend and backend tooling are introduced, document their real linting,
-type-checking, testing, and build commands here.
-
-Until a validation command exists, report that the relevant validation
-tooling has not yet been established rather than inventing a command.
+`DATABASE_URL` is required to start the backend or run `db:check`. Starting the API also requires
+`SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`. Root commands for the local Supabase stack,
+migrations, schema checks, and type generation are in [README.md](README.md). Regenerating database
+types requires a running local stack or a linked development project.
+Run `npm ci` and `npm run build:shared` from the repository root before backend checks or builds;
+the backend imports the local shared contracts package.
 
 ## Engineering conventions
 
-- Prefer small, understandable changes.
-- Follow established project patterns once they exist.
-- Do not introduce abstractions before they are needed.
-- Keep architectural decisions explicit when establishing new project
-  foundations.
-- Avoid unrelated changes outside the requested task.
-
-## Dependencies and tooling
-
-The project's framework, package manager, and major dependencies may still be
-undecided.
-
-Do not choose or introduce major foundational technology unless:
-
-- it is explicitly requested, or
-- the task necessarily requires making that decision.
-
-If multiple reasonable foundational choices exist and the choice materially
-affects the project architecture, explain the tradeoff before making the
-decision.
-
-Do not add production dependencies unless they are necessary for the requested
-work.
-
-## Git
-
-Local Git operations may be used for inspection and review.
-
-Do not push or otherwise modify a remote repository unless explicitly
-authorized.
-
-## Completion criteria
-
-For implementation tasks:
-
-- the requested work is complete
-- the resulting changes have been reviewed
-- no unrelated changes were introduced
-- any available validation has been run
-- unavailable validation is clearly reported
+- Preserve working infrastructure that conforms to the architecture plan.
+- Use SQL migrations as database truth, parameterized `pg` queries, and no ORM.
+- Use Supabase Auth user UUIDs directly as profile and ownership IDs. Verify user access tokens
+  through the existing Auth integration; do not accept unverified JWT payloads.
+- Use Zod for API and JSONB runtime validation; generated Supabase types describe database rows.
+- Enforce ownership and visibility when implementing each protected feature.
+- Keep changes small and avoid speculative abstractions or unrelated cleanup.
+- Run relevant available checks and inspect the final diff after changes.
+- Do not push or modify remote Git resources without explicit authorization.

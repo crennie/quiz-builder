@@ -1,0 +1,20 @@
+{
+    "name": "@quiz-builder/contracts",
+    "version": "0.0.1",
+    "private": true,
+    "type": "module",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        }
+    },
+    "scripts": {
+        "build": "tsc --project tsconfig.json",
+        "typecheck": "tsc --noEmit",
+        "test": "node --test src/*.test.ts"
+    },
+    "dependencies": {
+        "zod": "^4.4.3"
+    }
+}

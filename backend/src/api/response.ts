@@ -1,11 +1,12 @@
 import type { Response } from "express";
-import type { z } from "zod";
 
-export function sendResponse<Schema extends z.ZodType>(
-    response: Response<z.output<Schema>>,
+type Parseable<Output> = Readonly<{ parse: (value: unknown) => Output }>;
+
+export function sendResponse<Output>(
+    response: Response<Output>,
     statusCode: number,
-    schema: Schema,
-    body: z.input<Schema>,
+    schema: Parseable<Output>,
+    body: Output,
 ): void {
     response.status(statusCode).json(schema.parse(body));
 }

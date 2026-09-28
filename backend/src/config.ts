@@ -10,10 +10,32 @@ const environmentSchema = z.object({
     PORT: z.coerce.number().int().min(1).max(65_535).default(3000),
 });
 
+const authEnvironmentSchema = z.object({
+    SUPABASE_URL: z.url().refine(
+        (value) => {
+            const url = new URL(value);
+            return (
+                url.protocol === "https:" ||
+                (url.protocol === "http:" &&
+                    ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname))
+            );
+        },
+        {
+            message: "SUPABASE_URL must use HTTPS, or HTTP on loopback for local development",
+        },
+    ),
+    SUPABASE_PUBLISHABLE_KEY: z.string().min(1),
+});
+
 export type AppConfig = Readonly<{
     databaseUrl: string;
     nodeEnv: z.infer<typeof environmentSchema>["NODE_ENV"];
     port: number;
+}>;
+
+export type AuthConfig = Readonly<{
+    supabaseUrl: string;
+    supabasePublishableKey: string;
 }>;
 
 export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -31,3 +53,16 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
 }
 
 export const config = loadConfig();
+
+export function loadAuthConfig(environment: NodeJS.ProcessEnv = process.env): AuthConfig {
+    const result = authEnvironmentSchema.safeParse(environment);
+
+    if (!result.success) {
+        throw new Error(`Invalid authentication configuration:\n${z.prettifyError(result.error)}`);
+    }
+
+    return Object.freeze({
+        supabaseUrl: result.data.SUPABASE_URL.replace(/\/$/, ""),
+        supabasePublishableKey: result.data.SUPABASE_PUBLISHABLE_KEY,
+    });
+}

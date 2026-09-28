@@ -7,6 +7,10 @@ types, response validation, and OpenAPI component schemas. OpenAPI operation met
 HTTP method, path, summary, and status descriptions lives in `src/openapi/document.ts` because it
 has no equivalent in a data schema.
 
+Shared question and tag contracts come from `@quiz-builder/contracts`; build that package before
+backend validation or builds. The backend accepts their schemas at request/response boundaries
+without maintaining parallel copies.
+
 `@asteasolutions/zod-to-openapi` generates OpenAPI 3.1 from the same schemas used by the Express
 application. Do not create parallel OpenAPI-only request or response shapes.
 
@@ -17,7 +21,7 @@ boundary at the start of the handler with `validateRequest`:
 
 ```ts
 const createQuestionRequest = {
-    params: z.object({ deckId: z.string().uuid() }),
+    params: z.object({ questionId: z.string().uuid() }),
     query: z.object({ dryRun: z.stringbool().default(false) }),
     body: z.object({ prompt: z.string().trim().min(1) }),
 };
@@ -64,13 +68,13 @@ part of the API contract. Expected failures should throw `AppError`; unexpected 
 ## OpenAPI artifact
 
 `createOpenApiDocument` generates the document in memory. `npm run openapi:check` validates it and
-is the check to add to CI when the repository's initial CI phase is implemented. `npm run build`
+is included in CI. `npm run build`
 writes `dist/openapi.json` alongside compiled application output. The entire `dist/` directory is
 ignored, so generated OpenAPI is produced during builds and is not committed.
 
 ## Versioning
 
-Routes remain unversioned while the API is internal and has no compatibility commitment. Do not
-add a speculative `/v1` prefix. Introduce a versioned public API namespace such as `/api/v1` when
-the first external consumer or compatibility requirement makes a versioning policy necessary.
-Operational endpoints such as `/health` remain unversioned.
+Domain routes belong under `/api/v1`, as specified by the
+[Architecture & Implementation Plan](../../architecture-plan.md). `/health` is operational and
+remains unversioned. Protected routes use Supabase Auth user access tokens via the HTTP bearer
+scheme. `GET /api/v1/me` is the current-user endpoint.

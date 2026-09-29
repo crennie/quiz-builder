@@ -67,3 +67,17 @@ Run each application's documented commands from its directory: [frontend](fronte
 `npm run test:shared`, and `npm run build:shared` from the root.
 Build shared contracts before running backend commands because the backend imports them as a local
 package.
+
+## Browser workflow checks
+
+With Docker running, install dependencies in the root, `frontend/`, and `backend/`, then build the
+shared contracts and start the local Supabase stack. From `frontend/`, run `npm run test:e2e`.
+The Playwright tests start the API and Vite with the local Supabase URL, database URL, and anon key
+reported by `supabase status`. They create their own local users and content. Install Chromium once
+with `npx playwright install chromium` if it is not already available. CI also regenerates database
+types from the local stack and checks the committed file for drift.
+
+**Local validation status (2026-09-29):** A full CI-equivalent run is blocked in the agent
+container because Docker is unavailable. The Supabase SQL tests, generated-type drift check,
+live PostgreSQL transaction tests, and Playwright browser tests still need a Docker-enabled
+environment. Docker-free checks passed.

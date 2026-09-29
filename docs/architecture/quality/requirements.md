@@ -10,6 +10,6 @@ These are architecturally significant expectations from the [implementation plan
 | Runtime data integrity | API payloads and JSONB domain structures must pass Zod validation at the relevant boundary; database keys and checks must reject invalid relationships. |
 | Predictable grading | Supported v1 answers must evaluate deterministically against frozen snapshots. Awarded points are either zero or the configured points for the current evaluator. |
 | Observability | HTTP requests use structured Pino logging and a request correlation ID; the backend exposes a health route. |
-| Maintainability | SQL migrations, generated DB types, shared contracts, and generated OpenAPI each have distinct roles. CI runs schema, type, lint, test, and build checks for the relevant packages. |
+| Maintainability | SQL migrations, generated DB types, shared contracts, and generated OpenAPI each have distinct roles. CI runs schema, generated-type consistency, type, lint, test, build, and browser workflow checks for the relevant packages. |
 
 The frontend covers quiz authoring, taking, results, history, and feedback submission. Received feedback review remains available through the API.

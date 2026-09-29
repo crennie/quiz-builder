@@ -10,4 +10,6 @@ function normalizeBaseUrl(value: string | undefined): string {
 
 export const config = Object.freeze({
     apiBaseUrl: normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL),
+    supabaseUrl: import.meta.env.VITE_SUPABASE_URL?.trim() ?? "",
+    supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim() ?? "",
 });

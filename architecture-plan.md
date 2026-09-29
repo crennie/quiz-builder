@@ -174,6 +174,15 @@ An accessible quiz may present the question content stored in its quiz version e
 
 There is no visibility inheritance between quizzes and questions.
 
+### Answer visibility
+
+Quiz Builder is a flashcard-style practice app, not a secure assessment platform. Hiding correct
+answers from learners is not a security requirement. Published question and quiz APIs may expose
+answer and grading configuration to users who can access that content. Settings such as
+`showAnswersAfterCompletion` guide the practice and review experience; they do not promise that
+answers are secret until an attempt is completed. Ownership, private visibility, and attempt-user
+authorization still apply.
+
 ## Lifecycle status
 
 ```txt

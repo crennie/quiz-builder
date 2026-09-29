@@ -1,8 +1,13 @@
 import { OpenAPIRegistry, OpenApiGeneratorV31 } from "@asteasolutions/zod-to-openapi";
 import {
+    attemptDetailSchema,
+    attemptListResponseSchema,
+    createFeedbackBodySchema,
     createQuestionBodySchema,
     createQuizBodySchema,
     createTagBodySchema,
+    feedbackListResponseSchema,
+    feedbackSchema,
     questionDetailSchema,
     questionListResponseSchema,
     questionVersionContentSchema,
@@ -13,13 +18,21 @@ import {
     quizVersionsResponseSchema,
     tagListResponseSchema,
     tagSchema,
+    submitAnswerBodySchema,
     updateQuestionMetadataBodySchema,
     updateQuizMetadataBodySchema,
+    updateFeedbackStatusBodySchema,
 } from "@quiz-builder/contracts";
 import type { z } from "zod";
 
 import { currentUserResponseSchema } from "../api/schemas/current-user.ts";
+import {
+    attemptListQuerySchema,
+    attemptParamsSchema,
+    attemptQuestionParamsSchema,
+} from "../api/schemas/attempts.ts";
 import { errorResponseSchema } from "../api/schemas/error.ts";
+import { feedbackListQuerySchema, feedbackParamsSchema } from "../api/schemas/feedback.ts";
 import { healthResponseSchema } from "../api/schemas/health.ts";
 import {
     questionListQuerySchema,
@@ -411,6 +424,136 @@ registry.registerPath({
     security: [{ BearerAuth: [] }],
     request: { params: quizTagParamsSchema },
     responses: { 204: { description: "Tag assignment removed." }, ...commonErrors },
+});
+
+const attemptContent = { "application/json": { schema: apiSchema(attemptDetailSchema) } };
+
+registry.registerPath({
+    method: "post",
+    path: "/api/v1/quizzes/{quizId}/attempts",
+    tags: ["Attempts"],
+    summary: "Start an attempt from the current published quiz version",
+    security: [{ BearerAuth: [] }],
+    request: { params: quizParamsSchema },
+    responses: {
+        201: { description: "Started attempt with question snapshots.", content: attemptContent },
+        ...commonErrors,
+    },
+});
+
+registry.registerPath({
+    method: "get",
+    path: "/api/v1/attempts",
+    tags: ["Attempts"],
+    summary: "List the current user's attempt history",
+    security: [{ BearerAuth: [] }],
+    request: { query: attemptListQuerySchema },
+    responses: {
+        200: {
+            description: "Attempts and pagination offset.",
+            content: {
+                "application/json": { schema: apiSchema(attemptListResponseSchema) },
+            },
+        },
+        ...commonErrors,
+    },
+});
+
+registry.registerPath({
+    method: "get",
+    path: "/api/v1/attempts/{attemptId}",
+    tags: ["Attempts"],
+    summary: "Load an owned attempt or its historical results",
+    security: [{ BearerAuth: [] }],
+    request: { params: attemptParamsSchema },
+    responses: {
+        200: { description: "Attempt detail.", content: attemptContent },
+        ...commonErrors,
+    },
+});
+
+registry.registerPath({
+    method: "put",
+    path: "/api/v1/attempts/{attemptId}/questions/{questionId}/answer",
+    tags: ["Attempts"],
+    summary: "Submit and evaluate one answer",
+    security: [{ BearerAuth: [] }],
+    request: {
+        params: attemptQuestionParamsSchema,
+        body: {
+            content: { "application/json": { schema: apiSchema(submitAnswerBodySchema) } },
+        },
+    },
+    responses: {
+        200: { description: "Updated attempt.", content: attemptContent },
+        ...commonErrors,
+    },
+});
+
+registry.registerPath({
+    method: "post",
+    path: "/api/v1/attempts/{attemptId}/complete",
+    tags: ["Attempts"],
+    summary: "Complete an attempt and aggregate recorded results",
+    security: [{ BearerAuth: [] }],
+    request: { params: attemptParamsSchema },
+    responses: {
+        200: { description: "Completed attempt and results.", content: attemptContent },
+        ...commonErrors,
+    },
+});
+
+const feedbackContent = { "application/json": { schema: apiSchema(feedbackSchema) } };
+
+registry.registerPath({
+    method: "post",
+    path: "/api/v1/feedback",
+    tags: ["Feedback"],
+    summary: "Submit feedback on one accessible question, quiz, or own attempt question",
+    security: [{ BearerAuth: [] }],
+    request: {
+        body: { content: { "application/json": { schema: apiSchema(createFeedbackBodySchema) } } },
+    },
+    responses: {
+        201: { description: "Created feedback.", content: feedbackContent },
+        ...commonErrors,
+    },
+});
+
+registry.registerPath({
+    method: "get",
+    path: "/api/v1/feedback/received",
+    tags: ["Feedback"],
+    summary: "List feedback about the current user's questions and quizzes",
+    security: [{ BearerAuth: [] }],
+    request: { query: feedbackListQuerySchema },
+    responses: {
+        200: {
+            description: "Received feedback and pagination offset.",
+            content: {
+                "application/json": { schema: apiSchema(feedbackListResponseSchema) },
+            },
+        },
+        ...commonErrors,
+    },
+});
+
+registry.registerPath({
+    method: "patch",
+    path: "/api/v1/feedback/{feedbackId}",
+    tags: ["Feedback"],
+    summary: "Update the review status of feedback about owned content",
+    security: [{ BearerAuth: [] }],
+    request: {
+        params: feedbackParamsSchema,
+        body: {
+            content: { "application/json": { schema: apiSchema(updateFeedbackStatusBodySchema) } },
+        },
+    },
+    responses: {
+        200: { description: "Updated feedback.", content: feedbackContent },
+        ...commonErrors,
+    },
 });
 
 export function createOpenApiDocument() {

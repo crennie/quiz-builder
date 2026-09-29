@@ -1,4 +1,5 @@
 import { config } from "../config";
+import { supabase } from "../auth/client";
 
 type ErrorEnvelope = {
     error?: {
@@ -38,5 +39,20 @@ export async function apiRequest<T>(path: `/${string}`, init?: RequestInit): Pro
         );
     }
 
+    if (response.status === 204) return undefined as T;
     return (await response.json()) as T;
+}
+
+export async function authenticatedRequest<T>(path: `/${string}`, init?: RequestInit): Promise<T> {
+    if (!supabase) throw new Error("Supabase Auth is not configured.");
+    const { data, error } = await supabase.auth.getSession();
+    if (error || !data.session) throw new ApiError("Sign in to continue.", 401, "UNAUTHORIZED");
+    return apiRequest<T>(path, {
+        ...init,
+        headers: {
+            "Content-Type": "application/json",
+            ...init?.headers,
+            Authorization: `Bearer ${data.session.access_token}`,
+        },
+    });
 }

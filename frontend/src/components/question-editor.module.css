@@ -1,0 +1,30 @@
+.editor {
+    display: grid;
+    gap: 1.25rem;
+}
+.editor fieldset {
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    display: grid;
+    gap: 0.8rem;
+}
+.editor legend {
+    font-weight: 700;
+    padding: 0 0.3rem;
+}
+.inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-weight: 500;
+}
+.choice {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.7rem;
+}
+.choice > input {
+    flex: 1 1 12rem;
+}

@@ -19,6 +19,8 @@
         "typecheck": "tsc --build --pretty false"
     },
     "dependencies": {
+        "@quiz-builder/contracts": "file:../shared",
+        "@supabase/supabase-js": "^2.117.2",
         "@tanstack/react-query": "^5.101.4",
         "@tanstack/react-router": "^1.170.40",
         "react": "^19.2.8",

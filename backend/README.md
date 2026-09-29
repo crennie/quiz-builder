@@ -116,6 +116,20 @@ membership remains usable after a source question's visibility changes. Only own
 tag, or inspect version history. Published unlisted quizzes are accessible by ID but omitted from
 public lists. Quiz visibility is independent of source question visibility.
 
+## Feedback API
+
+Phase 6 endpoints live under `/api/v1` and require a verified user token:
+
+- `POST /feedback` accepts a category, comment, and exactly one of `questionId`, `quizId`, or
+  `quizAttemptQuestionId`. Questions and quizzes must be owned or published and accessible;
+  attempted questions must belong to the submitting user's attempt.
+- `GET /feedback/received` lists feedback about the user's questions and quizzes, including
+  attempted questions in those quizzes. It accepts `limit` and `offset`.
+- `PATCH /feedback/:feedbackId` changes review status for feedback about owned content.
+  Marking feedback open again clears `reviewedAt`.
+
+The database also rejects feedback rows with zero or multiple targets.
+
 ## Test conventions
 
 Vitest is the test runner. Test files use the `*.test.ts` suffix and live under:

@@ -4,6 +4,9 @@ The [Architecture & Implementation Plan](architecture-plan.md) defines the targe
 order. `frontend/` and `backend/` are the applications; `shared/` contains runtime domain contracts;
 `supabase/migrations/` is the source of database schema truth.
 
+The [architecture documentation](docs/architecture/README.md) maps the current system structure,
+runtime flows, decisions, and quality constraints.
+
 ## Local database workflow
 
 Use Node.js 24 and npm. From the repository root, run `npm ci`. A Docker-compatible runtime must

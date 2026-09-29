@@ -1,0 +1,15 @@
+# Quality requirements
+
+These are architecturally significant expectations from the [implementation plan](../../../architecture-plan.md) and current behavior. They are scoped to v1; no production traffic or availability service level has been specified.
+
+| Area | Requirement and acceptance evidence |
+|---|---|
+| Historical correctness | Editing a question or quiz must leave prior versions and attempts unchanged. Database immutability constraints and integration tests should reject version or snapshot mutation. |
+| Authorization | Only owners may change their questions and quizzes or read their attempt history; published public content may be discovered, and published unlisted content may be read by ID. API integration tests should cover allowed and denied access. |
+| Transactional consistency | Creating a version or attempt and completing an attempt must commit all related records together or none. Multi-step repository operations use `withTransaction`. |
+| Runtime data integrity | API payloads and JSONB domain structures must pass Zod validation at the relevant boundary; database keys and checks must reject invalid relationships. |
+| Predictable grading | Supported v1 answers must evaluate deterministically against frozen snapshots. Awarded points are either zero or the configured points for the current evaluator. |
+| Observability | HTTP requests use structured Pino logging and a request correlation ID; the backend exposes a health route. |
+| Maintainability | SQL migrations, generated DB types, shared contracts, and generated OpenAPI each have distinct roles. CI runs schema, type, lint, test, and build checks for the relevant packages. |
+
+The current frontend has no quiz authoring, quiz-taking, result, history, or feedback screens. The API supports those operations; completing the full user journeys remains future UI work.

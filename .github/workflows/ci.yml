@@ -83,6 +83,52 @@ jobs:
       - name: Build
         run: npm run build
 
+  e2e:
+    name: Browser workflows and generated types
+    needs: [persistence, frontend, backend]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+            backend/package-lock.json
+
+      - name: Install shared dependencies and build contracts
+        run: npm ci && npm run build:shared
+
+      - name: Install applications
+        run: npm ci --prefix frontend && npm ci --prefix backend
+
+      - name: Install Chromium
+        run: npm exec --prefix frontend -- playwright install --with-deps chromium
+
+      - name: Start local Supabase
+        run: npx supabase start --exclude realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+
+      - name: Check generated database types
+        run: npm run db:types && git diff --exit-code -- shared/src/database.types.ts
+
+      - name: Run browser workflows
+        run: npm run test:e2e --prefix frontend
+
+      - name: Upload browser traces on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-traces
+          path: frontend/test-results/
+          if-no-files-found: ignore
+
   backend:
     name: Backend validation
     runs-on: ubuntu-24.04

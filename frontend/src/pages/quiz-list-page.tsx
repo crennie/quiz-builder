@@ -11,7 +11,7 @@ export function QuizListPage() {
     const [tag, setTag] = useState("");
     const [offset, setOffset] = useState(0);
     const [search, setSearch] = useState("");
-    const [scope, setScope] = useState("mine");
+    const [scope, setScope] = useState("all");
     const quizzes = useQuery({
         queryKey: ["quizzes", session?.user.id, tag, offset],
         queryFn: () => listQuizzes({ ...(tag ? { tag } : {}), offset }),
@@ -69,8 +69,8 @@ export function QuizListPage() {
                     <label>
                         Show
                         <select value={scope} onChange={(event) => setScope(event.target.value)}>
+                            <option value="all">All available quizzes</option>
                             <option value="mine">My quizzes</option>
-                            <option value="all">My quizzes and public quizzes</option>
                         </select>
                     </label>
                 </div>

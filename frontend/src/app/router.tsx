@@ -11,6 +11,8 @@ import { QuestionDetailPage } from "../pages/question-detail-page";
 import { QuizListPage } from "../pages/quiz-list-page";
 import { NewQuizPage } from "../pages/new-quiz-page";
 import { QuizDetailPage } from "../pages/quiz-detail-page";
+import { AttemptHistoryPage } from "../pages/attempt-history-page";
+import { AttemptPage } from "../pages/attempt-page";
 
 const rootRoute = createRootRoute({ component: AppLayout, notFoundComponent: NotFoundPage });
 const homeRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: HomePage });
@@ -73,6 +75,24 @@ const quizDetailRoute = createRoute({
         </RequireAuth>
     ),
 });
+const attemptHistoryRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/attempts",
+    component: () => (
+        <RequireAuth>
+            <AttemptHistoryPage />
+        </RequireAuth>
+    ),
+});
+const attemptRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/attempts/$attemptId",
+    component: () => (
+        <RequireAuth>
+            <AttemptPage />
+        </RequireAuth>
+    ),
+});
 
 export const router = createRouter({
     routeTree: rootRoute.addChildren([
@@ -84,6 +104,8 @@ export const router = createRouter({
         quizListRoute,
         newQuizRoute,
         quizDetailRoute,
+        attemptHistoryRoute,
+        attemptRoute,
     ]),
 });
 

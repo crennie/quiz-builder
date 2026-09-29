@@ -10,8 +10,8 @@ export function RequireAuth({ children }: { children: ReactNode }) {
             <section className="message-panel">
                 <h1>Set up sign in</h1>
                 <p>
-                    Add the Supabase URL and publishable key to the frontend environment to manage
-                    questions.
+                    Add the Supabase URL and publishable key to the frontend environment to use Quiz
+                    Builder.
                 </p>
             </section>
         );
@@ -19,8 +19,8 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     if (!auth.session)
         return (
             <section className="message-panel">
-                <h1>Sign in to manage questions</h1>
-                <p>Your question bank is tied to your account.</p>
+                <h1>Sign in to continue</h1>
+                <p>Your questions, quizzes, and attempts are tied to your account.</p>
                 <Link className="button" to="/sign-in">
                     Sign in
                 </Link>

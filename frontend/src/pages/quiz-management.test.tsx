@@ -6,6 +6,7 @@ import userEvent from "@testing-library/user-event";
 
 import * as questionsApi from "../api/questions";
 import * as quizzesApi from "../api/quizzes";
+import * as attemptsApi from "../api/attempts";
 import { router } from "../app/router";
 import { createQueryClient } from "../app/query-client";
 import { AuthContext } from "../auth/auth-state";
@@ -24,6 +25,10 @@ vi.mock("../api/quizzes", () => ({
     updateQuizMetadata: vi.fn(),
     assignQuizTag: vi.fn(),
     removeQuizTag: vi.fn(),
+}));
+vi.mock("../api/attempts", () => ({
+    listAttempts: vi.fn(),
+    startAttempt: vi.fn(),
 }));
 
 const ownerId = "123e4567-e89b-42d3-a456-426614174030";
@@ -129,6 +134,7 @@ beforeEach(() => {
     });
     vi.mocked(questionsApi.getQuestionVersions).mockResolvedValue({ versions: [questionVersion] });
     vi.mocked(questionsApi.listTags).mockResolvedValue([]);
+    vi.mocked(attemptsApi.listAttempts).mockResolvedValue({ items: [], nextOffset: null });
 });
 
 it("lists quizzes and opens an owned quiz", async () => {

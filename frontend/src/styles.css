@@ -278,6 +278,27 @@ nav a {
     gap: 1rem;
     margin-top: 1rem;
 }
+.feedback-panel {
+    border-top: 1px solid var(--border);
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+}
+.feedback-panel summary {
+    color: var(--accent);
+    cursor: pointer;
+    font-weight: 650;
+}
+.feedback-panel form {
+    margin-top: 1rem;
+}
+.result-score {
+    font-size: clamp(1.7rem, 5vw, 2.6rem);
+    font-weight: 750;
+    margin: 0.5rem 0;
+}
+.recent-attempts {
+    margin-top: 1.5rem;
+}
 .auth-card {
     max-width: 28rem;
     margin: 0 auto;

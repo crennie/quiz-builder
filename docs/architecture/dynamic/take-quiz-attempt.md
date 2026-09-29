@@ -1,6 +1,6 @@
 # Take quiz attempt
 
-**Scenario:** A verified learner starts a published quiz, submits answers, and completes it through the API. The current web UI does not expose this flow yet.
+**Scenario:** A verified learner starts a published quiz in the web UI, submits answers one at a time, and completes it through the API. The attempt route reloads saved progress by attempt ID after a refresh.
 
 ```mermaid
 sequenceDiagram
@@ -44,4 +44,4 @@ sequenceDiagram
     API-->>Learner: Result or error
 ```
 
-The quiz access check depends on quiz visibility and publication, not on current visibility of its source questions. A learner can access only their own attempts. Attempts use frozen snapshots even after later edits. The current evaluator awards all points or zero for exact text, single choice, and multiple choice; points can be fractional. Correct answers and explanations in the response are governed by the saved `showAnswersAfterCompletion` setting, while answer secrecy is not a security requirement for this practice app.
+The quiz access check depends on quiz visibility and publication, not on current visibility of its source questions. A learner can access only their own attempts. Attempts use frozen snapshots even after later edits. The current evaluator awards all points or zero for exact text, single choice, and multiple choice; points can be fractional. The web UI shows scores and per-question review after completion, reads history from the API, and lets the learner submit feedback. Correct answers and explanations in the response are governed by the saved `showAnswersAfterCompletion` setting, while answer secrecy is not a security requirement for this practice app.

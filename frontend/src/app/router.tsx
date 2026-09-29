@@ -8,6 +8,9 @@ import { RequireAuth } from "../auth/require-auth";
 import { QuestionBankPage } from "../pages/question-bank-page";
 import { NewQuestionPage } from "../pages/new-question-page";
 import { QuestionDetailPage } from "../pages/question-detail-page";
+import { QuizListPage } from "../pages/quiz-list-page";
+import { NewQuizPage } from "../pages/new-quiz-page";
+import { QuizDetailPage } from "../pages/quiz-detail-page";
 
 const rootRoute = createRootRoute({ component: AppLayout, notFoundComponent: NotFoundPage });
 const homeRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: HomePage });
@@ -43,6 +46,33 @@ const questionDetailRoute = createRoute({
         </RequireAuth>
     ),
 });
+const quizListRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/quizzes",
+    component: () => (
+        <RequireAuth>
+            <QuizListPage />
+        </RequireAuth>
+    ),
+});
+const newQuizRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/quizzes/new",
+    component: () => (
+        <RequireAuth>
+            <NewQuizPage />
+        </RequireAuth>
+    ),
+});
+const quizDetailRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/quizzes/$quizId",
+    component: () => (
+        <RequireAuth>
+            <QuizDetailPage />
+        </RequireAuth>
+    ),
+});
 
 export const router = createRouter({
     routeTree: rootRoute.addChildren([
@@ -51,6 +81,9 @@ export const router = createRouter({
         questionBankRoute,
         newQuestionRoute,
         questionDetailRoute,
+        quizListRoute,
+        newQuizRoute,
+        quizDetailRoute,
     ]),
 });
 

@@ -26,11 +26,11 @@ unversioned backend `/health` endpoint; `/api/v1/*` paths retain their prefix.
 ## Architecture decisions
 
 The [Architecture & Implementation Plan](../architecture-plan.md) defines the target architecture.
-Phase 7 adds Supabase Auth, shared Zod contracts, and question management UI.
+Phase 7 adds Supabase Auth, shared Zod contracts, and question management UI. Phase 8 adds quiz management UI.
 
 - API access lives in `src/api/`. The shared `fetch` wrapper applies configuration and translates
   the backend's standard error envelope into `ApiError`. Protected calls attach the current
-  Supabase access token, and question responses are parsed with shared Zod contracts.
+  Supabase access token, and question and quiz responses are parsed with shared Zod contracts.
 - TanStack Query owns server state. Local UI state should remain in components until a broader
   client-state need is demonstrated.
 - Routes are declared in `src/app/router.tsx` and render inside the shared application layout.
@@ -50,9 +50,16 @@ text, single choice, and multiple choice answers; it validates content with the 
 as the backend. Saving an existing question creates a new version. Visibility, status, and tags
 can be changed separately without creating a content version. Archived questions cannot be revised.
 
+## Quiz management
+
+Open **Quizzes** to list, create, and edit quizzes. The editor chooses exact question versions,
+sets points and time limits, reorders questions, and configures attempt settings. Content saves
+create a new quiz version only when content changes. Visibility, lifecycle status, and tags are
+managed separately on the quiz detail page. Published quizzes require at least one question.
+
 ## OpenAPI client decision
 
-The frontend uses a small hand-written question client and the shared Zod contracts. OpenAPI client
+The frontend uses small hand-written question and quiz clients and the shared Zod contracts. OpenAPI client
 generation remains optional as more feature UIs are added.
 
 ## Layout conventions

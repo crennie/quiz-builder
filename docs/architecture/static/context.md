@@ -16,4 +16,4 @@ flowchart LR
     system -->|Stores and reads versioned content, attempts, and feedback| postgres
 ```
 
-The backend API already provides quiz management, attempt, and feedback operations. The current web UI provides sign-in and question management; the remaining user journeys are API-only for now. Supabase Auth owns credentials and sessions. The application uses `auth.users.id` directly for profile and ownership IDs.
+The backend API already provides quiz management, attempt, and feedback operations. The current web UI provides sign-in, question management, and quiz management; attempt and feedback journeys are API-only for now. Supabase Auth owns credentials and sessions. The application uses `auth.users.id` directly for profile and ownership IDs.

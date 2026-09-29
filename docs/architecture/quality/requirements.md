@@ -12,4 +12,4 @@ These are architecturally significant expectations from the [implementation plan
 | Observability | HTTP requests use structured Pino logging and a request correlation ID; the backend exposes a health route. |
 | Maintainability | SQL migrations, generated DB types, shared contracts, and generated OpenAPI each have distinct roles. CI runs schema, type, lint, test, and build checks for the relevant packages. |
 
-The current frontend has no quiz authoring, quiz-taking, result, history, or feedback screens. The API supports those operations; completing the full user journeys remains future UI work.
+The current frontend has quiz authoring screens but no quiz-taking, result, history, or feedback screens. The API supports those operations; completing the learner journeys remains future UI work.

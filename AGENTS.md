@@ -5,14 +5,17 @@
 Read [Architecture & Implementation Plan](architecture-plan.md) before architecture or feature
 work. It defines the domain, technology choices, invariants, and implementation order. Inspect the
 repository to determine what has actually been implemented; the plan describes the target state.
+Use [Architecture Documentation](docs/architecture/README.md) for the current architecture views,
+runtime scenarios, decisions, and quality expectations.
 
 ## Repository layout and state
 
 - `frontend/` contains the React, Vite, TypeScript, TanStack Router, and TanStack Query shell.
 - `backend/` contains the Express 5, TypeScript, Zod, Pino, OpenAPI, and `pg` foundations.
 - Shared Zod contracts, Supabase-generated DB types, and the initial SQL migration are present.
-- The backend has Supabase Auth token verification, a current-user profile endpoint, and the
-  Phase 3 question bank/tag and Phase 4 quiz/version APIs. Attempt and feedback features remain.
+- The backend has Supabase Auth token verification, a current-user profile endpoint, and question
+  bank/tag, quiz/version, attempt, and feedback APIs. The frontend currently supports sign-in and
+  question management; quiz and attempt screens remain.
 - Keep frontend code in `frontend/`, backend code in `backend/`, and shared contracts in `shared/`.
 
 ## Development environment
@@ -43,6 +46,8 @@ the backend imports the local shared contracts package.
   through the existing Auth integration; do not accept unverified JWT payloads.
 - Use Zod for API and JSONB runtime validation; generated Supabase types describe database rows.
 - Enforce ownership and visibility when implementing each protected feature.
+- When architecture changes, update the smallest affected view in `docs/architecture/` and add or
+  supersede an ADR for significant decisions. Keep deployment details out until they are defined.
 - Keep changes small and avoid speculative abstractions or unrelated cleanup.
 - Run relevant available checks and inspect the final diff after changes.
 - Do not push or modify remote Git resources without explicit authorization.

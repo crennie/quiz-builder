@@ -1,7 +1,12 @@
 import { PGlite } from "@electric-sql/pglite";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("node:crypto", async (importOriginal) => ({
+    ...(await importOriginal<Record<string, unknown>>()),
+    randomInt: vi.fn(() => 0),
+}));
 
 import {
     completeAttemptInTransaction,
@@ -298,5 +303,29 @@ describe("quiz attempts", () => {
         expect(completed.questions[0]?.correctAnswer).toBeNull();
         expect(completed.questions[0]?.evaluationResult?.explanation).toBeNull();
         expect(completed.questions[2]?.pointsAwarded).toBeNull();
+    });
+
+    it("shuffles presentation order while retaining each question snapshot", async () => {
+        const { quiz, content, contents } = await fixture();
+        await saveQuizContentInTransaction(
+            quiz.id,
+            ownerId,
+            { ...content, settings: { ...settings, shuffleQuestions: true } },
+            sql,
+        );
+        const started = await startAttemptInTransaction(quiz.id, takerId, sql);
+        expect(started.questions.map((question) => question.position)).toEqual([0, 1, 2]);
+        expect(started.questions.map((question) => question.prompt)).toEqual([
+            contents[1]?.prompt,
+            contents[2]?.prompt,
+            contents[0]?.prompt,
+        ]);
+        expect(started.questions.map((question) => question.questionType)).toEqual([
+            "multiple_choice_single",
+            "multiple_choice_multi",
+            "exact_text",
+        ]);
+        expect(started.questions[0]?.options).toEqual(contents[1]?.answerConfig.options);
+        expect(started.questions[1]?.options).toEqual(contents[2]?.answerConfig.options);
     });
 });

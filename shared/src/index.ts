@@ -322,3 +322,83 @@ export type QuestionDetail = z.output<typeof questionDetailSchema>;
 export type QuizContent = z.output<typeof quizContentSchema>;
 export type QuizVersion = z.output<typeof quizVersionSchema>;
 export type QuizDetail = z.output<typeof quizDetailSchema>;
+
+export const submitAnswerBodySchema = z.strictObject({ response: userResponseSchema });
+
+export const attemptQuestionSchema = z.strictObject({
+    id: z.uuid(),
+    position: z.number().int().nonnegative(),
+    prompt: z.string(),
+    questionType: questionTypeSchema,
+    options: z.array(optionSchema).nullable(),
+    required: z.boolean(),
+    timeLimitSeconds: z.number().int().positive().nullable(),
+    pointsPossible: z.number().finite().nonnegative(),
+    userResponse: userResponseSchema.nullable(),
+    pointsAwarded: z.number().finite().nullable(),
+    evaluationResult: evaluationResultSchema.nullable(),
+    correctAnswer: answerSnapshotSchema.nullable(),
+    explanation: z.string().nullable(),
+    answeredAt: apiTimestampSchema.nullable(),
+});
+
+export const attemptDetailSchema = z.strictObject({
+    id: z.uuid(),
+    quizId: z.uuid(),
+    quizVersionId: z.uuid(),
+    quizTitle: z.string(),
+    status: attemptStatusSchema,
+    startedAt: apiTimestampSchema,
+    completedAt: apiTimestampSchema.nullable(),
+    settings: settingsSnapshotSchema,
+    scoreSummary: scoreSummarySchema.nullable(),
+    questions: z.array(attemptQuestionSchema),
+});
+
+export const attemptListResponseSchema = z.strictObject({
+    items: z.array(attemptDetailSchema),
+    nextOffset: z.number().int().nonnegative().nullable(),
+});
+
+export type AttemptDetail = z.output<typeof attemptDetailSchema>;
+
+export const createFeedbackBodySchema = z
+    .strictObject({
+        questionId: z.uuid().optional(),
+        quizId: z.uuid().optional(),
+        quizAttemptQuestionId: z.uuid().optional(),
+        category: feedbackCategorySchema,
+        comment: z.string().trim().min(1).max(5000),
+    })
+    .superRefine((value, context) => {
+        const targets = [value.questionId, value.quizId, value.quizAttemptQuestionId];
+        if (targets.filter((target) => target !== undefined).length !== 1) {
+            context.addIssue({
+                code: "custom",
+                message: "Exactly one feedback target is required",
+            });
+        }
+    });
+
+export const feedbackSchema = z.strictObject({
+    id: z.uuid(),
+    submittedBy: z.uuid(),
+    questionId: z.uuid().nullable(),
+    quizId: z.uuid().nullable(),
+    quizAttemptQuestionId: z.uuid().nullable(),
+    category: feedbackCategorySchema,
+    comment: z.string().min(1),
+    status: feedbackStatusSchema,
+    createdAt: apiTimestampSchema,
+    reviewedAt: apiTimestampSchema.nullable(),
+});
+
+export const feedbackListResponseSchema = z.strictObject({
+    items: z.array(feedbackSchema),
+    nextOffset: z.number().int().nonnegative().nullable(),
+});
+
+export const updateFeedbackStatusBodySchema = z.strictObject({ status: feedbackStatusSchema });
+
+export type Feedback = z.output<typeof feedbackSchema>;
+export type CreateFeedbackBody = z.output<typeof createFeedbackBodySchema>;

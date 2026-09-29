@@ -16,32 +16,44 @@ Run from `frontend/`:
 - `npm test` / `npm run test:watch` — run Vitest once or in watch mode
 - `npm run format:check` / `npm run format` — check or apply Prettier formatting
 
+On a fresh checkout, run `npm ci` and `npm run build:shared` at the repository root before
+frontend checks or builds, then run `npm ci` in `frontend/`.
+
 Run the backend separately from `backend/` with `npm run dev`. During frontend development, calls
-to `/api/*` are proxied to `http://localhost:3000`. The existing `/api/health` client call maps to
-the unversioned backend `/health` endpoint; future `/api/v1/*` paths retain their prefix.
+to `/api/*` are proxied to `http://localhost:3000`. The `/api/health` client call maps to the
+unversioned backend `/health` endpoint; `/api/v1/*` paths retain their prefix.
 
 ## Architecture decisions
 
 The [Architecture & Implementation Plan](../architecture-plan.md) defines the target architecture.
-Supabase Auth, shared Zod contracts, and feature UI are not implemented yet.
+Phase 7 adds Supabase Auth, shared Zod contracts, and question management UI.
 
 - API access lives in `src/api/`. The shared `fetch` wrapper applies configuration and translates
-  the backend's standard error envelope into `ApiError`. The current health endpoint has a local
-  response type; Phase 1 shared Zod contracts should define future domain API types.
+  the backend's standard error envelope into `ApiError`. Protected calls attach the current
+  Supabase access token, and question responses are parsed with shared Zod contracts.
 - TanStack Query owns server state. Local UI state should remain in components until a broader
   client-state need is demonstrated.
 - Routes are declared in `src/app/router.tsx` and render inside the shared application layout.
 - Render failures are caught by the application boundary. Query failures are represented by each
   page in context, as the home page's API status demonstrates.
-- `VITE_API_BASE_URL` is the only current public setting. Copy `.env.example` to `.env.local` to
-  override it. Vite exposes `VITE_*` values to browser code, so they must never contain secrets.
+- Copy `.env.example` to `.env.local` and set `VITE_SUPABASE_URL` and
+  `VITE_SUPABASE_PUBLISHABLE_KEY` to the same project used by the backend. `VITE_API_BASE_URL`
+  defaults to `/api`. Vite exposes `VITE_*` values to browser code, so they must never contain
+  secrets. The publishable key is intended for browser use.
+
+## Question management
+
+Sign in or create an account, then open **Questions**. The bank supports tag, prompt, visibility,
+and status filters. Prompt, visibility, and status filters apply to the current page of results.
+Create tags in the bank and assign them on a question's detail page. The editor supports exact
+text, single choice, and multiple choice answers; it validates content with the same shared schema
+as the backend. Saving an existing question creates a new version. Visibility, status, and tags
+can be changed separately without creating a content version. Archived questions cannot be revised.
 
 ## OpenAPI client decision
 
-Do not generate a client yet. The API currently exposes only health and root endpoints, so a
-generator would add build coupling without removing meaningful maintenance. Keep the HTTP boundary
-centralized. Revisit OpenAPI client generation when domain endpoints exist, alongside the shared
-Zod contracts required by the architecture plan.
+The frontend uses a small hand-written question client and the shared Zod contracts. OpenAPI client
+generation remains optional as more feature UIs are added.
 
 ## Layout conventions
 

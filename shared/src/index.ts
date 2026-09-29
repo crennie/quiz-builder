@@ -242,6 +242,83 @@ export const createTagBodySchema = z.strictObject({
     name: z.string().trim().min(1).max(100),
 });
 
+export const quizQuestionInputSchema = z.strictObject({
+    questionId: z.uuid(),
+    questionVersionId: z.uuid(),
+    points: z.number().finite().nonnegative(),
+    required: z.boolean(),
+    timeLimitSeconds: z.number().int().positive().nullable(),
+});
+
+export const quizContentSchema = z.strictObject({
+    title: z.string().trim().min(1),
+    description: z.string().trim().nullable(),
+    settings: quizSettingsSchema,
+    questions: z.array(quizQuestionInputSchema),
+});
+
+export const quizVersionQuestionSchema = quizQuestionInputSchema.extend({
+    id: z.uuid(),
+    position: z.number().int().nonnegative(),
+    question: questionVersionContentSchema,
+});
+
+export const quizVersionSchema = z
+    .strictObject({
+        id: z.uuid(),
+        versionNumber: z.number().int().positive(),
+        title: z.string().min(1),
+        description: z.string().nullable(),
+        settings: quizSettingsSchema,
+        questions: z.array(quizVersionQuestionSchema),
+        createdBy: z.uuid(),
+        createdAt: apiTimestampSchema,
+    })
+    .meta({ id: "QuizVersion" });
+
+export const quizDetailSchema = z
+    .strictObject({
+        id: z.uuid(),
+        createdBy: z.uuid(),
+        visibility: visibilitySchema,
+        status: contentStatusSchema,
+        createdAt: apiTimestampSchema,
+        updatedAt: apiTimestampSchema,
+        tags: z.array(tagSchema),
+        isOwner: z.boolean(),
+        currentVersion: quizVersionSchema,
+    })
+    .meta({ id: "QuizDetail" });
+
+export const quizListResponseSchema = z
+    .strictObject({
+        items: z.array(quizDetailSchema),
+        nextOffset: z.number().int().nonnegative().nullable(),
+    })
+    .meta({ id: "QuizListResponse" });
+
+export const quizVersionsResponseSchema = z
+    .strictObject({ versions: z.array(quizVersionSchema) })
+    .meta({ id: "QuizVersionsResponse" });
+
+export const createQuizBodySchema = z.strictObject({
+    content: quizContentSchema,
+    visibility: visibilitySchema.default("private"),
+    status: z.enum(["draft", "published"]).default("draft"),
+});
+
+export const updateQuizMetadataBodySchema = z
+    .strictObject({
+        visibility: visibilitySchema.optional(),
+        status: contentStatusSchema.optional(),
+    })
+    .refine((value) => value.visibility !== undefined || value.status !== undefined, {
+        message: "At least one metadata field is required",
+    });
+
 export type Tag = z.output<typeof tagSchema>;
 export type QuestionVersion = z.output<typeof questionVersionSchema>;
 export type QuestionDetail = z.output<typeof questionDetailSchema>;
+export type QuizContent = z.output<typeof quizContentSchema>;
+export type QuizVersion = z.output<typeof quizVersionSchema>;
+export type QuizDetail = z.output<typeof quizDetailSchema>;

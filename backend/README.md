@@ -65,7 +65,7 @@ Vitest supplies a test-only default URL whose database name is `quiz_builder_tes
 integration tests must run against a dedicated, disposable PostgreSQL database and may override
 `DATABASE_URL` in CI. They must never point `DATABASE_URL` at a development or production database.
 The automated backend suite mocks the Auth SDK for API boundary tests and uses an in-memory
-PostgreSQL engine for question-bank persistence tests. It does not connect to the hosted dev
+PostgreSQL engine for question-bank and quiz persistence tests. It does not connect to the hosted dev
 database. A live Auth/profile smoke test requires a test user and hosted dev configuration.
 
 ## Question bank API
@@ -90,6 +90,31 @@ questions are accessible by ID but omitted from the public list. Mutations and v
 require ownership. Answer and grading JSONB is validated by shared Zod contracts on input and
 when read from PostgreSQL. The [architecture plan](../architecture-plan.md) defines the durable
 question and visibility rules.
+
+## Quiz management API
+
+Phase 4 endpoints live under `/api/v1`:
+
+- `GET /quizzes` lists owned and published public quizzes, with `tag`, `limit`, and `offset`.
+- `GET /quizzes/:quizId` returns an owned quiz or a published public/unlisted quiz. The response
+  includes the current version's ordered questions and exact `questionVersionId` values, with
+  full question content. It remains available even if an included source question later becomes
+  private or archived.
+- `POST /quizzes` creates a quiz and its first immutable version. Empty drafts are allowed;
+  publishing requires at least one question.
+- `PUT /quizzes/:quizId/content` saves attempt-relevant content. The backend compares the
+  canonicalized content with the current version and returns the existing version for an
+  equivalent save. Changes create a new version transactionally.
+- `GET /quizzes/:quizId/versions` lists the owner's version history, newest first.
+- `PATCH /quizzes/:quizId` updates visibility or status without a content version;
+  `POST /quizzes/:quizId/publish` and `/archive` are lifecycle shortcuts.
+- `PUT` and `DELETE` on `/quizzes/:quizId/tags/:tagId` assign and remove the owner's tags.
+
+Quiz creation and content saves require question-version IDs that belong to the stated question.
+Authors may include their own non-archived questions or published public/unlisted questions. Existing
+membership remains usable after a source question's visibility changes. Only owners may edit,
+tag, or inspect version history. Published unlisted quizzes are accessible by ID but omitted from
+public lists. Quiz visibility is independent of source question visibility.
 
 ## Test conventions
 

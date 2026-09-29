@@ -5,6 +5,7 @@ import { requestLogger } from "./middleware/request-logging.ts";
 import { currentUserRouter } from "./routes/current-user.ts";
 import { healthRouter } from "./routes/health.ts";
 import { questionBankRouter } from "./routes/question-bank.ts";
+import { quizRouter } from "./routes/quizzes.ts";
 
 export const app = express();
 
@@ -13,6 +14,7 @@ app.use(express.json());
 app.use(healthRouter);
 app.use("/api/v1", currentUserRouter);
 app.use("/api/v1", questionBankRouter);
+app.use("/api/v1", quizRouter);
 
 app.get("/", (_request, response) => {
     response.send("Quiz Builder backend");

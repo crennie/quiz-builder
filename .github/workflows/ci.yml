@@ -88,6 +88,21 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
 
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: quiz_builder_test
+          POSTGRES_USER: quiz_builder
+          POSTGRES_PASSWORD: quiz_builder
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U quiz_builder -d quiz_builder_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     defaults:
       run:
         working-directory: backend
@@ -125,6 +140,8 @@ jobs:
 
       - name: Test
         run: npm test
+        env:
+          TEST_DATABASE_URL: postgresql://quiz_builder:quiz_builder@localhost:5432/quiz_builder_test
 
       - name: Validate OpenAPI document
         run: npm run openapi:check

@@ -138,10 +138,16 @@ Vitest is the test runner. Test files use the `*.test.ts` suffix and live under:
   filesystem, database, and other process boundaries.
 - `tests/integration/` for interactions between application components. API integration tests use
   Supertest with the exported Express `app`; they do not bind a network port or start `server.ts`.
-  Persistence integration tests apply the SQL migration to in-memory PostgreSQL with PGlite.
+  Persistence integration tests apply the SQL migration to in-memory PostgreSQL with PGlite. The
+  core workflow tests exercise Express, authentication middleware, domain operations, and SQL
+  together using PGlite. `postgres-transactions.integration.test.ts` tests rollback and concurrent
+  requests against a dedicated local PostgreSQL database when `TEST_DATABASE_URL` is set; CI
+  supplies an ephemeral PostgreSQL service for this suite.
 
 Run all tests with `npm test`, only unit tests with `npm run test:unit`, or only integration tests
-with `npm run test:integration`.
+with `npm run test:integration`. The PostgreSQL suite requires a fresh, disposable local database
+named `quiz_builder_test`; it skips when `TEST_DATABASE_URL` is unset. Never point it at a
+development or production database.
 
 ## API contracts
 

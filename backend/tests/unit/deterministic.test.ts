@@ -72,4 +72,39 @@ describe("deterministic evaluation", () => {
             ),
         ).toMatchObject({ isCorrect: true, pointsAwarded: 0.25 });
     });
+
+    it("awards single-choice points only for the configured option", () => {
+        const snapshots = {
+            question: {
+                questionId,
+                questionVersionId,
+                prompt: "Choose one",
+                questionType: "multiple_choice_single",
+                explanation: null,
+            },
+            answer: {
+                questionType: "multiple_choice_single",
+                options: [
+                    { id: "a", text: "A" },
+                    { id: "b", text: "B" },
+                ],
+                correctOptionId: "b",
+            },
+            grading: { questionType: "multiple_choice_single" },
+        };
+        expect(
+            evaluateAnswer(
+                snapshots,
+                { questionType: "multiple_choice_single", optionId: "a" },
+                1.5,
+            ),
+        ).toMatchObject({ isCorrect: false, pointsAwarded: 0 });
+        expect(
+            evaluateAnswer(
+                snapshots,
+                { questionType: "multiple_choice_single", optionId: "b" },
+                1.5,
+            ),
+        ).toMatchObject({ isCorrect: true, pointsAwarded: 1.5 });
+    });
 });

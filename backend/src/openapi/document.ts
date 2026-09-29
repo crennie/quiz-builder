@@ -1,14 +1,20 @@
 import { OpenAPIRegistry, OpenApiGeneratorV31 } from "@asteasolutions/zod-to-openapi";
 import {
     createQuestionBodySchema,
+    createQuizBodySchema,
     createTagBodySchema,
     questionDetailSchema,
     questionListResponseSchema,
     questionVersionContentSchema,
     questionVersionsResponseSchema,
+    quizContentSchema,
+    quizDetailSchema,
+    quizListResponseSchema,
+    quizVersionsResponseSchema,
     tagListResponseSchema,
     tagSchema,
     updateQuestionMetadataBodySchema,
+    updateQuizMetadataBodySchema,
 } from "@quiz-builder/contracts";
 import type { z } from "zod";
 
@@ -20,6 +26,11 @@ import {
     questionParamsSchema,
     questionTagParamsSchema,
 } from "../api/schemas/question-bank.ts";
+import {
+    quizListQuerySchema,
+    quizParamsSchema,
+    quizTagParamsSchema,
+} from "../api/schemas/quizzes.ts";
 
 // The shared package and backend have separate Zod installations. Their runtime schemas are
 // compatible, but the OpenAPI package augments only the backend copy's TypeScript interface.
@@ -45,6 +56,7 @@ const errorContent = {
 const questionContent = {
     "application/json": { schema: apiSchema(questionDetailSchema) },
 };
+const quizContent = { "application/json": { schema: apiSchema(quizDetailSchema) } };
 const tagContent = {
     "application/json": { schema: apiSchema(tagSchema) },
 };
@@ -273,6 +285,134 @@ registry.registerPath({
     },
 });
 
+registry.registerPath({
+    method: "get",
+    path: "/api/v1/quizzes",
+    tags: ["Quizzes"],
+    summary: "List discoverable and owned quizzes",
+    request: { query: quizListQuerySchema },
+    responses: {
+        200: {
+            description: "Quizzes and pagination offset.",
+            content: {
+                "application/json": { schema: apiSchema(quizListResponseSchema) },
+            },
+        },
+        ...commonErrors,
+    },
+});
+
+registry.registerPath({
+    method: "get",
+    path: "/api/v1/quizzes/{quizId}",
+    tags: ["Quizzes"],
+    summary: "Get an accessible quiz with its exact question versions",
+    request: { params: quizParamsSchema },
+    responses: { 200: { description: "Quiz detail.", content: quizContent }, ...commonErrors },
+});
+
+registry.registerPath({
+    method: "post",
+    path: "/api/v1/quizzes",
+    tags: ["Quizzes"],
+    summary: "Create a quiz and its first immutable version",
+    security: [{ BearerAuth: [] }],
+    request: {
+        body: { content: { "application/json": { schema: apiSchema(createQuizBodySchema) } } },
+    },
+    responses: { 201: { description: "Created quiz.", content: quizContent }, ...commonErrors },
+});
+
+registry.registerPath({
+    method: "get",
+    path: "/api/v1/quizzes/{quizId}/versions",
+    tags: ["Quizzes"],
+    summary: "List an owned quiz's immutable versions",
+    security: [{ BearerAuth: [] }],
+    request: { params: quizParamsSchema },
+    responses: {
+        200: {
+            description: "Quiz versions, newest first.",
+            content: {
+                "application/json": { schema: apiSchema(quizVersionsResponseSchema) },
+            },
+        },
+        ...commonErrors,
+    },
+});
+
+registry.registerPath({
+    method: "put",
+    path: "/api/v1/quizzes/{quizId}/content",
+    tags: ["Quizzes"],
+    summary: "Save attempt-relevant content; an equivalent save keeps the current version",
+    security: [{ BearerAuth: [] }],
+    request: {
+        params: quizParamsSchema,
+        body: {
+            content: {
+                "application/json": { schema: apiSchema(quizContentSchema) },
+            },
+        },
+    },
+    responses: {
+        200: {
+            description: "Current quiz, whether or not a new version was created.",
+            content: quizContent,
+        },
+        ...commonErrors,
+    },
+});
+
+registry.registerPath({
+    method: "patch",
+    path: "/api/v1/quizzes/{quizId}",
+    tags: ["Quizzes"],
+    summary: "Update visibility or lifecycle without creating a content version",
+    security: [{ BearerAuth: [] }],
+    request: {
+        params: quizParamsSchema,
+        body: {
+            content: {
+                "application/json": { schema: apiSchema(updateQuizMetadataBodySchema) },
+            },
+        },
+    },
+    responses: { 200: { description: "Updated quiz.", content: quizContent }, ...commonErrors },
+});
+
+for (const action of ["publish", "archive"] as const) {
+    registry.registerPath({
+        method: "post",
+        path: `/api/v1/quizzes/{quizId}/${action}`,
+        tags: ["Quizzes"],
+        summary: `${action === "publish" ? "Publish" : "Archive"} an owned quiz`,
+        security: [{ BearerAuth: [] }],
+        request: { params: quizParamsSchema },
+        responses: { 200: { description: "Updated quiz.", content: quizContent }, ...commonErrors },
+    });
+}
+
+registry.registerPath({
+    method: "put",
+    path: "/api/v1/quizzes/{quizId}/tags/{tagId}",
+    tags: ["Quizzes", "Tags"],
+    summary: "Assign an owned tag to an owned quiz",
+    security: [{ BearerAuth: [] }],
+    request: { params: quizTagParamsSchema },
+    responses: { 200: { description: "Tagged quiz.", content: quizContent }, ...commonErrors },
+});
+
+registry.registerPath({
+    method: "delete",
+    path: "/api/v1/quizzes/{quizId}/tags/{tagId}",
+    tags: ["Quizzes", "Tags"],
+    summary: "Remove an owned tag from an owned quiz",
+    security: [{ BearerAuth: [] }],
+    request: { params: quizTagParamsSchema },
+    responses: { 204: { description: "Tag assignment removed." }, ...commonErrors },
+});
+
 export function createOpenApiDocument() {
     const generator = new OpenApiGeneratorV31(registry.definitions);
 
@@ -287,6 +427,7 @@ export function createOpenApiDocument() {
             { name: "Operations", description: "Service operational endpoints." },
             { name: "Users", description: "Authenticated user endpoints." },
             { name: "Questions", description: "Question bank endpoints." },
+            { name: "Quizzes", description: "Quiz management endpoints." },
             { name: "Tags", description: "User-scoped tag endpoints." },
         ],
     });

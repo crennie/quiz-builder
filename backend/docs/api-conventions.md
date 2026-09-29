@@ -7,7 +7,7 @@ types, response validation, and OpenAPI component schemas. OpenAPI operation met
 HTTP method, path, summary, and status descriptions lives in `src/openapi/document.ts` because it
 has no equivalent in a data schema.
 
-Shared question and tag contracts come from `@quiz-builder/contracts`; build that package before
+Shared question, quiz, and tag contracts come from `@quiz-builder/contracts`; build that package before
 backend validation or builds. The backend accepts their schemas at request/response boundaries
 without maintaining parallel copies.
 

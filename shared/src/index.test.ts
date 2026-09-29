@@ -7,6 +7,7 @@ import {
     feedbackCategorySchema,
     questionTypeSchema,
     questionVersionContentSchema,
+    quizContentSchema,
     userResponseSchema,
 } from "./index.ts";
 
@@ -67,4 +68,36 @@ test("responses and results retain fractional numeric scores", () => {
 test("feedback categories match the V1 set", () => {
     assert.equal(feedbackCategorySchema.safeParse("unfair_grading").success, true);
     assert.equal(feedbackCategorySchema.safeParse("general_chat").success, false);
+});
+
+test("quiz content requires explicit question versions and permits fractional points", () => {
+    const content = {
+        title: " Study ",
+        description: null,
+        settings: { shuffleQuestions: false, showAnswersAfterCompletion: true },
+        questions: [
+            {
+                questionId: "00000000-0000-4000-8000-000000000001",
+                questionVersionId: "00000000-0000-4000-8000-000000000002",
+                points: 0.25,
+                required: false,
+                timeLimitSeconds: null,
+            },
+        ],
+    };
+    assert.equal(quizContentSchema.parse(content).title, "Study");
+    assert.equal(
+        quizContentSchema.safeParse({
+            ...content,
+            questions: [
+                {
+                    questionId: content.questions[0]?.questionId,
+                    points: 1,
+                    required: true,
+                    timeLimitSeconds: null,
+                },
+            ],
+        }).success,
+        false,
+    );
 });

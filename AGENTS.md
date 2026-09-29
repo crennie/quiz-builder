@@ -12,7 +12,7 @@ repository to determine what has actually been implemented; the plan describes t
 - `backend/` contains the Express 5, TypeScript, Zod, Pino, OpenAPI, and `pg` foundations.
 - Shared Zod contracts, Supabase-generated DB types, and the initial SQL migration are present.
 - The backend has Supabase Auth token verification, a current-user profile endpoint, and the
-  Phase 3 question bank/tag API. Quiz, attempt, and feedback features remain to be built.
+  Phase 3 question bank/tag and Phase 4 quiz/version APIs. Attempt and feedback features remain.
 - Keep frontend code in `frontend/`, backend code in `backend/`, and shared contracts in `shared/`.
 
 ## Development environment

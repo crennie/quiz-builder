@@ -15,6 +15,10 @@ describe("OpenAPI document", () => {
         expect(document.paths?.["/api/v1/questions/{questionId}/versions"]?.post).toBeDefined();
         expect(document.paths?.["/api/v1/questions/{questionId}/tags/{tagId}"]?.put).toBeDefined();
         expect(document.paths?.["/api/v1/tags"]?.post).toBeDefined();
+        expect(document.paths?.["/api/v1/quizzes"]?.post?.security).toEqual([{ BearerAuth: [] }]);
+        expect(document.paths?.["/api/v1/quizzes/{quizId}/content"]?.put).toBeDefined();
+        expect(document.paths?.["/api/v1/quizzes/{quizId}/versions"]?.get).toBeDefined();
+        expect(document.paths?.["/api/v1/quizzes/{quizId}/tags/{tagId}"]?.put).toBeDefined();
         expect(document.components?.securitySchemes?.BearerAuth).toBeDefined();
         expect(document.components?.schemas?.ErrorResponse).toBeDefined();
     });

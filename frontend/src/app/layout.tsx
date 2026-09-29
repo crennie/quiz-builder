@@ -16,6 +16,7 @@ export function AppLayout() {
                 <nav aria-label="Primary navigation">
                     <Link to="/">Home</Link>
                     <Link to="/questions">Questions</Link>
+                    <Link to="/quizzes">Quizzes</Link>
                     {session ? (
                         <button
                             className="text-button"

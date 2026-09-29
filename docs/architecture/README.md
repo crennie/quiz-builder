@@ -2,7 +2,7 @@
 
 ## System
 
-Quiz Builder is a practice application for authoring reusable questions and versioned quizzes, taking quizzes, grading deterministic answers, and reviewing feedback. It preserves the exact content used by historical attempts. The backend supports these flows; the current web interface supports sign-in and question management, with quiz and attempt screens still planned.
+Quiz Builder is a practice application for authoring reusable questions and versioned quizzes, taking quizzes, grading deterministic answers, and reviewing feedback. It preserves the exact content used by historical attempts. The backend supports these flows; the current web interface supports sign-in, question management, and quiz management. Attempt screens are still planned.
 
 ## Architecture Views
 

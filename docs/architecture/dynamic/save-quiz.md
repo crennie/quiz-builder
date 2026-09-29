@@ -1,6 +1,6 @@
 # Save quiz content
 
-**Scenario:** An authenticated owner saves the attempt-relevant content of an existing quiz through `PUT /api/v1/quizzes/:quizId/content`. The current web UI does not expose this operation yet.
+**Scenario:** An authenticated owner saves changed attempt-relevant content from the quiz editor through `PUT /api/v1/quizzes/:quizId/content`. The editor skips requests when the normalized content matches the loaded version.
 
 ```mermaid
 sequenceDiagram

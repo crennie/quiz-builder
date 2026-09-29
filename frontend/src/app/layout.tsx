@@ -17,6 +17,7 @@ export function AppLayout() {
                     <Link to="/">Home</Link>
                     <Link to="/questions">Questions</Link>
                     <Link to="/quizzes">Quizzes</Link>
+                    <Link to="/attempts">Attempts</Link>
                     {session ? (
                         <button
                             className="text-button"

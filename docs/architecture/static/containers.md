@@ -5,7 +5,7 @@
 ```mermaid
 flowchart LR
     person["Author or learner<br/>Browser or API client"]
-    web["Web application<br/>React, Vite, TypeScript<br/>Current UI: sign-in, question and quiz management"]
+    web["Web application<br/>React, Vite, TypeScript<br/>Authoring, attempts, results, feedback submission"]
     api["API<br/>Node.js, Express 5, TypeScript<br/>Authorization and domain operations"]
     auth["Supabase Auth<br/>External identity service"]
     db["Supabase Postgres<br/>Relational records and JSONB snapshots"]
@@ -19,7 +19,7 @@ flowchart LR
     auth -->|Owns auth.users identity referenced by profiles| db
 ```
 
-The web application uses TanStack Router and Query. Question and quiz management calls are wired into its UI today. The API exposes question bank, quiz, attempt, feedback, profile, and health routes. `shared/` is a build-time contracts package used by both applications, not a runtime container. SQL migrations define the schema; generated database types describe rows; shared Zod schemas validate domain and API payloads.
+The web application uses TanStack Router and Query. Question and quiz management, attempts, results, history, and feedback submission are wired into its UI. The API exposes question bank, quiz, attempt, feedback, profile, and health routes. `shared/` is a build-time contracts package used by both applications, not a runtime container. SQL migrations define the schema; generated database types describe rows; shared Zod schemas validate domain and API payloads.
 
 The local Vite server proxies `/api` to the API during development. Production hosting and network topology are not specified in this repository, so no deployment view is asserted.
 

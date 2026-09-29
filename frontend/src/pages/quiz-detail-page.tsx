@@ -14,6 +14,7 @@ import {
 } from "../api/quizzes";
 import { useAuth } from "../auth/auth-state";
 import { QuizEditor } from "../components/quiz-editor";
+import { QuizStartPanel } from "../components/quiz-start-panel";
 
 export function QuizDetailPage() {
     const { quizId } = useParams({ from: "/quizzes/$quizId" });
@@ -107,6 +108,7 @@ export function QuizDetailPage() {
                     {current.visibility}
                 </p>
             </div>
+            <QuizStartPanel quiz={current} />
             {current.isOwner ? (
                 <>
                     <section className="panel form-grid">

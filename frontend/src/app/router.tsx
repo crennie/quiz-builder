@@ -8,6 +8,7 @@ import { RequireAuth } from "../auth/require-auth";
 import { QuestionBankPage } from "../pages/question-bank-page";
 import { NewQuestionPage } from "../pages/new-question-page";
 import { QuestionDetailPage } from "../pages/question-detail-page";
+import { BankQuestionDetailPage } from "../pages/bank-question-detail-page";
 import { QuizListPage } from "../pages/quiz-list-page";
 import { NewQuizPage } from "../pages/new-quiz-page";
 import { QuizDetailPage } from "../pages/quiz-detail-page";
@@ -30,6 +31,15 @@ const questionBankRoute = createRoute({
         </RequireAuth>
     ),
 });
+const myQuestionsRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/questions/mine",
+    component: () => (
+        <RequireAuth>
+            <QuestionBankPage mine />
+        </RequireAuth>
+    ),
+});
 const newQuestionRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/questions/new",
@@ -42,6 +52,15 @@ const newQuestionRoute = createRoute({
 const questionDetailRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/questions/$questionId",
+    component: () => (
+        <RequireAuth>
+            <BankQuestionDetailPage />
+        </RequireAuth>
+    ),
+});
+const manageQuestionRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/questions/mine/$questionId",
     component: () => (
         <RequireAuth>
             <QuestionDetailPage />
@@ -99,8 +118,10 @@ export const router = createRouter({
         homeRoute,
         signInRoute,
         questionBankRoute,
+        myQuestionsRoute,
         newQuestionRoute,
         questionDetailRoute,
+        manageQuestionRoute,
         quizListRoute,
         newQuizRoute,
         quizDetailRoute,

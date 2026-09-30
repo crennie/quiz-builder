@@ -1,12 +1,13 @@
+import { applyMigrations } from "./apply-migrations.ts";
 import { PGlite } from "@electric-sql/pglite";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import {
     createQuestionInTransaction,
     createQuestionVersionInTransaction,
     createTag,
+    archiveQuestionInTransaction,
+    publishQuestionInTransaction,
     updateQuestionMetadataInTransaction,
     type QueryExecutor,
 } from "../../src/db/question-bank.ts";
@@ -43,15 +44,8 @@ describe("quiz persistence", () => {
     beforeAll(async () => {
         database = new PGlite();
         sql = database as unknown as QueryExecutor;
-        const migration = readFileSync(
-            resolve(
-                import.meta.dirname,
-                "../../../supabase/migrations/20260928174208_initial_schema.sql",
-            ),
-            "utf8",
-        );
         await database.exec("CREATE SCHEMA auth; CREATE TABLE auth.users (id uuid PRIMARY KEY)");
-        await database.exec(migration);
+        await applyMigrations((sql) => database.exec(sql));
         for (const id of [ownerId, otherId]) {
             await database.query("INSERT INTO auth.users (id) VALUES ($1)", [id]);
             await database.query(
@@ -68,15 +62,12 @@ describe("quiz persistence", () => {
         userId = ownerId,
         visibility: "private" | "public" | "unlisted" = "private",
     ) {
-        return createQuestionInTransaction(
+        const question = await createQuestionInTransaction(
             userId,
-            {
-                content: questionContent,
-                visibility,
-                status: "published",
-            },
+            { content: questionContent, visibility },
             sql,
         );
+        return publishQuestionInTransaction(question.id, userId, question.currentVersion.id, sql);
     }
 
     it("paginates owned quizzes before mixing in newer public quizzes", async () => {
@@ -242,6 +233,24 @@ describe("quiz persistence", () => {
                 prompt: "What is 2 + 2?",
             },
             sql,
+        );
+        await publishQuestionInTransaction(
+            first.id,
+            ownerId,
+            revisedQuestion.currentVersion.id,
+            sql,
+        );
+        const olderVersionQuiz = await createQuizInTransaction(
+            ownerId,
+            {
+                content: { ...base, questions: [firstMember] },
+                visibility: "private",
+                status: "draft",
+            },
+            sql,
+        );
+        expect(olderVersionQuiz.currentVersion.questions[0]?.questionVersionId).toBe(
+            first.currentVersion.id,
         );
         expect((await getQuizDetail(created.id, ownerId, sql))?.currentVersion.id).toBe(
             changedSettings.currentVersion.id,
@@ -440,12 +449,7 @@ describe("quiz persistence", () => {
             sql,
         );
         expect(reordered.currentVersion.versionNumber).toBe(2);
-        await updateQuestionMetadataInTransaction(
-            publicQuestion.id,
-            otherId,
-            { status: "archived" },
-            sql,
-        );
+        await archiveQuestionInTransaction(publicQuestion.id, otherId, sql);
         const renamed = await saveQuizContentInTransaction(
             quiz.id,
             ownerId,

@@ -1,3 +1,4 @@
+import { applyMigrations } from "./apply-migrations.ts";
 import { PGlite } from "@electric-sql/pglite";
 import type {
     AttemptDetail,
@@ -6,8 +7,6 @@ import type {
     QuizDetail,
     Tag,
 } from "@quiz-builder/contracts";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -66,10 +65,16 @@ async function fixture() {
     const questionResponse = await call<QuestionDetail>("post", "/questions", "author", {
         content: questionContent,
         visibility: "public",
-        status: "published",
     });
     expect(questionResponse.status).toBe(201);
     const question = questionResponse.body;
+    expect(
+        (
+            await call("post", `/questions/${question.id}/publish`, "author", {
+                versionId: question.currentVersion.id,
+            })
+        ).status,
+    ).toBe(200);
     const content = {
         title: "Geography practice",
         description: null,
@@ -98,15 +103,7 @@ describe("HTTP and database core workflows", () => {
         const database = new PGlite();
         databaseState.current = database;
         await database.exec("CREATE SCHEMA auth; CREATE TABLE auth.users (id uuid PRIMARY KEY)");
-        await database.exec(
-            readFileSync(
-                resolve(
-                    import.meta.dirname,
-                    "../../../supabase/migrations/20260928174208_initial_schema.sql",
-                ),
-                "utf8",
-            ),
-        );
+        await applyMigrations((sql) => database.exec(sql));
         for (const id of Object.values(users)) {
             await database.query("INSERT INTO auth.users (id) VALUES ($1)", [id]);
         }
@@ -160,6 +157,26 @@ describe("HTTP and database core workflows", () => {
             },
         );
         expect(revision.status).toBe(201);
+        expect(
+            (
+                await call<QuizDetail>("put", `/quizzes/${quiz.id}/content`, "author", {
+                    ...content,
+                    questions: [
+                        {
+                            ...content.questions[0],
+                            questionVersionId: revision.body.currentVersion.id,
+                        },
+                    ],
+                })
+            ).status,
+        ).toBe(404);
+        expect(
+            (
+                await call("post", `/questions/${question.id}/publish`, "author", {
+                    versionId: revision.body.currentVersion.id,
+                })
+            ).status,
+        ).toBe(200);
         expect(
             (await call<QuizDetail>("get", `/quizzes/${quiz.id}`)).body.currentVersion.questions[0]
                 ?.question.prompt,
@@ -369,7 +386,7 @@ describe("HTTP and database core workflows", () => {
         await call("patch", `/quizzes/${quiz.id}`, "author", { visibility: "private" });
         expect((await call("get", `/questions/${question.id}`, "outsider")).status).toBe(404);
         expect((await call("get", `/quizzes/${quiz.id}`, "outsider")).status).toBe(404);
-        expect((await call("get", `/questions/${question.id}`, "author")).status).toBe(200);
+        expect((await call("get", `/questions/${question.id}/manage`, "author")).status).toBe(200);
         expect((await call("get", `/quizzes/${quiz.id}`, "author")).status).toBe(200);
         expect((await call("post", `/quizzes/${quiz.id}/attempts`, "learner")).status).toBe(404);
 
@@ -377,7 +394,8 @@ describe("HTTP and database core workflows", () => {
         await call("post", `/quizzes/${quiz.id}/archive`, "author");
         expect((await call("get", `/questions/${question.id}`)).status).toBe(404);
         expect((await call("get", `/quizzes/${quiz.id}`)).status).toBe(404);
-        expect((await call("get", `/questions/${question.id}`, "author")).status).toBe(200);
+        expect((await call("get", `/questions/${question.id}`, "author")).status).toBe(404);
+        expect((await call("get", `/questions/${question.id}/manage`, "author")).status).toBe(200);
         expect((await call("get", `/quizzes/${quiz.id}`, "author")).status).toBe(200);
     });
 
@@ -445,8 +463,14 @@ describe("HTTP and database core workflows", () => {
         const secondQuestion = await call<QuestionDetail>("post", "/questions", "author", {
             content: { ...questionContent, prompt: "Second prompt" },
             visibility: "public",
-            status: "published",
         });
+        expect(
+            (
+                await call("post", `/questions/${secondQuestion.body.id}/publish`, "author", {
+                    versionId: secondQuestion.body.currentVersion.id,
+                })
+            ).status,
+        ).toBe(200);
         const secondQuiz = await call<QuizDetail>("post", "/quizzes", "author", {
             content: { ...content, title: "Second quiz" },
             visibility: "public",

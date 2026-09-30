@@ -1,6 +1,5 @@
+import { applyMigrations } from "./apply-migrations.ts";
 import { PGlite } from "@electric-sql/pglite";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("node:crypto", async (importOriginal) => ({
@@ -18,6 +17,7 @@ import {
 import {
     createQuestionInTransaction,
     createQuestionVersionInTransaction,
+    publishQuestionInTransaction,
     type QueryExecutor,
 } from "../../src/db/question-bank.ts";
 import {
@@ -38,15 +38,8 @@ describe("quiz attempts", () => {
     beforeAll(async () => {
         database = new PGlite();
         sql = database as unknown as QueryExecutor;
-        const migration = readFileSync(
-            resolve(
-                import.meta.dirname,
-                "../../../supabase/migrations/20260928174208_initial_schema.sql",
-            ),
-            "utf8",
-        );
         await database.exec("CREATE SCHEMA auth; CREATE TABLE auth.users (id uuid PRIMARY KEY)");
-        await database.exec(migration);
+        await applyMigrations((sql) => database.exec(sql));
         for (const id of [ownerId, takerId, otherId]) {
             await database.query("INSERT INTO auth.users (id) VALUES ($1)", [id]);
             await database.query(
@@ -104,14 +97,16 @@ describe("quiz attempts", () => {
         ];
         const questions = [];
         for (const content of contents) {
+            const question = await createQuestionInTransaction(
+                ownerId,
+                { content, visibility: "private" },
+                sql,
+            );
             questions.push(
-                await createQuestionInTransaction(
+                await publishQuestionInTransaction(
+                    question.id,
                     ownerId,
-                    {
-                        content,
-                        visibility: "private",
-                        status: "published",
-                    },
+                    question.currentVersion.id,
                     sql,
                 ),
             );

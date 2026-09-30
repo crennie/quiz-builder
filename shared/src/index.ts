@@ -215,6 +215,20 @@ export const questionListResponseSchema = z
     })
     .meta({ id: "QuestionListResponse" });
 
+export const bankQuestionDetailSchema = questionIdentitySchema
+    .extend({
+        isOwner: z.boolean(),
+        publishedVersion: questionVersionSchema,
+    })
+    .meta({ id: "BankQuestionDetail" });
+
+export const bankQuestionListResponseSchema = z
+    .strictObject({
+        items: z.array(bankQuestionDetailSchema),
+        nextOffset: z.number().int().nonnegative().nullable(),
+    })
+    .meta({ id: "BankQuestionListResponse" });
+
 export const questionVersionsResponseSchema = z
     .strictObject({ versions: z.array(questionVersionSchema) })
     .meta({ id: "QuestionVersionsResponse" });
@@ -226,17 +240,10 @@ export const tagListResponseSchema = z
 export const createQuestionBodySchema = z.strictObject({
     content: questionVersionContentSchema,
     visibility: visibilitySchema.default("private"),
-    status: z.enum(["draft", "published"]).default("draft"),
 });
 
-export const updateQuestionMetadataBodySchema = z
-    .strictObject({
-        visibility: visibilitySchema.optional(),
-        status: contentStatusSchema.optional(),
-    })
-    .refine((value) => value.visibility !== undefined || value.status !== undefined, {
-        message: "At least one metadata field is required",
-    });
+export const updateQuestionMetadataBodySchema = z.strictObject({ visibility: visibilitySchema });
+export const publishQuestionBodySchema = z.strictObject({ versionId: z.uuid() });
 
 export const createTagBodySchema = z.strictObject({
     name: z.string().trim().min(1).max(100),
@@ -319,6 +326,7 @@ export const updateQuizMetadataBodySchema = z
 export type Tag = z.output<typeof tagSchema>;
 export type QuestionVersion = z.output<typeof questionVersionSchema>;
 export type QuestionDetail = z.output<typeof questionDetailSchema>;
+export type BankQuestionDetail = z.output<typeof bankQuestionDetailSchema>;
 export type QuizContent = z.output<typeof quizContentSchema>;
 export type QuizVersion = z.output<typeof quizVersionSchema>;
 export type QuizDetail = z.output<typeof quizDetailSchema>;

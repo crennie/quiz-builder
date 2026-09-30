@@ -54,7 +54,9 @@ export async function createFeedback(
               id: valid.questionId,
               condition: `EXISTS (
               SELECT 1 FROM public.questions q WHERE q.id = $1
-                AND (q.created_by = $2 OR (q.status = 'published' AND q.visibility IN ('public', 'unlisted')))
+                AND (q.created_by = $2 OR (q.status = 'published'
+                  AND q.default_published_version_id IS NOT NULL
+                  AND q.visibility IN ('public', 'unlisted')))
           )`,
           }
         : valid.quizId

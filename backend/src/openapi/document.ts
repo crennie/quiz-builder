@@ -1,5 +1,7 @@
 import { OpenAPIRegistry, OpenApiGeneratorV31 } from "@asteasolutions/zod-to-openapi";
 import {
+    bankQuestionDetailSchema,
+    bankQuestionListResponseSchema,
     attemptDetailSchema,
     attemptListResponseSchema,
     createFeedbackBodySchema,
@@ -12,6 +14,7 @@ import {
     questionListResponseSchema,
     questionVersionContentSchema,
     questionVersionsResponseSchema,
+    publishQuestionBodySchema,
     quizContentSchema,
     quizDetailSchema,
     quizListResponseSchema,
@@ -69,6 +72,9 @@ const errorContent = {
 const questionContent = {
     "application/json": { schema: apiSchema(questionDetailSchema) },
 };
+const bankQuestionContent = {
+    "application/json": { schema: apiSchema(bankQuestionDetailSchema) },
+};
 const quizContent = { "application/json": { schema: apiSchema(quizDetailSchema) } };
 const tagContent = {
     "application/json": { schema: apiSchema(tagSchema) },
@@ -107,11 +113,27 @@ registry.registerPath({
     method: "get",
     path: "/api/v1/questions",
     tags: ["Questions"],
-    summary: "List discoverable and owned questions",
+    summary: "List published questions available in the question bank",
     request: { query: questionListQuerySchema },
     responses: {
         200: {
             description: "Questions and pagination offset.",
+            content: { "application/json": { schema: apiSchema(bankQuestionListResponseSchema) } },
+        },
+        ...commonErrors,
+    },
+});
+
+registry.registerPath({
+    method: "get",
+    path: "/api/v1/questions/mine",
+    tags: ["Questions"],
+    summary: "List owned questions, including drafts",
+    security: [{ BearerAuth: [] }],
+    request: { query: questionListQuerySchema },
+    responses: {
+        200: {
+            description: "Owned questions and pagination offset.",
             content: { "application/json": { schema: apiSchema(questionListResponseSchema) } },
         },
         ...commonErrors,
@@ -122,10 +144,38 @@ registry.registerPath({
     method: "get",
     path: "/api/v1/questions/{questionId}",
     tags: ["Questions"],
-    summary: "Get an accessible question and its current version",
+    summary: "Get an accessible published question and its default version",
     request: { params: questionParamsSchema },
     responses: {
-        200: { description: "Question detail.", content: questionContent },
+        200: { description: "Published question detail.", content: bankQuestionContent },
+        ...commonErrors,
+    },
+});
+
+registry.registerPath({
+    method: "get",
+    path: "/api/v1/questions/{questionId}/manage",
+    tags: ["Questions"],
+    summary: "Get an owned question and its latest candidate version",
+    security: [{ BearerAuth: [] }],
+    request: { params: questionParamsSchema },
+    responses: {
+        200: { description: "Owned question detail.", content: questionContent },
+        ...commonErrors,
+    },
+});
+
+registry.registerPath({
+    method: "get",
+    path: "/api/v1/questions/{questionId}/published-versions",
+    tags: ["Questions"],
+    summary: "List accessible published versions of a question",
+    request: { params: questionParamsSchema },
+    responses: {
+        200: {
+            description: "Published question versions, newest first.",
+            content: { "application/json": { schema: apiSchema(questionVersionsResponseSchema) } },
+        },
         ...commonErrors,
     },
 });
@@ -183,7 +233,7 @@ registry.registerPath({
     method: "patch",
     path: "/api/v1/questions/{questionId}",
     tags: ["Questions"],
-    summary: "Update question visibility or lifecycle without creating a version",
+    summary: "Update question visibility without creating a version",
     security: [{ BearerAuth: [] }],
     request: {
         params: questionParamsSchema,
@@ -211,6 +261,40 @@ registry.registerPath({
         ...commonErrors,
     },
 });
+
+registry.registerPath({
+    method: "post",
+    path: "/api/v1/questions/{questionId}/publish",
+    tags: ["Questions"],
+    summary: "Directly approve and publish the current human-authored candidate",
+    security: [{ BearerAuth: [] }],
+    request: {
+        params: questionParamsSchema,
+        body: { content: { "application/json": { schema: apiSchema(publishQuestionBodySchema) } } },
+    },
+    responses: {
+        200: { description: "Published question.", content: questionContent },
+        ...commonErrors,
+    },
+});
+
+for (const [path, summary] of [
+    ["unpublish", "Unpublish a question"],
+    ["restore", "Restore an archived question"],
+] as const) {
+    registry.registerPath({
+        method: "post",
+        path: `/api/v1/questions/{questionId}/${path}`,
+        tags: ["Questions"],
+        summary,
+        security: [{ BearerAuth: [] }],
+        request: { params: questionParamsSchema },
+        responses: {
+            200: { description: "Updated question.", content: questionContent },
+            ...commonErrors,
+        },
+    });
+}
 
 registry.registerPath({
     method: "put",

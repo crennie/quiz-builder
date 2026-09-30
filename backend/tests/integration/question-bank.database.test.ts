@@ -1,18 +1,23 @@
+import { applyMigrations } from "./apply-migrations.ts";
 import { PGlite } from "@electric-sql/pglite";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
+    archiveQuestionInTransaction,
     assignQuestionTagInTransaction,
     createQuestionInTransaction,
     createQuestionVersionInTransaction,
     createTag,
+    getBankQuestionDetail,
     getQuestionDetail,
+    getPublishedQuestionVersions,
     getQuestionVersions,
     listQuestions,
     listTags,
+    publishQuestionInTransaction,
     removeQuestionTagInTransaction,
+    restoreQuestionInTransaction,
+    unpublishQuestionInTransaction,
     updateQuestionMetadataInTransaction,
     type QueryExecutor,
 } from "../../src/db/question-bank.ts";
@@ -39,15 +44,8 @@ describe("question bank persistence", () => {
     beforeAll(async () => {
         database = new PGlite();
         sql = database as unknown as QueryExecutor;
-        const migration = readFileSync(
-            resolve(
-                import.meta.dirname,
-                "../../../supabase/migrations/20260928174208_initial_schema.sql",
-            ),
-            "utf8",
-        );
         await database.exec("CREATE SCHEMA auth; CREATE TABLE auth.users (id uuid PRIMARY KEY)");
-        await database.exec(migration);
+        await applyMigrations((sql) => database.exec(sql));
         for (const id of [ownerId, otherId]) {
             await database.query("INSERT INTO auth.users (id) VALUES ($1)", [id]);
             await database.query("INSERT INTO public.profiles (id, display_name) VALUES ($1, $2)", [
@@ -65,7 +63,7 @@ describe("question bank persistence", () => {
         await database.exec("BEGIN");
         const created = await createQuestionInTransaction(
             ownerId,
-            { content: firstContent, visibility: "private", status: "draft" },
+            { content: firstContent, visibility: "private" },
             sql,
         );
         await database.exec("COMMIT");
@@ -73,7 +71,7 @@ describe("question bank persistence", () => {
         expect(created.currentVersion.versionNumber).toBe(1);
         expect(created.currentVersion.answerConfig).toEqual(firstContent.answerConfig);
         expect(await getQuestionDetail(created.id, otherId, sql)).toBeNull();
-        expect(await getQuestionDetail(created.id, null, sql)).toBeNull();
+        expect(await getBankQuestionDetail(created.id, null, sql)).toBeNull();
         await expect(
             createQuestionVersionInTransaction(created.id, otherId, secondContent, sql),
         ).rejects.toMatchObject({ code: "QUESTION_NOT_FOUND" });
@@ -86,7 +84,7 @@ describe("question bank persistence", () => {
             sql,
         );
         await database.exec("COMMIT");
-        expect(await getQuestionDetail(created.id, null, sql)).toBeNull();
+        expect(await getBankQuestionDetail(created.id, null, sql)).toBeNull();
 
         await database.exec("BEGIN");
         const revised = await createQuestionVersionInTransaction(
@@ -111,21 +109,61 @@ describe("question bank persistence", () => {
         ).rejects.toThrow();
 
         await database.exec("BEGIN");
-        const published = await updateQuestionMetadataInTransaction(
+        const published = await publishQuestionInTransaction(
             created.id,
             ownerId,
-            { visibility: "public", status: "published" },
+            revised.currentVersion.id,
             sql,
         );
         await database.exec("COMMIT");
 
         expect(published.currentVersion.id).toBe(revised.currentVersion.id);
+        const initialEvents = await database.query<{ event_type: string; actor_id: string }>(
+            `SELECT event_type, actor_id FROM public.question_publication_events
+             WHERE question_id = $1 ORDER BY created_at, event_type`,
+            [created.id],
+        );
+        expect(initialEvents.rows).toEqual([
+            { event_type: "direct_approved", actor_id: ownerId },
+            { event_type: "published", actor_id: ownerId },
+        ]);
+        await expect(
+            publishQuestionInTransaction(created.id, ownerId, created.currentVersion.id, sql),
+        ).rejects.toMatchObject({ code: "STALE_QUESTION_VERSION" });
         expect(await getQuestionVersions(created.id, ownerId, sql)).toHaveLength(2);
-        const publicQuestion = await getQuestionDetail(created.id, null, sql);
-        expect(publicQuestion?.currentVersion.answerConfig).toEqual(firstContent.answerConfig);
+        const publicQuestion = await getBankQuestionDetail(created.id, null, sql);
+        expect(publicQuestion?.publishedVersion.answerConfig).toEqual(firstContent.answerConfig);
         expect(
             (await listQuestions({ viewerId: null, limit: 50, offset: 0 }, sql)).items,
         ).toHaveLength(1);
+
+        await database.exec("BEGIN");
+        const newerDraft = await createQuestionVersionInTransaction(
+            created.id,
+            ownerId,
+            { ...firstContent, prompt: "Unpublished revision" },
+            sql,
+        );
+        await database.exec("COMMIT");
+        expect((await getQuestionDetail(created.id, ownerId, sql))?.currentVersion.id).toBe(
+            newerDraft.currentVersion.id,
+        );
+        expect((await getBankQuestionDetail(created.id, null, sql))?.publishedVersion.id).toBe(
+            revised.currentVersion.id,
+        );
+        expect(
+            (await getPublishedQuestionVersions(created.id, null, sql)).map((v) => v.id),
+        ).toEqual([revised.currentVersion.id]);
+        await expect(
+            publishQuestionInTransaction(created.id, ownerId, revised.currentVersion.id, sql),
+        ).rejects.toMatchObject({ code: "STALE_QUESTION_VERSION" });
+
+        await database.exec("BEGIN");
+        await publishQuestionInTransaction(created.id, ownerId, newerDraft.currentVersion.id, sql);
+        await database.exec("COMMIT");
+        expect(
+            (await getPublishedQuestionVersions(created.id, null, sql)).map((v) => v.id),
+        ).toEqual([newerDraft.currentVersion.id, revised.currentVersion.id]);
 
         await database.exec("BEGIN");
         await updateQuestionMetadataInTransaction(
@@ -136,29 +174,38 @@ describe("question bank persistence", () => {
         );
         await database.exec("COMMIT");
 
-        expect(await getQuestionDetail(created.id, null, sql)).not.toBeNull();
+        expect(await getBankQuestionDetail(created.id, null, sql)).not.toBeNull();
         expect(
             (await listQuestions({ viewerId: null, limit: 50, offset: 0 }, sql)).items,
         ).toHaveLength(0);
 
         await database.exec("BEGIN");
-        await updateQuestionMetadataInTransaction(created.id, ownerId, { status: "archived" }, sql);
+        await archiveQuestionInTransaction(created.id, ownerId, sql);
         await database.exec("COMMIT");
 
-        expect(await getQuestionDetail(created.id, null, sql)).toBeNull();
+        expect(await getBankQuestionDetail(created.id, null, sql)).toBeNull();
         await expect(
             createQuestionVersionInTransaction(created.id, ownerId, firstContent, sql),
         ).rejects.toMatchObject({ code: "QUESTION_ARCHIVED" });
         expect(await getQuestionDetail(created.id, ownerId, sql)).not.toBeNull();
+        await database.exec("BEGIN");
+        await restoreQuestionInTransaction(created.id, ownerId, sql);
+        await database.exec("COMMIT");
+        expect(await getBankQuestionDetail(created.id, null, sql)).not.toBeNull();
+        await database.exec("BEGIN");
+        await unpublishQuestionInTransaction(created.id, ownerId, sql);
+        await database.exec("COMMIT");
+        expect(await getBankQuestionDetail(created.id, null, sql)).toBeNull();
     });
 
     it("enforces owner-scoped tags and filters the question bank", async () => {
         await database.exec("BEGIN");
         const question = await createQuestionInTransaction(
             ownerId,
-            { content: firstContent, visibility: "public", status: "published" },
+            { content: firstContent, visibility: "public" },
             sql,
         );
+        await publishQuestionInTransaction(question.id, ownerId, question.currentVersion.id, sql);
         await database.exec("COMMIT");
 
         const tag = await createTag(ownerId, "Memory Recall", sql);

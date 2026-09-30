@@ -11,11 +11,18 @@ import { AuthContext } from "../auth/auth-state";
 
 vi.mock("../api/questions", () => ({
     listQuestions: vi.fn(),
+    listManagedQuestions: vi.fn(),
     getQuestion: vi.fn(),
+    getBankQuestion: vi.fn(),
     getQuestionVersions: vi.fn(),
+    getPublishedQuestionVersions: vi.fn(),
     createQuestion: vi.fn(),
     createQuestionVersion: vi.fn(),
     updateQuestionMetadata: vi.fn(),
+    publishQuestion: vi.fn(),
+    unpublishQuestion: vi.fn(),
+    archiveQuestion: vi.fn(),
+    restoreQuestion: vi.fn(),
     listTags: vi.fn(),
     createTag: vi.fn(),
     assignQuestionTag: vi.fn(),
@@ -53,6 +60,12 @@ const detail = {
         explanation: null,
     },
 };
+const bankDetail = {
+    ...detail,
+    visibility: "public" as const,
+    status: "published" as const,
+    publishedVersion: detail.currentVersion,
+};
 
 function renderAt(path: string) {
     vi.spyOn(window, "scrollTo").mockImplementation(() => {});
@@ -77,8 +90,16 @@ function renderAt(path: string) {
 
 beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(questionsApi.listQuestions).mockResolvedValue({ items: [detail], nextOffset: null });
+    vi.mocked(questionsApi.listQuestions).mockResolvedValue({
+        items: [bankDetail],
+        nextOffset: null,
+    });
+    vi.mocked(questionsApi.listManagedQuestions).mockResolvedValue({
+        items: [detail],
+        nextOffset: null,
+    });
     vi.mocked(questionsApi.getQuestion).mockResolvedValue(detail);
+    vi.mocked(questionsApi.getBankQuestion).mockResolvedValue(bankDetail);
     vi.mocked(questionsApi.getQuestionVersions).mockResolvedValue({
         versions: [detail.currentVersion],
     });
@@ -97,6 +118,16 @@ it("lists, filters, and creates question-bank tags", async () => {
     expect(vi.mocked(questionsApi.createTag).mock.calls[0]?.[0]).toBe("Geography");
 });
 
+it("lists an owner's draft separately from the published bank", async () => {
+    renderAt("/questions/mine");
+    expect(await screen.findByRole("link", { name: "Capital of France?" })).toHaveAttribute(
+        "href",
+        `/questions/mine/${questionId}`,
+    );
+    expect(questionsApi.listManagedQuestions).toHaveBeenCalledWith({ offset: 0 });
+    expect(questionsApi.listQuestions).not.toHaveBeenCalled();
+});
+
 it("creates a question from the shared editor", async () => {
     const user = userEvent.setup();
     vi.mocked(questionsApi.createQuestion).mockResolvedValue(detail);
@@ -109,7 +140,6 @@ it("creates a question from the shared editor", async () => {
     await user.click(screen.getByRole("button", { name: "Create question" }));
     expect(vi.mocked(questionsApi.createQuestion).mock.calls[0]?.[0]).toMatchObject({
         visibility: "private",
-        status: "draft",
         content: { prompt: "Capital of France?", questionType: "exact_text" },
     });
     expect(await screen.findByRole("heading", { name: "Capital of France?" })).toBeInTheDocument();
@@ -120,7 +150,7 @@ it("saves a new version and manages metadata and tags", async () => {
     vi.mocked(questionsApi.createQuestionVersion).mockResolvedValue(detail);
     vi.mocked(questionsApi.updateQuestionMetadata).mockResolvedValue(detail);
     vi.mocked(questionsApi.assignQuestionTag).mockResolvedValue(detail);
-    renderAt(`/questions/${questionId}`);
+    renderAt(`/questions/mine/${questionId}`);
     expect(await screen.findByRole("heading", { name: "Capital of France?" })).toBeInTheDocument();
     await user.selectOptions(screen.getByRole("combobox", { name: "Visibility" }), "public");
     expect(questionsApi.updateQuestionMetadata).toHaveBeenCalledWith(questionId, {
@@ -147,13 +177,16 @@ it("filters the loaded question page and moves through API pages", async () => {
         Promise.resolve({
             items: [
                 offset === 0
-                    ? detail
+                    ? bankDetail
                     : {
-                          ...detail,
+                          ...bankDetail,
                           id: "523e4567-e89b-42d3-a456-426614174030",
                           visibility: "public",
                           status: "published",
-                          currentVersion: { ...detail.currentVersion, prompt: "Capital of Spain?" },
+                          publishedVersion: {
+                              ...detail.currentVersion,
+                              prompt: "Capital of Spain?",
+                          },
                       },
             ],
             nextOffset: offset === 0 ? 50 : null,
@@ -164,13 +197,12 @@ it("filters the loaded question page and moves through API pages", async () => {
     await user.type(screen.getByRole("searchbox", { name: "Search prompts" }), "Spain");
     expect(screen.getByText("No questions match these filters.")).toBeInTheDocument();
     await user.clear(screen.getByRole("searchbox", { name: "Search prompts" }));
-    await user.selectOptions(screen.getByRole("combobox", { name: "Visibility" }), "public");
+    await user.selectOptions(screen.getByRole("combobox", { name: "Visibility" }), "private");
     expect(screen.getByText("No questions match these filters.")).toBeInTheDocument();
+    await user.selectOptions(screen.getByRole("combobox", { name: "Visibility" }), "public");
     await user.click(screen.getByRole("button", { name: "Next" }));
     expect(await screen.findByRole("link", { name: "Capital of Spain?" })).toBeInTheDocument();
     expect(questionsApi.listQuestions).toHaveBeenCalledWith({ offset: 50 });
-    await user.selectOptions(screen.getByRole("combobox", { name: "Status" }), "draft");
-    expect(screen.getByText("No questions match these filters.")).toBeInTheDocument();
     await user.selectOptions(screen.getByRole("combobox", { name: "Status" }), "published");
     await user.type(screen.getByRole("searchbox", { name: "Search prompts" }), "Spain");
     expect(screen.getByRole("link", { name: "Capital of Spain?" })).toBeInTheDocument();
@@ -189,7 +221,7 @@ it("shows a question loading error and retries", async () => {
     vi.mocked(questionsApi.listQuestions)
         .mockRejectedValueOnce(new Error("Bank unavailable"))
         .mockRejectedValueOnce(new Error("Bank unavailable"))
-        .mockResolvedValue({ items: [detail], nextOffset: null });
+        .mockResolvedValue({ items: [bankDetail], nextOffset: null });
     renderAt("/questions");
     expect(await screen.findByRole("alert", {}, { timeout: 3000 })).toHaveTextContent(
         "Could not load questions. Bank unavailable",
@@ -198,11 +230,13 @@ it("shows a question loading error and retries", async () => {
     expect(await screen.findByRole("link", { name: "Capital of France?" })).toBeInTheDocument();
 });
 
-it("creates a published unlisted question and handles owner lifecycle and tag removal", async () => {
+it("creates an unlisted draft, publishes it, and handles owner lifecycle and tag removal", async () => {
     const user = userEvent.setup();
     vi.mocked(questionsApi.createQuestion).mockResolvedValue(detail);
     vi.mocked(questionsApi.updateQuestionMetadata).mockResolvedValue(detail);
     vi.mocked(questionsApi.removeQuestionTag).mockResolvedValue(undefined);
+    vi.mocked(questionsApi.publishQuestion).mockResolvedValue({ ...detail, status: "published" });
+    vi.mocked(questionsApi.archiveQuestion).mockResolvedValue({ ...detail, status: "archived" });
     vi.mocked(questionsApi.getQuestion).mockResolvedValue({
         ...detail,
         tags: [tag],
@@ -211,20 +245,16 @@ it("creates a published unlisted question and handles owner lifecycle and tag re
     await user.type(await screen.findByRole("textbox", { name: "Question prompt" }), "A prompt");
     await user.type(screen.getByRole("textbox", { name: "One answer per line" }), "Answer");
     await user.selectOptions(screen.getByRole("combobox", { name: "Visibility" }), "unlisted");
-    await user.selectOptions(screen.getByRole("combobox", { name: "Status" }), "published");
     await user.click(screen.getByRole("button", { name: "Create question" }));
     expect(vi.mocked(questionsApi.createQuestion).mock.calls[0]?.[0]).toMatchObject({
         visibility: "unlisted",
-        status: "published",
     });
     expect(await screen.findByRole("heading", { name: "Version history" })).toBeInTheDocument();
     expect(await screen.findByText("Version 1")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Remove Geography tag" }));
     expect(questionsApi.removeQuestionTag).toHaveBeenCalledWith(questionId, tagId);
-    await user.selectOptions(screen.getByRole("combobox", { name: "Status" }), "archived");
-    await waitFor(() =>
-        expect(questionsApi.updateQuestionMetadata).toHaveBeenCalledWith(questionId, {
-            status: "archived",
-        }),
-    );
+    await user.click(screen.getByRole("button", { name: "Publish current version" }));
+    expect(questionsApi.publishQuestion).toHaveBeenCalledWith(questionId, versionId);
+    await user.click(screen.getByRole("button", { name: "Archive question" }));
+    await waitFor(() => expect(questionsApi.archiveQuestion).toHaveBeenCalledWith(questionId));
 });

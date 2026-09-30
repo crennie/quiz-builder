@@ -136,6 +136,55 @@ export type Database = {
           },
         ]
       }
+      question_publication_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          question_id: string
+          question_version_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          question_id: string
+          question_version_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          question_id?: string
+          question_version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_publication_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_publication_events_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_publication_events_version_fkey"
+            columns: ["question_id", "question_version_id"]
+            isOneToOne: false
+            referencedRelation: "question_versions"
+            referencedColumns: ["question_id", "id"]
+          },
+        ]
+      }
       question_versions: {
         Row: {
           answer_config: Json
@@ -195,6 +244,7 @@ export type Database = {
           created_at: string
           created_by: string
           current_version_id: string | null
+          default_published_version_id: string | null
           id: string
           status: Database["public"]["Enums"]["content_status"]
           updated_at: string
@@ -204,6 +254,7 @@ export type Database = {
           created_at?: string
           created_by: string
           current_version_id?: string | null
+          default_published_version_id?: string | null
           id?: string
           status?: Database["public"]["Enums"]["content_status"]
           updated_at?: string
@@ -213,6 +264,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           current_version_id?: string | null
+          default_published_version_id?: string | null
           id?: string
           status?: Database["public"]["Enums"]["content_status"]
           updated_at?: string
@@ -229,6 +281,13 @@ export type Database = {
           {
             foreignKeyName: "questions_current_version_fkey"
             columns: ["id", "current_version_id"]
+            isOneToOne: false
+            referencedRelation: "question_versions"
+            referencedColumns: ["question_id", "id"]
+          },
+          {
+            foreignKeyName: "questions_default_published_version_fkey"
+            columns: ["id", "default_published_version_id"]
             isOneToOne: false
             referencedRelation: "question_versions"
             referencedColumns: ["question_id", "id"]

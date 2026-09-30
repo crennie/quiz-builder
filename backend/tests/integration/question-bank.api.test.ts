@@ -2,7 +2,11 @@ import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { verifyAccessToken } from "../../src/auth/supabase.ts";
-import { createQuestion, getQuestionDetail, listQuestions } from "../../src/db/question-bank.ts";
+import {
+    createQuestion,
+    getBankQuestionDetail,
+    listQuestions,
+} from "../../src/db/question-bank.ts";
 import { getOrCreateProfile } from "../../src/db/profiles.ts";
 
 vi.mock("../../src/auth/supabase.ts", () => ({ verifyAccessToken: vi.fn() }));
@@ -12,10 +16,17 @@ vi.mock("../../src/db/question-bank.ts", () => ({
     createQuestion: vi.fn(),
     createQuestionVersion: vi.fn(),
     createTag: vi.fn(),
+    getBankQuestionDetail: vi.fn(),
     getQuestionDetail: vi.fn(),
     getQuestionVersions: vi.fn(),
+    getPublishedQuestionVersions: vi.fn(),
     listQuestions: vi.fn(),
+    listManagedQuestions: vi.fn(),
     listTags: vi.fn(),
+    publishQuestion: vi.fn(),
+    unpublishQuestion: vi.fn(),
+    archiveQuestion: vi.fn(),
+    restoreQuestion: vi.fn(),
     removeQuestionTag: vi.fn(),
     updateQuestionMetadata: vi.fn(),
 }));
@@ -51,6 +62,8 @@ const detail = {
         createdAt: timestamp,
     },
 };
+const { currentVersion: publishedVersion, ...identity } = detail;
+const bankDetail = { ...identity, publishedVersion };
 
 describe("question bank API", () => {
     beforeEach(() => {
@@ -66,13 +79,13 @@ describe("question bank API", () => {
     });
 
     it("returns full published question content to an anonymous reader", async () => {
-        vi.mocked(getQuestionDetail).mockResolvedValueOnce(detail);
+        vi.mocked(getBankQuestionDetail).mockResolvedValueOnce(bankDetail);
 
         const response = await request(app).get(`/api/v1/questions/${questionId}`);
 
         expect(response.status).toBe(200);
-        expect(response.body).toEqual(detail);
-        expect(getQuestionDetail).toHaveBeenCalledWith(questionId, null);
+        expect(response.body).toEqual(bankDetail);
+        expect(getBankQuestionDetail).toHaveBeenCalledWith(questionId, null);
         expect(verifyAccessToken).not.toHaveBeenCalled();
     });
 
@@ -82,7 +95,7 @@ describe("question bank API", () => {
             .set("Authorization", "Bearer token with spaces");
 
         expect(response.status).toBe(401);
-        expect(getQuestionDetail).not.toHaveBeenCalled();
+        expect(getBankQuestionDetail).not.toHaveBeenCalled();
     });
 
     it("requires a user access token to create a question", async () => {
@@ -123,7 +136,6 @@ describe("question bank API", () => {
                 explanation: detail.currentVersion.explanation,
             },
             visibility: "private",
-            status: "draft",
         });
     });
 
@@ -154,6 +166,25 @@ describe("question bank API", () => {
 
         expect(response.status).toBe(400);
         expect(response.body).toMatchObject({ error: { code: "VALIDATION_ERROR" } });
+        expect(createQuestion).not.toHaveBeenCalled();
+    });
+
+    it("rejects publication through the create payload", async () => {
+        const response = await request(app)
+            .post("/api/v1/questions")
+            .set("Authorization", "Bearer verified-token")
+            .send({
+                content: {
+                    prompt: detail.currentVersion.prompt,
+                    questionType: detail.currentVersion.questionType,
+                    answerConfig: detail.currentVersion.answerConfig,
+                    gradingConfig: detail.currentVersion.gradingConfig,
+                    explanation: detail.currentVersion.explanation,
+                },
+                status: "published",
+            });
+
+        expect(response.status).toBe(400);
         expect(createQuestion).not.toHaveBeenCalled();
     });
 

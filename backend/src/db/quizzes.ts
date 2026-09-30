@@ -248,9 +248,14 @@ async function assertQuestionMembership(
         const allowed = await database.query<{ id: string }>(
             `SELECT v.id FROM public.question_versions v
              JOIN public.questions q ON q.id = v.question_id
-             WHERE v.id = $1 AND q.id = $2 AND
-               ((q.created_by = $3::uuid AND q.status <> 'archived') OR
-                (q.status = 'published' AND q.visibility IN ('public', 'unlisted')))`,
+             WHERE v.id = $1 AND q.id = $2 AND q.status = 'published'
+               AND (q.created_by = $3::uuid OR q.visibility IN ('public', 'unlisted'))
+               AND EXISTS (
+                 SELECT 1 FROM public.question_publication_events e
+                 WHERE e.question_id = q.id AND e.question_version_id = v.id
+                   AND e.event_type IN ('legacy_published', 'published')
+               )
+             FOR SHARE OF q`,
             [question.questionVersionId, question.questionId, ownerId],
         );
         if (!allowed.rows[0]) {

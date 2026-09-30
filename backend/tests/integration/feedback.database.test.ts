@@ -1,6 +1,5 @@
+import { applyMigrations } from "./apply-migrations.ts";
 import { PGlite } from "@electric-sql/pglite";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { startAttemptInTransaction } from "../../src/db/attempts.ts";
@@ -9,7 +8,11 @@ import {
     listReceivedFeedback,
     updateFeedbackStatus,
 } from "../../src/db/feedback.ts";
-import { createQuestionInTransaction, type QueryExecutor } from "../../src/db/question-bank.ts";
+import {
+    createQuestionInTransaction,
+    publishQuestionInTransaction,
+    type QueryExecutor,
+} from "../../src/db/question-bank.ts";
 import { createQuizInTransaction, updateQuizMetadataInTransaction } from "../../src/db/quizzes.ts";
 
 const ownerId = "00000000-0000-4000-8000-000000000401";
@@ -35,15 +38,7 @@ describe("feedback persistence", () => {
         database = new PGlite();
         sql = database as unknown as QueryExecutor;
         await database.exec("CREATE SCHEMA auth; CREATE TABLE auth.users (id uuid PRIMARY KEY)");
-        await database.exec(
-            readFileSync(
-                resolve(
-                    import.meta.dirname,
-                    "../../../supabase/migrations/20260928174208_initial_schema.sql",
-                ),
-                "utf8",
-            ),
-        );
+        await applyMigrations((sql) => database.exec(sql));
         for (const id of [ownerId, learnerId, outsiderId]) {
             await database.query("INSERT INTO auth.users (id) VALUES ($1)", [id]);
             await database.query(
@@ -57,13 +52,15 @@ describe("feedback persistence", () => {
     afterEach(async () => database.exec("ROLLBACK"));
 
     async function fixture(questionOwnerId = ownerId) {
-        const question = await createQuestionInTransaction(
+        const draft = await createQuestionInTransaction(
             questionOwnerId,
-            {
-                content,
-                visibility: "public",
-                status: "published",
-            },
+            { content, visibility: "public" },
+            sql,
+        );
+        const question = await publishQuestionInTransaction(
+            draft.id,
+            questionOwnerId,
+            draft.currentVersion.id,
             sql,
         );
         const quiz = await createQuizInTransaction(

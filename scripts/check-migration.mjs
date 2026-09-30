@@ -33,10 +33,12 @@ try {
             'profiles', 'questions', 'question_versions', 'quizzes', 'quiz_versions',
             'quiz_version_questions', 'tags', 'question_tags', 'quiz_tags',
             'quiz_attempts', 'quiz_attempt_questions', 'feedback',
-            'question_publication_events'
+            'question_publication_events', 'question_review_submissions',
+            'question_review_decisions', 'question_publication_gate_decisions',
+            'work_items', 'work_item_events'
         )
     `);
-    assert.equal(tables.rows[0].count, 13);
+    assert.equal(tables.rows[0].count, 18);
 
     await database.query("INSERT INTO auth.users (id) VALUES ($1)", [userId]);
     await database.query("INSERT INTO public.profiles (id, display_name) VALUES ($1, 'Tester')", [
@@ -185,7 +187,7 @@ try {
         JOIN pg_namespace n ON n.oid = c.relnamespace
         WHERE n.nspname = 'public' AND c.relkind = 'r' AND c.relrowsecurity
     `);
-    assert.equal(rls.rows[0].count, 13);
+    assert.equal(rls.rows[0].count, 18);
     console.log(`Applied ${migrationNames.length} migration(s); schema constraints passed.`);
 } finally {
     await database.close();

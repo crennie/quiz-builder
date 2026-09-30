@@ -20,6 +20,7 @@ import type { PoolClient } from "pg";
 import { AppError } from "../errors/app-error.ts";
 import { pool } from "./index.ts";
 import { withTransaction } from "./transaction.ts";
+import { supersedeQuestionWorkItems } from "./content-workflow.ts";
 
 export type QueryExecutor = Pick<PoolClient, "query">;
 type QuestionRow = Database["public"]["Tables"]["questions"]["Row"];
@@ -425,6 +426,7 @@ export async function createQuestionVersionInTransaction(
          WHERE id = $2`,
         [version.id, questionId],
     );
+    await supersedeQuestionWorkItems(questionId, version.id, ownerId, database);
     const detail = await getQuestionDetail(questionId, ownerId, database);
     if (!detail) throw new Error("Revised question was not found");
     return detail;
@@ -489,12 +491,19 @@ async function recordPublicationEvent(
     actorId: string,
     eventType: string,
     database: QueryExecutor,
+    policySnapshot: Record<string, unknown> | null = null,
 ): Promise<void> {
     await database.query(
         `INSERT INTO public.question_publication_events
-           (question_id, question_version_id, actor_id, event_type)
-         VALUES ($1, $2, $3, $4)`,
-        [questionId, versionId, actorId, eventType],
+           (question_id, question_version_id, actor_id, event_type, policy_snapshot)
+         VALUES ($1, $2, $3, $4, $5::jsonb)`,
+        [
+            questionId,
+            versionId,
+            actorId,
+            eventType,
+            policySnapshot ? JSON.stringify(policySnapshot) : null,
+        ],
     );
 }
 
@@ -510,6 +519,17 @@ export async function publishQuestionInTransaction(
     }
     if (question.current_version_id !== versionId) {
         throw new AppError(409, "STALE_QUESTION_VERSION", "Publish the current candidate version");
+    }
+    const submitted = await database.query<{ id: string }>(
+        `SELECT id FROM public.question_review_submissions WHERE question_version_id = $1`,
+        [versionId],
+    );
+    if (submitted.rows[0]) {
+        throw new AppError(
+            409,
+            "REVIEW_REQUIRED",
+            "This version must complete its review workflow",
+        );
     }
     if (question.status === "published" && question.default_published_version_id === versionId) {
         const detail = await getQuestionDetail(questionId, ownerId, database);
@@ -527,7 +547,13 @@ export async function publishQuestionInTransaction(
             "Only a human-authored candidate can publish directly",
         );
     }
-    await recordPublicationEvent(questionId, versionId, ownerId, "direct_approved", database);
+    await recordPublicationEvent(questionId, versionId, ownerId, "direct_approved", database, {
+        version: 1,
+        mode: "direct_human",
+        actorId: ownerId,
+        humanAuthRequired: true,
+        reviewSubmissionAllowed: false,
+    });
     await recordPublicationEvent(questionId, versionId, ownerId, "published", database);
     await database.query(
         `UPDATE public.questions

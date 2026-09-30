@@ -142,6 +142,7 @@ export type Database = {
           created_at: string
           event_type: string
           id: string
+          policy_snapshot: Json | null
           question_id: string
           question_version_id: string | null
         }
@@ -150,6 +151,7 @@ export type Database = {
           created_at?: string
           event_type: string
           id?: string
+          policy_snapshot?: Json | null
           question_id: string
           question_version_id?: string | null
         }
@@ -158,6 +160,7 @@ export type Database = {
           created_at?: string
           event_type?: string
           id?: string
+          policy_snapshot?: Json | null
           question_id?: string
           question_version_id?: string | null
         }
@@ -178,6 +181,313 @@ export type Database = {
           },
           {
             foreignKeyName: "question_publication_events_version_fkey"
+            columns: ["question_id", "question_version_id"]
+            isOneToOne: false
+            referencedRelation: "question_versions"
+            referencedColumns: ["question_id", "id"]
+          },
+        ]
+      }
+      question_publication_gate_decisions: {
+        Row: {
+          actor_id: string
+          created_at: string
+          decision: string
+          findings: string
+          id: string
+          policy_snapshot: Json
+          review_decision_id: string
+          submission_id: string
+          work_item_id: string
+        }
+        Insert: {
+          actor_id: string
+          created_at?: string
+          decision: string
+          findings?: string
+          id?: string
+          policy_snapshot: Json
+          review_decision_id: string
+          submission_id: string
+          work_item_id: string
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          decision?: string
+          findings?: string
+          id?: string
+          policy_snapshot?: Json
+          review_decision_id?: string
+          submission_id?: string
+          work_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_publication_gate_decisions_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_publication_gate_decisions_review_decision_id_fkey"
+            columns: ["review_decision_id"]
+            isOneToOne: false
+            referencedRelation: "question_review_decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_publication_gate_decisions_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "question_review_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_publication_gate_decisions_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "work_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_review_decisions: {
+        Row: {
+          actor_id: string
+          created_at: string
+          decision: string
+          findings: string
+          id: string
+          submission_id: string
+          work_item_id: string
+        }
+        Insert: {
+          actor_id: string
+          created_at?: string
+          decision: string
+          findings?: string
+          id?: string
+          submission_id: string
+          work_item_id: string
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          decision?: string
+          findings?: string
+          id?: string
+          submission_id?: string
+          work_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_review_decisions_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_review_decisions_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "question_review_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_review_decisions_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "work_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_review_submissions: {
+        Row: {
+          created_at: string
+          id: string
+          policy_snapshot: Json
+          question_id: string
+          question_version_id: string
+          submitted_by: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          policy_snapshot: Json
+          question_id: string
+          question_version_id: string
+          submitted_by: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          policy_snapshot?: Json
+          question_id?: string
+          question_version_id?: string
+          submitted_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_review_submissions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_review_submissions_submitted_by_fkey"
+            columns: ["submitted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_review_submissions_version_fkey"
+            columns: ["question_id", "question_version_id"]
+            isOneToOne: false
+            referencedRelation: "question_versions"
+            referencedColumns: ["question_id", "id"]
+          },
+        ]
+      }
+      work_item_events: {
+        Row: {
+          actor_id: string | null
+          claim_generation: number
+          created_at: string
+          details: Json
+          event_type: string
+          id: string
+          work_item_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          claim_generation: number
+          created_at?: string
+          details?: Json
+          event_type: string
+          id?: string
+          work_item_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          claim_generation?: number
+          created_at?: string
+          details?: Json
+          event_type?: string
+          id?: string
+          work_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_item_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_item_events_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "work_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_items: {
+        Row: {
+          assigned_to: string
+          attempts: number
+          claim_generation: number
+          claim_token: string | null
+          claimed_by: string | null
+          created_at: string
+          id: string
+          input: Json
+          item_type: string
+          lease_until: string | null
+          operation_key: string
+          question_id: string | null
+          question_version_id: string | null
+          queue_name: string
+          status: string
+          submission_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_to: string
+          attempts?: number
+          claim_generation?: number
+          claim_token?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          id?: string
+          input: Json
+          item_type: string
+          lease_until?: string | null
+          operation_key: string
+          question_id?: string | null
+          question_version_id?: string | null
+          queue_name: string
+          status?: string
+          submission_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string
+          attempts?: number
+          claim_generation?: number
+          claim_token?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          id?: string
+          input?: Json
+          item_type?: string
+          lease_until?: string | null
+          operation_key?: string
+          question_id?: string | null
+          question_version_id?: string | null
+          queue_name?: string
+          status?: string
+          submission_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_items_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_items_claimed_by_fkey"
+            columns: ["claimed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_items_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_items_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "question_review_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_items_version_fkey"
             columns: ["question_id", "question_version_id"]
             isOneToOne: false
             referencedRelation: "question_versions"

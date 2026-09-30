@@ -1,6 +1,6 @@
 # Content production workflow and automation foundation
 
-**Status:** Repository validated on 2026-09-30. Phase 1 publication boundary implemented in the repository; later workflow phases remain proposed.
+**Status:** Repository validated on 2026-09-30. Phase 1 publication boundary and Phase 2 human review/queue foundation are implemented; agent phases remain proposed.
 
 This is the working revision of the proposed content-production plan. It preserves the objective: a human or agent may create, review, or revise questions through the same application-owned workflow. Drafts can remain private indefinitely; publication is deliberate; agent-created content requires review; quiz attempts remain human-only. Read [the existing architecture plan](../../architecture-plan.md) and [current architecture views](../architecture/README.md) before implementation.
 

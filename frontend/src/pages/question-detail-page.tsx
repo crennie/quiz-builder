@@ -18,6 +18,7 @@ import {
 } from "../api/questions";
 import { useAuth } from "../auth/auth-state";
 import { QuestionEditor } from "../components/question-editor";
+import { submitQuestionReview } from "../api/content-workflow";
 
 export function QuestionDetailPage() {
     const { questionId } = useParams({ from: "/questions/mine/$questionId" });
@@ -58,6 +59,12 @@ export function QuestionDetailPage() {
         },
         onSuccess: () => {
             void refresh();
+        },
+    });
+    const submitReview = useMutation({
+        mutationFn: () => submitQuestionReview(questionId, question.data!.currentVersion.id),
+        onSuccess: () => {
+            void queryClient.invalidateQueries({ queryKey: ["work-items"] });
         },
     });
     const assignTag = useMutation({
@@ -108,6 +115,14 @@ export function QuestionDetailPage() {
             await assignTag.mutateAsync(tagId);
         } catch (error) {
             setActionError(error instanceof Error ? error.message : "Could not add tag.");
+        }
+    }
+    async function sendForReview() {
+        setActionError("");
+        try {
+            await submitReview.mutateAsync();
+        } catch (error) {
+            setActionError(error instanceof Error ? error.message : "Could not submit review.");
         }
     }
     async function dropTag(id: string) {
@@ -180,6 +195,14 @@ export function QuestionDetailPage() {
                                     >
                                         Publish current version
                                     </button>
+                                    <button
+                                        type="button"
+                                        className="secondary"
+                                        disabled={submitReview.isPending}
+                                        onClick={() => void sendForReview()}
+                                    >
+                                        Submit for review
+                                    </button>
                                     {current.status === "published" ? (
                                         <button
                                             type="button"
@@ -200,8 +223,9 @@ export function QuestionDetailPage() {
                             )}
                         </div>
                         <p className="muted small">
-                            Publication is an explicit action. Draft revisions do not change the
-                            published version.
+                            Direct publication is available for your own unsubmitted version.
+                            Submitting it for review sends it through content approval and a final
+                            publication gate. <Link to="/work-items">Open the work queue</Link>.
                         </p>
                     </section>
                     <section className="panel">

@@ -1,7 +1,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider, createMemoryHistory, createRouter } from "@tanstack/react-router";
 import type { Session } from "@supabase/supabase-js";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import * as questionsApi from "../api/questions";
@@ -138,5 +138,93 @@ it("saves a new version and manages metadata and tags", async () => {
     expect(questionsApi.createQuestionVersion).toHaveBeenCalledWith(
         questionId,
         expect.objectContaining({ prompt: "Capital city of France?" }),
+    );
+});
+
+it("filters the loaded question page and moves through API pages", async () => {
+    const user = userEvent.setup();
+    vi.mocked(questionsApi.listQuestions).mockImplementation(({ offset }) =>
+        Promise.resolve({
+            items: [
+                offset === 0
+                    ? detail
+                    : {
+                          ...detail,
+                          id: "523e4567-e89b-42d3-a456-426614174030",
+                          visibility: "public",
+                          status: "published",
+                          currentVersion: { ...detail.currentVersion, prompt: "Capital of Spain?" },
+                      },
+            ],
+            nextOffset: offset === 0 ? 50 : null,
+        }),
+    );
+    renderAt("/questions");
+    expect(await screen.findByRole("link", { name: "Capital of France?" })).toBeInTheDocument();
+    await user.type(screen.getByRole("searchbox", { name: "Search prompts" }), "Spain");
+    expect(screen.getByText("No questions match these filters.")).toBeInTheDocument();
+    await user.clear(screen.getByRole("searchbox", { name: "Search prompts" }));
+    await user.selectOptions(screen.getByRole("combobox", { name: "Visibility" }), "public");
+    expect(screen.getByText("No questions match these filters.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(await screen.findByRole("link", { name: "Capital of Spain?" })).toBeInTheDocument();
+    expect(questionsApi.listQuestions).toHaveBeenCalledWith({ offset: 50 });
+    await user.selectOptions(screen.getByRole("combobox", { name: "Status" }), "draft");
+    expect(screen.getByText("No questions match these filters.")).toBeInTheDocument();
+    await user.selectOptions(screen.getByRole("combobox", { name: "Status" }), "published");
+    await user.type(screen.getByRole("searchbox", { name: "Search prompts" }), "Spain");
+    expect(screen.getByRole("link", { name: "Capital of Spain?" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Previous" }));
+    expect(questionsApi.listQuestions).toHaveBeenCalledWith({ offset: 0 });
+});
+
+it("shows a loading state while the question bank is pending", async () => {
+    vi.mocked(questionsApi.listQuestions).mockReturnValue(new Promise(() => {}));
+    renderAt("/questions");
+    expect(await screen.findByText("Loading questions…")).toBeInTheDocument();
+});
+
+it("shows a question loading error and retries", async () => {
+    const user = userEvent.setup();
+    vi.mocked(questionsApi.listQuestions)
+        .mockRejectedValueOnce(new Error("Bank unavailable"))
+        .mockRejectedValueOnce(new Error("Bank unavailable"))
+        .mockResolvedValue({ items: [detail], nextOffset: null });
+    renderAt("/questions");
+    expect(await screen.findByRole("alert", {}, { timeout: 3000 })).toHaveTextContent(
+        "Could not load questions. Bank unavailable",
+    );
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByRole("link", { name: "Capital of France?" })).toBeInTheDocument();
+});
+
+it("creates a published unlisted question and handles owner lifecycle and tag removal", async () => {
+    const user = userEvent.setup();
+    vi.mocked(questionsApi.createQuestion).mockResolvedValue(detail);
+    vi.mocked(questionsApi.updateQuestionMetadata).mockResolvedValue(detail);
+    vi.mocked(questionsApi.removeQuestionTag).mockResolvedValue(undefined);
+    vi.mocked(questionsApi.getQuestion).mockResolvedValue({
+        ...detail,
+        tags: [tag],
+    });
+    renderAt("/questions/new");
+    await user.type(await screen.findByRole("textbox", { name: "Question prompt" }), "A prompt");
+    await user.type(screen.getByRole("textbox", { name: "One answer per line" }), "Answer");
+    await user.selectOptions(screen.getByRole("combobox", { name: "Visibility" }), "unlisted");
+    await user.selectOptions(screen.getByRole("combobox", { name: "Status" }), "published");
+    await user.click(screen.getByRole("button", { name: "Create question" }));
+    expect(vi.mocked(questionsApi.createQuestion).mock.calls[0]?.[0]).toMatchObject({
+        visibility: "unlisted",
+        status: "published",
+    });
+    expect(await screen.findByRole("heading", { name: "Version history" })).toBeInTheDocument();
+    expect(await screen.findByText("Version 1")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Remove Geography tag" }));
+    expect(questionsApi.removeQuestionTag).toHaveBeenCalledWith(questionId, tagId);
+    await user.selectOptions(screen.getByRole("combobox", { name: "Status" }), "archived");
+    await waitFor(() =>
+        expect(questionsApi.updateQuestionMetadata).toHaveBeenCalledWith(questionId, {
+            status: "archived",
+        }),
     );
 });

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { verifyAccessToken } from "../../src/auth/supabase.ts";
 import { getOrCreateProfile } from "../../src/db/profiles.ts";
-import { createQuiz, getQuizDetail, saveQuizContent } from "../../src/db/quizzes.ts";
+import { createQuiz, getQuizDetail, listQuizzes, saveQuizContent } from "../../src/db/quizzes.ts";
 
 vi.mock("../../src/auth/supabase.ts", () => ({ verifyAccessToken: vi.fn() }));
 vi.mock("../../src/db/profiles.ts", () => ({ getOrCreateProfile: vi.fn() }));
@@ -67,6 +67,25 @@ describe("quiz API", () => {
         expect(response.status).toBe(200);
         expect(response.body).toEqual(detail);
         expect(getQuizDetail).toHaveBeenCalledWith(quizId, null);
+    });
+
+    it("requires authentication for an owner-only quiz list and forwards its scope", async () => {
+        const anonymous = await request(app).get("/api/v1/quizzes?scope=mine");
+        expect(anonymous.status).toBe(401);
+        expect(listQuizzes).not.toHaveBeenCalled();
+
+        vi.mocked(listQuizzes).mockResolvedValueOnce({ items: [], nextOffset: null });
+        const owned = await request(app)
+            .get("/api/v1/quizzes?scope=mine&limit=1&offset=2")
+            .set("Authorization", "Bearer verified-token");
+        expect(owned.status).toBe(200);
+        expect(listQuizzes).toHaveBeenCalledWith({
+            viewerId: userId,
+            scope: "mine",
+            tagSlug: undefined,
+            limit: 1,
+            offset: 2,
+        });
     });
 
     it("requires authentication for creation and validates quiz content", async () => {

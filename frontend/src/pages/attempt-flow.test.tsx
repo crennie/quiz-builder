@@ -331,6 +331,11 @@ it("starts, answers every format, completes, reviews, sends feedback, and opens 
 
     const summary = await screen.findByRole("region", { name: "Result summary" });
     expect(within(summary).getByText("3 / 3 points")).toBeInTheDocument();
+    expect(within(summary).getByText("100%")).toBeInTheDocument();
+    const review = screen.getByRole("region", { name: "Question review" });
+    expect(within(review).getAllByRole("heading", { level: 3 })).toHaveLength(3);
+    expect(within(review).getAllByText(/Your answer:/)).toHaveLength(3);
+    expect(within(review).getAllByText(/Correct answer:/)).toHaveLength(3);
     expect(screen.getByText("Paris is the capital of France.")).toBeInTheDocument();
     const feedbackDetails = screen.getByText("Send feedback about question 1").closest("details");
     if (!feedbackDetails) throw new Error("Feedback form was not found");
@@ -434,4 +439,78 @@ it("hides correct answers and explanations when the saved setting disables revie
     expect(screen.queryByText(/Correct answer:/)).not.toBeInTheDocument();
     expect(screen.queryByText("Paris is the capital of France.")).not.toBeInTheDocument();
     expect(screen.getByText("3 / 3 points")).toBeInTheDocument();
+});
+
+it("navigates between questions, preserves saved answers, and accepts feedback in progress", async () => {
+    const user = userEvent.setup();
+    started = true;
+    currentAttempt = {
+        ...currentAttempt,
+        questions: currentAttempt.questions.map((question, index) =>
+            index === 0 ? { ...question, timeLimitSeconds: 30 } : question,
+        ),
+    };
+    renderAt(`/attempts/${attemptId}`);
+    expect(await screen.findByText(/Suggested time 30 seconds/)).toBeInTheDocument();
+    expect(screen.getByText(/0 of 3 answered/)).toBeInTheDocument();
+    await user.type(screen.getByRole("textbox", { name: "Your answer" }), "Paris");
+    await user.click(screen.getByRole("button", { name: "Submit answer" }));
+    expect(await screen.findByRole("heading", { name: "Capital of England?" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Previous" }));
+    expect(screen.getByText(/Your saved answer:/).parentElement).toHaveTextContent("Paris");
+    expect(screen.queryByRole("button", { name: "Submit answer" })).not.toBeInTheDocument();
+    expect(screen.getByText(/1 of 3 answered/)).toBeInTheDocument();
+    const feedbackDetails = screen.getByText("Send feedback about question 1").closest("details");
+    if (!feedbackDetails) throw new Error("Feedback form was not found");
+    await user.click(screen.getByText("Send feedback about question 1"));
+    await user.type(
+        within(feedbackDetails).getByRole("textbox", { name: "Feedback" }),
+        "This question needs clarification.",
+    );
+    await user.click(within(feedbackDetails).getByRole("button", { name: "Send feedback" }));
+    expect(vi.mocked(feedbackApi.createFeedback).mock.calls[0]?.[0]).toMatchObject({
+        quizAttemptQuestionId: ids[0],
+        comment: "This question needs clarification.",
+    });
+});
+
+it("shows a quiz's recent attempt and pages through history", async () => {
+    const user = userEvent.setup();
+    started = true;
+    vi.mocked(attemptsApi.listAttempts).mockImplementation((offset) =>
+        Promise.resolve({ items: [currentAttempt], nextOffset: offset === 0 ? 20 : null }),
+    );
+    renderAt(`/quizzes/${quizId}`);
+    expect(
+        await screen.findByRole("heading", { name: "Your recent attempts" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Resume/ })).toBeInTheDocument();
+    await user.click(screen.getByRole("link", { name: "View all attempt history" }));
+    expect(await screen.findByRole("heading", { name: "Attempt history" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(attemptsApi.listAttempts).toHaveBeenCalledWith(20);
+    await user.click(screen.getByRole("button", { name: "Previous" }));
+    expect(attemptsApi.listAttempts).toHaveBeenCalledWith(0);
+});
+
+it("retries failed history loading and shows its empty state", async () => {
+    const user = userEvent.setup();
+    vi.mocked(attemptsApi.listAttempts)
+        .mockRejectedValueOnce(new Error("History unavailable"))
+        .mockRejectedValueOnce(new Error("History unavailable"))
+        .mockResolvedValue({ items: [], nextOffset: null });
+    renderAt("/attempts");
+    expect(await screen.findByRole("alert", {}, { timeout: 3000 })).toHaveTextContent(
+        "Could not load attempts. History unavailable",
+    );
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+    expect(
+        await screen.findByText("No attempts yet. Choose a published quiz to begin."),
+    ).toBeInTheDocument();
+});
+
+it("shows a loading state while attempt history is pending", async () => {
+    vi.mocked(attemptsApi.listAttempts).mockReturnValue(new Promise(() => {}));
+    renderAt("/attempts");
+    expect(await screen.findByText("Loading attempts…")).toBeInTheDocument();
 });

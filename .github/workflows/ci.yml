@@ -39,6 +39,9 @@ jobs:
       - name: Check shared formatting
         run: npm run format:check
 
+      - name: Check use-case test mapping
+        run: npm run check:use-cases
+
       - name: Test shared contracts
         run: npm run test:shared
 

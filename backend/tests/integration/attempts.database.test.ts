@@ -174,6 +174,15 @@ describe("quiz attempts", () => {
                 sql,
             ),
         ).rejects.toMatchObject({ code: "INVALID_CHOICE" });
+        await expect(
+            submitAnswerInTransaction(
+                started.id,
+                started.questions[2].id,
+                takerId,
+                { questionType: "multiple_choice_multi", optionIds: ["missing"] },
+                sql,
+            ),
+        ).rejects.toMatchObject({ code: "INVALID_CHOICE" });
 
         const afterText = await submitAnswerInTransaction(
             started.id,

@@ -1,0 +1,498 @@
+{
+    "tests": [
+        {
+            "file": "frontend/src/auth/auth-flow.test.tsx",
+            "name": "signs up and shows the confirmation state without a session",
+            "ids": ["AUTH-01"]
+        },
+        {
+            "file": "frontend/src/auth/auth-flow.test.tsx",
+            "name": "signs in and navigates to the question bank",
+            "ids": ["AUTH-02"]
+        },
+        {
+            "file": "frontend/src/auth/auth-flow.test.tsx",
+            "name": "restores a session and shows protected content after loading",
+            "ids": ["AUTH-03"]
+        },
+        {
+            "file": "frontend/src/auth/auth-flow.test.tsx",
+            "name": "prompts signed-out users and shows configuration guidance",
+            "ids": ["AUTH-05"]
+        },
+        {
+            "file": "frontend/src/auth/auth-flow.test.tsx",
+            "name": "signs out and clears cached server data",
+            "ids": ["AUTH-04", "APP-02"]
+        },
+        {
+            "file": "frontend/src/auth/auth-flow.test.tsx",
+            "name": "shows a sign-in failure beside the form",
+            "ids": ["CORE-06"]
+        },
+        {
+            "file": "frontend/src/pages/home-page.test.tsx",
+            "name": "shows the application purpose and connected API state",
+            "ids": ["APP-01"]
+        },
+        {
+            "file": "frontend/src/app/router.test.tsx",
+            "name": "renders the not-found page through the application router",
+            "ids": ["APP-02"]
+        },
+        {
+            "file": "frontend/src/components/question-editor.test.tsx",
+            "name": "builds exact-text content with compatible grading settings",
+            "ids": ["APP-04", "QB-11"]
+        },
+        {
+            "file": "frontend/src/components/question-editor.test.tsx",
+            "name": "creates a single-choice answer and validates a missing correct choice",
+            "ids": ["QB-12"]
+        },
+        {
+            "file": "frontend/src/components/question-editor.test.tsx",
+            "name": "allows several correct choices for multi-choice questions",
+            "ids": ["QB-13"]
+        },
+        {
+            "file": "frontend/src/pages/question-management.test.tsx",
+            "name": "lists, filters, and creates question-bank tags",
+            "ids": ["QB-04", "QB-05", "TAG-01"]
+        },
+        {
+            "file": "frontend/src/pages/question-management.test.tsx",
+            "name": "filters the loaded question page and moves through API pages",
+            "ids": ["QB-04", "QB-06", "APP-03"]
+        },
+        {
+            "file": "frontend/src/pages/question-management.test.tsx",
+            "name": "shows a loading state while the question bank is pending",
+            "ids": ["APP-03"]
+        },
+        {
+            "file": "frontend/src/pages/question-management.test.tsx",
+            "name": "shows a question loading error and retries",
+            "ids": ["APP-03", "CORE-06"]
+        },
+        {
+            "file": "frontend/src/pages/question-management.test.tsx",
+            "name": "creates a question from the shared editor",
+            "ids": ["QB-10"]
+        },
+        {
+            "file": "frontend/src/pages/question-management.test.tsx",
+            "name": "saves a new version and manages metadata and tags",
+            "ids": ["QB-15", "QB-17", "TAG-03"]
+        },
+        {
+            "file": "frontend/src/pages/question-management.test.tsx",
+            "name": "creates a published unlisted question and handles owner lifecycle and tag removal",
+            "ids": ["QB-10", "QB-15", "QB-17", "TAG-03"]
+        },
+        {
+            "file": "frontend/src/pages/quiz-management.test.tsx",
+            "name": "lists quizzes and opens an owned quiz",
+            "ids": ["LIB-03", "LIB-10"]
+        },
+        {
+            "file": "frontend/src/pages/quiz-management.test.tsx",
+            "name": "keeps the current version on a no-op save, then saves changed content",
+            "ids": ["QUIZ-08", "QUIZ-09"]
+        },
+        {
+            "file": "frontend/src/pages/quiz-management.test.tsx",
+            "name": "creates a quiz with an explicitly selected question version and scoring",
+            "ids": ["QUIZ-01", "QUIZ-03", "QUIZ-05"]
+        },
+        {
+            "file": "frontend/src/pages/quiz-management.test.tsx",
+            "name": "updates a pinned question version while keeping its scoring",
+            "ids": ["QUIZ-03", "QUIZ-10"]
+        },
+        {
+            "file": "frontend/src/pages/quiz-management.test.tsx",
+            "name": "filters quiz cards by owner, title, and tag while paging",
+            "ids": ["LIB-03", "LIB-04", "LIB-05", "APP-03"]
+        },
+        {
+            "file": "frontend/src/pages/quiz-management.test.tsx",
+            "name": "requests an owner-only page when showing My quizzes",
+            "ids": ["LIB-04", "LIB-06"]
+        },
+        {
+            "file": "frontend/src/api/contract-boundaries.test.ts",
+            "name": "sends the owner scope and page offset to the quiz API",
+            "ids": ["LIB-06"]
+        },
+        {
+            "file": "frontend/src/pages/quiz-management.test.tsx",
+            "name": "shows a loading state while the quiz library is pending",
+            "ids": ["APP-03"]
+        },
+        {
+            "file": "frontend/src/pages/quiz-management.test.tsx",
+            "name": "saves settings, required state, and suggested time, then removes a question",
+            "ids": ["QUIZ-04", "QUIZ-05", "QUIZ-06", "APP-04"]
+        },
+        {
+            "file": "frontend/src/pages/quiz-management.test.tsx",
+            "name": "reorders saved quiz questions",
+            "ids": ["QUIZ-04"]
+        },
+        {
+            "file": "frontend/src/pages/quiz-management.test.tsx",
+            "name": "shows owner version history and updates quiz metadata and tags",
+            "ids": ["QUIZ-11", "QUIZ-15", "QUIZ-16", "TAG-04"]
+        },
+        {
+            "file": "frontend/src/pages/quiz-management.test.tsx",
+            "name": "searches and pages through the question picker before choosing a version",
+            "ids": ["QUIZ-02"]
+        },
+        {
+            "file": "frontend/src/pages/quiz-management.test.tsx",
+            "name": "lets an owner pin an older question version",
+            "ids": ["QUIZ-03"]
+        },
+        {
+            "file": "frontend/src/pages/quiz-management.test.tsx",
+            "name": "offers only the current version of another author's public question",
+            "ids": ["QUIZ-03"]
+        },
+        {
+            "file": "frontend/src/pages/attempt-flow.test.tsx",
+            "name": "starts, answers every format, completes, reviews, sends feedback, and opens history",
+            "ids": [
+                "TAKE-01",
+                "TAKE-04",
+                "TAKE-05",
+                "TAKE-06",
+                "TAKE-07",
+                "GRADE-05",
+                "RESULT-01",
+                "RESULT-02",
+                "RESULT-03",
+                "HIST-01",
+                "HIST-02",
+                "FB-03",
+                "FB-04"
+            ]
+        },
+        {
+            "file": "frontend/src/pages/attempt-flow.test.tsx",
+            "name": "loads the first unanswered question after a fresh visit to an attempt URL",
+            "ids": ["TAKE-10"]
+        },
+        {
+            "file": "frontend/src/pages/attempt-flow.test.tsx",
+            "name": "allows completion with an optional question unanswered",
+            "ids": ["GRADE-05", "RESULT-02"]
+        },
+        {
+            "file": "frontend/src/pages/attempt-flow.test.tsx",
+            "name": "hides correct answers and explanations when the saved setting disables review answers",
+            "ids": ["RESULT-03"]
+        },
+        {
+            "file": "frontend/src/pages/attempt-flow.test.tsx",
+            "name": "navigates between questions, preserves saved answers, and accepts feedback in progress",
+            "ids": ["TAKE-04", "TAKE-09", "TAKE-11", "FB-03"]
+        },
+        {
+            "file": "frontend/src/pages/attempt-flow.test.tsx",
+            "name": "shows a quiz's recent attempt and pages through history",
+            "ids": ["HIST-01", "HIST-02", "HIST-03", "LIB-10"]
+        },
+        {
+            "file": "frontend/src/pages/attempt-flow.test.tsx",
+            "name": "retries failed history loading and shows its empty state",
+            "ids": ["APP-03", "CORE-06"]
+        },
+        {
+            "file": "frontend/src/pages/attempt-flow.test.tsx",
+            "name": "shows a loading state while attempt history is pending",
+            "ids": ["APP-03"]
+        },
+        {
+            "file": "frontend/src/api/client.test.ts",
+            "name": "maps the standard API error envelope",
+            "ids": ["CORE-06"]
+        },
+        {
+            "file": "frontend/src/api/client.test.ts",
+            "name": "sends the current access token and accepts empty success responses",
+            "ids": ["AUTH-06", "CORE-06"]
+        },
+        {
+            "file": "frontend/src/api/contract-boundaries.test.ts",
+            "name": "rejects malformed question, quiz, attempt, and feedback API responses",
+            "ids": ["CORE-06"]
+        },
+        {
+            "file": "frontend/e2e/quiz-workflows.spec.ts",
+            "name": "creates and publishes a quiz, then completes and reviews an attempt",
+            "ids": [
+                "AUTH-01",
+                "QB-10",
+                "QUIZ-01",
+                "TAKE-01",
+                "TAKE-05",
+                "GRADE-05",
+                "RESULT-01",
+                "RESULT-02",
+                "RESULT-03",
+                "HIST-02"
+            ]
+        },
+        {
+            "file": "frontend/e2e/quiz-workflows.spec.ts",
+            "name": "keeps an old attempt on version 1 after an explicit quiz question update",
+            "ids": ["QB-15", "QB-16", "QUIZ-10", "GRADE-08"]
+        },
+
+        {
+            "file": "backend/tests/unit/supabase-auth.test.ts",
+            "name": "uses Supabase's verified claims and canonical Auth UUID",
+            "ids": ["AUTH-06"]
+        },
+        {
+            "file": "backend/tests/unit/supabase-auth.test.ts",
+            "name": "rejects a token Supabase fails to verify",
+            "ids": ["AUTH-06"]
+        },
+        {
+            "file": "backend/tests/unit/profiles.test.ts",
+            "name": "seeds from Auth metadata without overwriting an existing profile",
+            "ids": ["AUTH-07"]
+        },
+        {
+            "file": "backend/tests/integration/current-user.integration.test.ts",
+            "name": "returns the profile for a verified user",
+            "ids": ["AUTH-07"]
+        },
+        {
+            "file": "backend/tests/integration/core-workflows.api-database.test.ts",
+            "name": "applies an HTTP authorization matrix to protected reads and mutations",
+            "ids": ["AUTH-06", "QB-18", "QUIZ-18", "RESULT-05", "FB-09"]
+        },
+        {
+            "file": "backend/tests/integration/core-workflows.api-database.test.ts",
+            "name": "applies public, unlisted, private, and archived read rules at the API boundary",
+            "ids": ["QB-03", "LIB-09", "QUIZ-19", "TAKE-01"]
+        },
+        {
+            "file": "backend/tests/integration/core-workflows.api-database.test.ts",
+            "name": "paginates and filters public resources without leaking private records",
+            "ids": ["QB-01", "QB-02", "LIB-01", "LIB-02", "LIB-05", "HIST-01", "CORE-02"]
+        },
+        {
+            "file": "backend/tests/integration/core-workflows.api-database.test.ts",
+            "name": "runs authoring, practice, historical versioning, and feedback through HTTP and SQL",
+            "ids": [
+                "QB-10",
+                "QB-16",
+                "QUIZ-08",
+                "QUIZ-10",
+                "TAKE-02",
+                "GRADE-08",
+                "RESULT-01",
+                "RESULT-02",
+                "HIST-02",
+                "FB-07",
+                "FB-08"
+            ]
+        },
+        {
+            "file": "backend/tests/integration/question-bank.database.test.ts",
+            "name": "creates immutable versions, preserves history, and keeps metadata separate",
+            "ids": ["QB-03", "QB-10", "QB-15", "QB-16", "QB-17", "QB-18", "CORE-03"]
+        },
+        {
+            "file": "backend/tests/integration/question-bank.database.test.ts",
+            "name": "enforces owner-scoped tags and filters the question bank",
+            "ids": ["QB-02", "TAG-01", "TAG-02", "TAG-03", "TAG-05", "TAG-06"]
+        },
+        {
+            "file": "backend/tests/integration/question-bank.api.test.ts",
+            "name": "returns full published question content to an anonymous reader",
+            "ids": ["QB-03", "RESULT-04"]
+        },
+        {
+            "file": "backend/tests/integration/question-bank.api.test.ts",
+            "name": "rejects mismatched answer and question types before persistence",
+            "ids": ["QB-14", "CORE-01"]
+        },
+        {
+            "file": "backend/tests/integration/quizzes.database.test.ts",
+            "name": "creates versions only for changed attempt content and preserves explicit source versions",
+            "ids": [
+                "QUIZ-01",
+                "QUIZ-03",
+                "QUIZ-04",
+                "QUIZ-05",
+                "QUIZ-06",
+                "QUIZ-08",
+                "QUIZ-09",
+                "QUIZ-10",
+                "QUIZ-11",
+                "CORE-03"
+            ]
+        },
+        {
+            "file": "backend/tests/integration/quizzes.database.test.ts",
+            "name": "paginates owned quizzes before mixing in newer public quizzes",
+            "ids": ["LIB-01", "LIB-04", "LIB-06"]
+        },
+        {
+            "file": "backend/tests/integration/quizzes.api.test.ts",
+            "name": "requires authentication for an owner-only quiz list and forwards its scope",
+            "ids": ["AUTH-06", "LIB-06"]
+        },
+        {
+            "file": "backend/tests/integration/quizzes.database.test.ts",
+            "name": "enforces quiz visibility and keeps metadata and tags out of content versions",
+            "ids": [
+                "TAG-04",
+                "TAG-05",
+                "TAG-06",
+                "QUIZ-15",
+                "QUIZ-16",
+                "QUIZ-18",
+                "QUIZ-19",
+                "LIB-09"
+            ]
+        },
+        {
+            "file": "backend/tests/integration/quizzes.database.test.ts",
+            "name": "checks membership identity and source availability without hiding included content",
+            "ids": ["QUIZ-07", "QUIZ-12", "QUIZ-19", "CORE-03"]
+        },
+        {
+            "file": "backend/tests/integration/quizzes.database.test.ts",
+            "name": "allows empty drafts but refuses to publish an empty quiz",
+            "ids": ["QUIZ-01", "QUIZ-17"]
+        },
+        {
+            "file": "backend/tests/integration/attempts.database.test.ts",
+            "name": "evaluates snapshots, completes, and preserves results after source versions change",
+            "ids": [
+                "TAKE-02",
+                "TAKE-05",
+                "TAKE-06",
+                "TAKE-07",
+                "TAKE-08",
+                "TAKE-10",
+                "GRADE-05",
+                "GRADE-06",
+                "GRADE-07",
+                "GRADE-08",
+                "RESULT-01",
+                "RESULT-02",
+                "RESULT-03",
+                "RESULT-05",
+                "HIST-01"
+            ]
+        },
+        {
+            "file": "backend/tests/integration/attempts.database.test.ts",
+            "name": "enforces quiz visibility and lifecycle at start",
+            "ids": ["TAKE-01", "QUIZ-19"]
+        },
+        {
+            "file": "backend/tests/integration/attempts.database.test.ts",
+            "name": "allows unanswered optional questions and hides explanations when configured",
+            "ids": ["GRADE-05", "GRADE-06", "RESULT-03"]
+        },
+        {
+            "file": "backend/tests/integration/attempts.database.test.ts",
+            "name": "shuffles presentation order while retaining each question snapshot",
+            "ids": ["TAKE-03", "TAKE-02", "QUIZ-06"]
+        },
+        {
+            "file": "backend/tests/unit/deterministic.test.ts",
+            "name": "honors text case and whitespace settings",
+            "ids": ["GRADE-01", "GRADE-04"]
+        },
+        {
+            "file": "backend/tests/unit/deterministic.test.ts",
+            "name": "awards single-choice points only for the configured option",
+            "ids": ["GRADE-02"]
+        },
+        {
+            "file": "backend/tests/unit/deterministic.test.ts",
+            "name": "awards multi-choice points only for the exact set",
+            "ids": ["GRADE-03"]
+        },
+        {
+            "file": "backend/tests/integration/feedback.database.test.ts",
+            "name": "accepts every target type and lets content owners review feedback",
+            "ids": ["FB-01", "FB-07", "FB-08", "FB-09"]
+        },
+        {
+            "file": "backend/tests/integration/feedback.database.test.ts",
+            "name": "rejects private or archived targets and foreign attempt questions",
+            "ids": ["FB-02"]
+        },
+        {
+            "file": "backend/tests/integration/feedback.database.test.ts",
+            "name": "shows attempted-question feedback to quiz and source-question owners",
+            "ids": ["FB-07", "FB-09"]
+        },
+        {
+            "file": "backend/tests/integration/feedback.database.test.ts",
+            "name": "enforces exactly one target in the database",
+            "ids": ["FB-01", "CORE-03"]
+        },
+        {
+            "file": "backend/tests/unit/request.test.ts",
+            "name": "converts Zod failures to the standard application error",
+            "ids": ["CORE-01"]
+        },
+        {
+            "file": "backend/tests/unit/transaction.test.ts",
+            "name": "rolls back and releases when work fails",
+            "ids": ["CORE-02"]
+        },
+        {
+            "file": "backend/tests/integration/postgres-transactions.integration.test.ts",
+            "name": "rolls back a multi-row write after a later statement fails",
+            "ids": ["CORE-02"]
+        },
+        {
+            "file": "backend/tests/unit/openapi.test.ts",
+            "name": "is valid and documents the health contract",
+            "ids": ["CORE-04"]
+        },
+        {
+            "file": "backend/tests/integration/app.integration.test.ts",
+            "name": "reports a healthy service",
+            "ids": ["CORE-05"]
+        },
+        {
+            "file": "backend/tests/integration/app.integration.test.ts",
+            "name": "preserves a valid request ID for correlation",
+            "ids": ["CORE-05"]
+        },
+        {
+            "file": "backend/tests/integration/app.integration.test.ts",
+            "name": "does not expose unexpected errors",
+            "ids": ["CORE-05"]
+        },
+        {
+            "file": "backend/tests/unit/logger.test.ts",
+            "name": "writes structured records with service context and redacts credentials",
+            "ids": ["CORE-05"]
+        },
+        {
+            "file": "shared/src/index.test.ts",
+            "name": "a question version cannot mix answer and grading types",
+            "ids": ["QB-14", "CORE-01"]
+        },
+        {
+            "file": "shared/src/index.test.ts",
+            "name": "quiz content requires explicit question versions and permits fractional points",
+            "ids": ["QUIZ-05", "QUIZ-07", "CORE-01"]
+        }
+    ]
+}

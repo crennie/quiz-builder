@@ -11,17 +11,20 @@ export function QuizListPage() {
     const [tag, setTag] = useState("");
     const [offset, setOffset] = useState(0);
     const [search, setSearch] = useState("");
-    const [scope, setScope] = useState("all");
+    const [scope, setScope] = useState<"all" | "mine">("all");
     const quizzes = useQuery({
-        queryKey: ["quizzes", session?.user.id, tag, offset],
-        queryFn: () => listQuizzes({ ...(tag ? { tag } : {}), offset }),
+        queryKey: ["quizzes", session?.user.id, tag, scope, offset],
+        queryFn: () =>
+            listQuizzes({
+                ...(tag ? { tag } : {}),
+                ...(scope === "mine" ? { scope } : {}),
+                offset,
+            }),
     });
     const tags = useQuery({ queryKey: ["tags", session?.user.id], queryFn: listTags });
     const filtered =
-        quizzes.data?.items.filter(
-            (quiz) =>
-                (scope === "all" || quiz.isOwner) &&
-                quiz.currentVersion.title.toLowerCase().includes(search.toLowerCase()),
+        quizzes.data?.items.filter((quiz) =>
+            quiz.currentVersion.title.toLowerCase().includes(search.toLowerCase()),
         ) ?? [];
 
     return (
@@ -68,15 +71,19 @@ export function QuizListPage() {
                     </label>
                     <label>
                         Show
-                        <select value={scope} onChange={(event) => setScope(event.target.value)}>
+                        <select
+                            value={scope}
+                            onChange={(event) => {
+                                setScope(event.target.value as "all" | "mine");
+                                setOffset(0);
+                            }}
+                        >
                             <option value="all">All available quizzes</option>
                             <option value="mine">My quizzes</option>
                         </select>
                     </label>
                 </div>
-                <p className="muted small">
-                    Title and ownership filters apply to this page of results.
-                </p>
+                <p className="muted small">Title search applies to this page of results.</p>
             </section>
             {quizzes.isPending ? <p role="status">Loading quizzes…</p> : null}
             {quizzes.isError ? (

@@ -87,7 +87,7 @@
         },
         {
             "file": "frontend/src/pages/question-management.test.tsx",
-            "name": "creates a published unlisted question and handles owner lifecycle and tag removal",
+            "name": "creates an unlisted draft, publishes it, and handles owner lifecycle and tag removal",
             "ids": ["QB-10", "QB-15", "QB-17", "TAG-03"]
         },
         {
@@ -157,7 +157,7 @@
         },
         {
             "file": "frontend/src/pages/quiz-management.test.tsx",
-            "name": "offers only the current version of another author's public question",
+            "name": "offers published versions of another author's public question",
             "ids": ["QUIZ-03"]
         },
         {

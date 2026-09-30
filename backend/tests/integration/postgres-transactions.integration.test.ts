@@ -1,10 +1,13 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { applyMigrations } from "./apply-migrations.ts";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { startAttemptInTransaction, submitAnswerInTransaction } from "../../src/db/attempts.ts";
-import { createQuestionInTransaction, type QueryExecutor } from "../../src/db/question-bank.ts";
+import {
+    createQuestionInTransaction,
+    publishQuestionInTransaction,
+    type QueryExecutor,
+} from "../../src/db/question-bank.ts";
 import { createQuizInTransaction, saveQuizContentInTransaction } from "../../src/db/quizzes.ts";
 import { withTransaction } from "../../src/db/transaction.ts";
 
@@ -37,15 +40,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("PostgreSQL transactions and row
         }
         pool = new Pool({ connectionString: url.toString(), max: 4 });
         await pool.query("CREATE SCHEMA auth; CREATE TABLE auth.users (id uuid PRIMARY KEY)");
-        await pool.query(
-            readFileSync(
-                resolve(
-                    import.meta.dirname,
-                    "../../../supabase/migrations/20260928174208_initial_schema.sql",
-                ),
-                "utf8",
-            ),
-        );
+        await applyMigrations((sql) => pool.query(sql));
         for (const id of [ownerId, learnerId]) {
             await pool.query("INSERT INTO auth.users (id) VALUES ($1)", [id]);
             await pool.query("INSERT INTO public.profiles (id, display_name) VALUES ($1, 'User')", [
@@ -59,15 +54,14 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("PostgreSQL transactions and row
     });
 
     async function fixture() {
-        const question = await withTransaction(
-            (client) =>
-                createQuestionInTransaction(
-                    ownerId,
-                    { content: questionContent, visibility: "private", status: "published" },
-                    client,
-                ),
-            pool,
-        );
+        const question = await withTransaction(async (client) => {
+            const draft = await createQuestionInTransaction(
+                ownerId,
+                { content: questionContent, visibility: "private" },
+                client,
+            );
+            return publishQuestionInTransaction(draft.id, ownerId, draft.currentVersion.id, client);
+        }, pool);
         const content = {
             title: "Original",
             description: null,

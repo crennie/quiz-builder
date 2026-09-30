@@ -1,11 +1,13 @@
 import {
+    bankQuestionDetailSchema,
+    bankQuestionListResponseSchema,
     questionDetailSchema,
     questionListResponseSchema,
     questionVersionSchema,
     questionVersionContentSchema,
     tagListResponseSchema,
     tagSchema,
-    type ContentStatus,
+    type BankQuestionDetail,
     type Database,
     type QuestionDetail,
     type QuestionVersion,
@@ -96,15 +98,13 @@ async function loadTags(
 
 export async function getQuestionDetail(
     questionId: string,
-    viewerId: string | null,
+    ownerId: string,
     database: QueryExecutor = pool,
 ): Promise<QuestionDetail | null> {
     const questions = await database.query<QuestionRow>(
         `SELECT * FROM public.questions q
-         WHERE q.id = $1
-           AND (q.created_by = $2::uuid OR
-                (q.status = 'published' AND q.visibility IN ('public', 'unlisted')))`,
-        [questionId, viewerId],
+         WHERE q.id = $1 AND q.created_by = $2::uuid`,
+        [questionId, ownerId],
     );
     const question = questions.rows[0];
     if (!question) return null;
@@ -131,23 +131,56 @@ export async function getQuestionDetail(
 
     return questionDetailSchema.parse({
         ...base,
-        isOwner: question.created_by === viewerId,
+        isOwner: true,
         currentVersion: mapVersion(version),
+    });
+}
+
+export async function getBankQuestionDetail(
+    questionId: string,
+    viewerId: string | null,
+    database: QueryExecutor = pool,
+): Promise<BankQuestionDetail | null> {
+    const result = await database.query<QuestionRow>(
+        `SELECT * FROM public.questions q
+         WHERE q.id = $1 AND q.status = 'published'
+           AND (q.created_by = $2::uuid OR q.visibility IN ('public', 'unlisted'))`,
+        [questionId, viewerId],
+    );
+    const question = result.rows[0];
+    if (!question?.default_published_version_id) return null;
+    const versions = await database.query<VersionRow>(
+        `SELECT * FROM public.question_versions WHERE question_id = $1 AND id = $2`,
+        [question.id, question.default_published_version_id],
+    );
+    const version = versions.rows[0];
+    if (!version) throw new Error("Default published question version was not found");
+    const tags = (await loadTags([question.id], database)).get(question.id) ?? [];
+    return bankQuestionDetailSchema.parse({
+        id: question.id,
+        createdBy: question.created_by,
+        visibility: question.visibility,
+        status: question.status,
+        createdAt: iso(question.created_at),
+        updatedAt: iso(question.updated_at),
+        isOwner: question.created_by === viewerId,
+        tags,
+        publishedVersion: mapVersion(version),
     });
 }
 
 export async function listQuestions(
     options: { viewerId: string | null; tagSlug?: string; limit: number; offset: number },
     database: QueryExecutor = pool,
-): Promise<{ items: QuestionDetail[]; nextOffset: number | null }> {
+): Promise<{ items: BankQuestionDetail[]; nextOffset: number | null }> {
     const rows = await database.query<ListRow>(
         `SELECT q.*, v.id AS version_id, v.version_number, v.prompt, v.question_type,
                 v.answer_config, v.grading_config, v.explanation,
                 v.created_by AS version_created_by, v.created_at AS version_created_at
          FROM public.questions q
-         JOIN public.question_versions v ON v.id = q.current_version_id
-         WHERE (q.created_by = $1::uuid OR
-                (q.visibility = 'public' AND q.status = 'published'))
+         JOIN public.question_versions v ON v.id = q.default_published_version_id
+         WHERE q.status = 'published'
+           AND (q.created_by = $1::uuid OR q.visibility = 'public')
            AND ($2::text IS NULL OR EXISTS (
              SELECT 1 FROM public.question_tags qt
              JOIN public.tags t ON t.id = qt.tag_id
@@ -164,7 +197,7 @@ export async function listQuestions(
     );
 
     const items = selected.map((row) =>
-        questionDetailSchema.parse({
+        bankQuestionDetailSchema.parse({
             id: row.id,
             createdBy: row.created_by,
             visibility: row.visibility,
@@ -173,7 +206,7 @@ export async function listQuestions(
             updatedAt: iso(row.updated_at),
             isOwner: row.created_by === options.viewerId,
             tags: tags.get(row.id) ?? [],
-            currentVersion: mapVersion({
+            publishedVersion: mapVersion({
                 id: row.version_id,
                 question_id: row.id,
                 version_number: row.version_number,
@@ -188,10 +221,82 @@ export async function listQuestions(
         }),
     );
 
-    return questionListResponseSchema.parse({
+    return bankQuestionListResponseSchema.parse({
         items,
         nextOffset: rows.rows.length > options.limit ? options.offset + options.limit : null,
     });
+}
+
+export async function listManagedQuestions(
+    options: { ownerId: string; tagSlug?: string; limit: number; offset: number },
+    database: QueryExecutor = pool,
+): Promise<{ items: QuestionDetail[]; nextOffset: number | null }> {
+    const rows = await database.query<ListRow>(
+        `SELECT q.*, v.id AS version_id, v.version_number, v.prompt, v.question_type,
+                v.answer_config, v.grading_config, v.explanation,
+                v.created_by AS version_created_by, v.created_at AS version_created_at
+         FROM public.questions q
+         JOIN public.question_versions v ON v.id = q.current_version_id
+         WHERE q.created_by = $1::uuid
+           AND ($2::text IS NULL OR EXISTS (
+             SELECT 1 FROM public.question_tags qt
+             JOIN public.tags t ON t.id = qt.tag_id
+             WHERE qt.question_id = q.id AND t.slug = $2
+           ))
+         ORDER BY q.created_at DESC, q.id DESC LIMIT $3 OFFSET $4`,
+        [options.ownerId, options.tagSlug ?? null, options.limit + 1, options.offset],
+    );
+    const selected = rows.rows.slice(0, options.limit);
+    const tags = await loadTags(
+        selected.map((row) => row.id),
+        database,
+    );
+    return questionListResponseSchema.parse({
+        items: selected.map((row) =>
+            questionDetailSchema.parse({
+                id: row.id,
+                createdBy: row.created_by,
+                visibility: row.visibility,
+                status: row.status,
+                createdAt: iso(row.created_at),
+                updatedAt: iso(row.updated_at),
+                isOwner: true,
+                tags: tags.get(row.id) ?? [],
+                currentVersion: mapVersion({
+                    id: row.version_id,
+                    question_id: row.id,
+                    version_number: row.version_number,
+                    prompt: row.prompt,
+                    question_type: row.question_type,
+                    answer_config: row.answer_config,
+                    grading_config: row.grading_config,
+                    explanation: row.explanation,
+                    created_by: row.version_created_by,
+                    created_at: row.version_created_at,
+                }),
+            }),
+        ),
+        nextOffset: rows.rows.length > options.limit ? options.offset + options.limit : null,
+    });
+}
+
+export async function getPublishedQuestionVersions(
+    questionId: string,
+    viewerId: string | null,
+    database: QueryExecutor = pool,
+): Promise<QuestionVersion[]> {
+    const question = await getBankQuestionDetail(questionId, viewerId, database);
+    if (!question) throw new AppError(404, "QUESTION_NOT_FOUND", "Question not found");
+    const versions = await database.query<VersionRow>(
+        `SELECT v.* FROM public.question_versions v
+         WHERE v.question_id = $1 AND EXISTS (
+           SELECT 1 FROM public.question_publication_events e
+           WHERE e.question_id = v.question_id AND e.question_version_id = v.id
+             AND e.event_type IN ('legacy_published', 'published')
+         ) ORDER BY v.version_number DESC`,
+        [questionId],
+    );
+    return versions.rows.map(mapVersion);
 }
 
 export async function getQuestionVersions(
@@ -218,15 +323,14 @@ export async function createQuestionInTransaction(
     input: {
         content: QuestionVersionContent;
         visibility: Visibility;
-        status: "draft" | "published";
     },
     database: QueryExecutor,
 ): Promise<QuestionDetail> {
     const content = questionVersionContentSchema.parse(input.content);
     const questions = await database.query<QuestionRow>(
-        `INSERT INTO public.questions (created_by, visibility, status)
-         VALUES ($1, $2, $3) RETURNING *`,
-        [ownerId, input.visibility, input.status],
+        `INSERT INTO public.questions (created_by, visibility)
+         VALUES ($1, $2) RETURNING *`,
+        [ownerId, input.visibility],
     );
     const question = questions.rows[0];
     if (!question) throw new Error("Question insertion returned no row");
@@ -265,7 +369,6 @@ export function createQuestion(
     input: {
         content: QuestionVersionContent;
         visibility: Visibility;
-        status: "draft" | "published";
     },
 ): Promise<QuestionDetail> {
     return withTransaction((client) => createQuestionInTransaction(ownerId, input, client));
@@ -340,17 +443,15 @@ export function createQuestionVersion(
 export async function updateQuestionMetadataInTransaction(
     questionId: string,
     ownerId: string,
-    metadata: { visibility?: Visibility; status?: ContentStatus },
+    metadata: { visibility: Visibility },
     database: QueryExecutor,
 ): Promise<QuestionDetail> {
     const updated = await database.query<QuestionRow>(
         `UPDATE public.questions
-         SET visibility = COALESCE($3::public.content_visibility, visibility),
-             status = COALESCE($4::public.content_status, status),
-             updated_at = now()
+         SET visibility = $3::public.content_visibility, updated_at = now()
          WHERE id = $1 AND created_by = $2
          RETURNING *`,
-        [questionId, ownerId, metadata.visibility ?? null, metadata.status ?? null],
+        [questionId, ownerId, metadata.visibility],
     );
     if (!updated.rows[0]) throw new AppError(404, "QUESTION_NOT_FOUND", "Question not found");
     const detail = await getQuestionDetail(questionId, ownerId, database);
@@ -361,11 +462,189 @@ export async function updateQuestionMetadataInTransaction(
 export function updateQuestionMetadata(
     questionId: string,
     ownerId: string,
-    metadata: { visibility?: Visibility; status?: ContentStatus },
+    metadata: { visibility: Visibility },
 ): Promise<QuestionDetail> {
     return withTransaction((client) =>
         updateQuestionMetadataInTransaction(questionId, ownerId, metadata, client),
     );
+}
+
+async function lockOwnedQuestion(
+    questionId: string,
+    ownerId: string,
+    database: QueryExecutor,
+): Promise<QuestionRow> {
+    const result = await database.query<QuestionRow>(
+        `SELECT * FROM public.questions WHERE id = $1 AND created_by = $2 FOR UPDATE`,
+        [questionId, ownerId],
+    );
+    const row = result.rows[0];
+    if (!row) throw new AppError(404, "QUESTION_NOT_FOUND", "Question not found");
+    return row;
+}
+
+async function recordPublicationEvent(
+    questionId: string,
+    versionId: string | null,
+    actorId: string,
+    eventType: string,
+    database: QueryExecutor,
+): Promise<void> {
+    await database.query(
+        `INSERT INTO public.question_publication_events
+           (question_id, question_version_id, actor_id, event_type)
+         VALUES ($1, $2, $3, $4)`,
+        [questionId, versionId, actorId, eventType],
+    );
+}
+
+export async function publishQuestionInTransaction(
+    questionId: string,
+    ownerId: string,
+    versionId: string,
+    database: QueryExecutor,
+): Promise<QuestionDetail> {
+    const question = await lockOwnedQuestion(questionId, ownerId, database);
+    if (question.status === "archived") {
+        throw new AppError(409, "QUESTION_ARCHIVED", "Restore the question before publishing");
+    }
+    if (question.current_version_id !== versionId) {
+        throw new AppError(409, "STALE_QUESTION_VERSION", "Publish the current candidate version");
+    }
+    if (question.status === "published" && question.default_published_version_id === versionId) {
+        const detail = await getQuestionDetail(questionId, ownerId, database);
+        if (!detail) throw new Error("Published question was not found");
+        return detail;
+    }
+    const version = await database.query<{ created_by: string }>(
+        `SELECT created_by FROM public.question_versions WHERE question_id = $1 AND id = $2`,
+        [questionId, versionId],
+    );
+    if (version.rows[0]?.created_by !== ownerId) {
+        throw new AppError(
+            403,
+            "PUBLISH_NOT_ALLOWED",
+            "Only a human-authored candidate can publish directly",
+        );
+    }
+    await recordPublicationEvent(questionId, versionId, ownerId, "direct_approved", database);
+    await recordPublicationEvent(questionId, versionId, ownerId, "published", database);
+    await database.query(
+        `UPDATE public.questions
+         SET status = 'published', default_published_version_id = $2, updated_at = now()
+         WHERE id = $1`,
+        [questionId, versionId],
+    );
+    const detail = await getQuestionDetail(questionId, ownerId, database);
+    if (!detail) throw new Error("Published question was not found");
+    return detail;
+}
+
+export function publishQuestion(questionId: string, ownerId: string, versionId: string) {
+    return withTransaction((client) =>
+        publishQuestionInTransaction(questionId, ownerId, versionId, client),
+    );
+}
+
+export async function unpublishQuestionInTransaction(
+    questionId: string,
+    ownerId: string,
+    database: QueryExecutor,
+): Promise<QuestionDetail> {
+    const question = await lockOwnedQuestion(questionId, ownerId, database);
+    if (question.status === "archived") {
+        throw new AppError(409, "QUESTION_ARCHIVED", "Restore the question before unpublishing");
+    }
+    if (question.status === "published") {
+        await recordPublicationEvent(
+            questionId,
+            question.default_published_version_id,
+            ownerId,
+            "unpublished",
+            database,
+        );
+        await database.query(
+            `UPDATE public.questions
+             SET status = 'draft', default_published_version_id = NULL, updated_at = now()
+             WHERE id = $1`,
+            [questionId],
+        );
+    }
+    const detail = await getQuestionDetail(questionId, ownerId, database);
+    if (!detail) throw new Error("Unpublished question was not found");
+    return detail;
+}
+
+export function unpublishQuestion(questionId: string, ownerId: string) {
+    return withTransaction((client) => unpublishQuestionInTransaction(questionId, ownerId, client));
+}
+
+export async function archiveQuestionInTransaction(
+    questionId: string,
+    ownerId: string,
+    database: QueryExecutor,
+): Promise<QuestionDetail> {
+    const question = await lockOwnedQuestion(questionId, ownerId, database);
+    if (question.status !== "archived") {
+        await recordPublicationEvent(
+            questionId,
+            question.default_published_version_id,
+            ownerId,
+            "archived",
+            database,
+        );
+        await database.query(
+            `UPDATE public.questions SET status = 'archived', updated_at = now() WHERE id = $1`,
+            [questionId],
+        );
+    }
+    const detail = await getQuestionDetail(questionId, ownerId, database);
+    if (!detail) throw new Error("Archived question was not found");
+    return detail;
+}
+
+export function archiveQuestion(questionId: string, ownerId: string) {
+    return withTransaction((client) => archiveQuestionInTransaction(questionId, ownerId, client));
+}
+
+export async function restoreQuestionInTransaction(
+    questionId: string,
+    ownerId: string,
+    database: QueryExecutor,
+): Promise<QuestionDetail> {
+    const question = await lockOwnedQuestion(questionId, ownerId, database);
+    if (question.status !== "archived") {
+        throw new AppError(409, "QUESTION_NOT_ARCHIVED", "Question is not archived");
+    }
+    const versionId = question.default_published_version_id;
+    if (versionId) {
+        const published = await database.query<{ id: string }>(
+            `SELECT id FROM public.question_publication_events
+             WHERE question_id = $1 AND question_version_id = $2
+               AND event_type IN ('legacy_published', 'published') LIMIT 1`,
+            [questionId, versionId],
+        );
+        if (!published.rows[0]) {
+            throw new AppError(
+                409,
+                "PUBLICATION_HISTORY_MISSING",
+                "Published version has no publication record",
+            );
+        }
+    }
+    await recordPublicationEvent(questionId, versionId, ownerId, "restored", database);
+    await database.query(
+        `UPDATE public.questions SET status = $2::public.content_status, updated_at = now()
+         WHERE id = $1`,
+        [questionId, versionId ? "published" : "draft"],
+    );
+    const detail = await getQuestionDetail(questionId, ownerId, database);
+    if (!detail) throw new Error("Restored question was not found");
+    return detail;
+}
+
+export function restoreQuestion(questionId: string, ownerId: string) {
+    return withTransaction((client) => restoreQuestionInTransaction(questionId, ownerId, client));
 }
 
 function slugify(name: string): string {

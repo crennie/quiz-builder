@@ -1,22 +1,26 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { useState } from "react";
-import type { ContentStatus, QuestionVersionContent, Visibility } from "@quiz-builder/contracts";
+import type { QuestionVersionContent, Visibility } from "@quiz-builder/contracts";
 
 import {
+    archiveQuestion,
     assignQuestionTag,
     createQuestionVersion,
     getQuestion,
     getQuestionVersions,
     listTags,
     removeQuestionTag,
+    publishQuestion,
+    restoreQuestion,
+    unpublishQuestion,
     updateQuestionMetadata,
 } from "../api/questions";
 import { useAuth } from "../auth/auth-state";
 import { QuestionEditor } from "../components/question-editor";
 
 export function QuestionDetailPage() {
-    const { questionId } = useParams({ from: "/questions/$questionId" });
+    const { questionId } = useParams({ from: "/questions/mine/$questionId" });
     const { session } = useAuth();
     const queryClient = useQueryClient();
     const [tagId, setTagId] = useState("");
@@ -38,8 +42,20 @@ export function QuestionDetailPage() {
         },
     });
     const updateMetadata = useMutation({
-        mutationFn: (value: { visibility?: Visibility; status?: ContentStatus }) =>
+        mutationFn: (value: { visibility: Visibility }) =>
             updateQuestionMetadata(questionId, value),
+        onSuccess: () => {
+            void refresh();
+        },
+    });
+    const lifecycle = useMutation({
+        mutationFn: (action: "publish" | "unpublish" | "archive" | "restore") => {
+            if (action === "publish")
+                return publishQuestion(questionId, question.data!.currentVersion.id);
+            if (action === "unpublish") return unpublishQuestion(questionId);
+            if (action === "archive") return archiveQuestion(questionId);
+            return restoreQuestion(questionId);
+        },
         onSuccess: () => {
             void refresh();
         },
@@ -67,12 +83,22 @@ export function QuestionDetailPage() {
             queryClient.invalidateQueries({ queryKey: ["questions"] }),
         ]);
     }
-    async function changeMetadata(value: { visibility?: Visibility; status?: ContentStatus }) {
+    async function changeMetadata(value: { visibility: Visibility }) {
         setActionError("");
         try {
             await updateMetadata.mutateAsync(value);
         } catch (error) {
             setActionError(error instanceof Error ? error.message : "Could not update question.");
+        }
+    }
+    async function changeLifecycle(action: "publish" | "unpublish" | "archive" | "restore") {
+        setActionError("");
+        try {
+            await lifecycle.mutateAsync(action);
+        } catch (error) {
+            setActionError(
+                error instanceof Error ? error.message : "Could not change question lifecycle.",
+            );
         }
     }
     async function addTag() {
@@ -99,7 +125,7 @@ export function QuestionDetailPage() {
             <div className="message-panel" role="alert">
                 <h1>Question unavailable</h1>
                 <p>{question.error.message}</p>
-                <Link to="/questions">Return to question bank</Link>
+                <Link to="/questions/mine">Return to my questions</Link>
             </div>
         );
     const current = question.data;
@@ -108,7 +134,7 @@ export function QuestionDetailPage() {
         [];
     return (
         <div className="page-stack narrow">
-            <Link to="/questions">← Question bank</Link>
+            <Link to="/questions/mine">← My questions</Link>
             <div>
                 <p className="eyebrow">Question · Version {current.currentVersion.versionNumber}</p>
                 <h1>{current.currentVersion.prompt}</h1>
@@ -138,25 +164,44 @@ export function QuestionDetailPage() {
                                 <option value="public">Public</option>
                             </select>
                         </label>
-                        <label>
-                            Status
-                            <select
-                                aria-label="Status"
-                                value={current.status}
-                                disabled={updateMetadata.isPending}
-                                onChange={(event) => {
-                                    void changeMetadata({
-                                        status: event.target.value as ContentStatus,
-                                    });
-                                }}
-                            >
-                                <option value="draft">Draft</option>
-                                <option value="published">Published</option>
-                                <option value="archived">Archived</option>
-                            </select>
-                        </label>
+                        <div className="quiz-actions">
+                            {current.status === "archived" ? (
+                                <button
+                                    type="button"
+                                    onClick={() => void changeLifecycle("restore")}
+                                >
+                                    Restore question
+                                </button>
+                            ) : (
+                                <>
+                                    <button
+                                        type="button"
+                                        onClick={() => void changeLifecycle("publish")}
+                                    >
+                                        Publish current version
+                                    </button>
+                                    {current.status === "published" ? (
+                                        <button
+                                            type="button"
+                                            className="secondary"
+                                            onClick={() => void changeLifecycle("unpublish")}
+                                        >
+                                            Unpublish question
+                                        </button>
+                                    ) : null}
+                                    <button
+                                        type="button"
+                                        className="secondary"
+                                        onClick={() => void changeLifecycle("archive")}
+                                    >
+                                        Archive question
+                                    </button>
+                                </>
+                            )}
+                        </div>
                         <p className="muted small">
-                            These changes keep the current content version.
+                            Publication is an explicit action. Draft revisions do not change the
+                            published version.
                         </p>
                     </section>
                     <section className="panel">

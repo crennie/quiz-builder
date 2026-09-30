@@ -10,18 +10,17 @@ export function NewQuestionPage() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [visibility, setVisibility] = useState<Visibility>("private");
-    const [status, setStatus] = useState<"draft" | "published">("draft");
     const mutation = useMutation({ mutationFn: createQuestion });
 
     async function save(content: QuestionVersionContent) {
-        const question = await mutation.mutateAsync({ content, visibility, status });
+        const question = await mutation.mutateAsync({ content, visibility });
         await queryClient.invalidateQueries({ queryKey: ["questions"] });
-        void navigate({ to: "/questions/$questionId", params: { questionId: question.id } });
+        void navigate({ to: "/questions/mine/$questionId", params: { questionId: question.id } });
     }
 
     return (
         <div className="page-stack narrow">
-            <Link to="/questions">← Question bank</Link>
+            <Link to="/questions/mine">← My questions</Link>
             <div>
                 <p className="eyebrow">Create</p>
                 <h1>New question</h1>
@@ -35,7 +34,7 @@ export function NewQuestionPage() {
                 />
             </section>
             <section className="panel form-grid">
-                <h2>Access and lifecycle</h2>
+                <h2>Visibility after publication</h2>
                 <label>
                     Visibility
                     <select
@@ -47,16 +46,9 @@ export function NewQuestionPage() {
                         <option value="public">Public</option>
                     </select>
                 </label>
-                <label>
-                    Status
-                    <select
-                        value={status}
-                        onChange={(event) => setStatus(event.target.value as "draft" | "published")}
-                    >
-                        <option value="draft">Draft</option>
-                        <option value="published">Published</option>
-                    </select>
-                </label>
+                <p className="muted small">
+                    New questions are saved as drafts until you publish them.
+                </p>
             </section>
         </div>
     );

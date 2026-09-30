@@ -16,7 +16,9 @@ async function createQuestion(page: Page, prompt: string, answer: string) {
     await page.getByLabel("Question prompt").fill(prompt);
     await page.getByLabel("One answer per line").fill(answer);
     await page.getByRole("button", { name: "Create question" }).click();
-    await expect(page).toHaveURL(/\/questions\/[0-9a-f-]{36}$/);
+    await expect(page).toHaveURL(/\/questions\/mine\/[0-9a-f-]{36}$/);
+    await page.getByRole("button", { name: "Publish current version" }).click();
+    await expect(page.getByText("published", { exact: false }).first()).toBeVisible();
     return page.url();
 }
 
@@ -72,6 +74,7 @@ test("keeps an old attempt on version 1 after an explicit quiz question update",
     await page.getByLabel("One answer per line").fill("London");
     await page.getByRole("button", { name: "Save new version" }).click();
     await expect(page.getByText("Version 2", { exact: false }).first()).toBeVisible();
+    await page.getByRole("button", { name: "Publish current version" }).click();
 
     await page.goto(quizUrl);
     await expect(page.getByText(originalPrompt, { exact: true }).first()).toBeVisible();

@@ -13,7 +13,7 @@ import { AuthContext } from "../auth/auth-state";
 
 vi.mock("../api/questions", () => ({
     listQuestions: vi.fn(),
-    getQuestionVersions: vi.fn(),
+    getPublishedQuestionVersions: vi.fn(),
     listTags: vi.fn(),
 }));
 vi.mock("../api/quizzes", () => ({
@@ -62,7 +62,7 @@ const question = {
     updatedAt: timestamp,
     tags: [],
     isOwner: true,
-    currentVersion: questionVersion,
+    publishedVersion: questionVersion,
 };
 const quiz = {
     id: quizId,
@@ -132,7 +132,9 @@ beforeEach(() => {
         items: [question],
         nextOffset: null,
     });
-    vi.mocked(questionsApi.getQuestionVersions).mockResolvedValue({ versions: [questionVersion] });
+    vi.mocked(questionsApi.getPublishedQuestionVersions).mockResolvedValue({
+        versions: [questionVersion],
+    });
     vi.mocked(questionsApi.listTags).mockResolvedValue([]);
     vi.mocked(attemptsApi.listAttempts).mockResolvedValue({ items: [], nextOffset: null });
 });
@@ -442,7 +444,7 @@ it("searches and pages through the question picker before choosing a version", a
 it("lets an owner pin an older question version", async () => {
     const user = userEvent.setup();
     const oldId = "e23e4567-e89b-42d3-a456-426614174030";
-    vi.mocked(questionsApi.getQuestionVersions).mockResolvedValue({
+    vi.mocked(questionsApi.getPublishedQuestionVersions).mockResolvedValue({
         versions: [
             questionVersion,
             { ...questionVersion, id: oldId, versionNumber: 1, prompt: "Earlier wording?" },
@@ -462,7 +464,7 @@ it("lets an owner pin an older question version", async () => {
     ).toBe(oldId);
 });
 
-it("offers only the current version of another author's public question", async () => {
+it("offers published versions of another author's public question", async () => {
     const user = userEvent.setup();
     vi.mocked(questionsApi.listQuestions).mockResolvedValue({
         items: [{ ...question, isOwner: false, visibility: "public" }],
@@ -474,5 +476,5 @@ it("offers only the current version of another author's public question", async 
     expect(
         await screen.findByRole("button", { name: "Select version 2: Capital of France?" }),
     ).toBeInTheDocument();
-    expect(questionsApi.getQuestionVersions).not.toHaveBeenCalled();
+    expect(questionsApi.getPublishedQuestionVersions).toHaveBeenCalledWith(questionId);
 });

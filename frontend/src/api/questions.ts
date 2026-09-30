@@ -1,10 +1,12 @@
 import {
+    bankQuestionDetailSchema,
+    bankQuestionListResponseSchema,
     questionDetailSchema,
     questionListResponseSchema,
     questionVersionsResponseSchema,
     tagListResponseSchema,
     tagSchema,
-    type ContentStatus,
+    type BankQuestionDetail,
     type QuestionDetail,
     type QuestionVersionContent,
     type Tag,
@@ -20,13 +22,35 @@ function body(value: unknown): string {
 export async function listQuestions(options: { tag?: string; offset: number }) {
     const query = new URLSearchParams({ limit: "50", offset: String(options.offset) });
     if (options.tag) query.set("tag", options.tag);
-    return questionListResponseSchema.parse(
+    return bankQuestionListResponseSchema.parse(
         await authenticatedRequest<unknown>(`/v1/questions?${query}`),
     );
 }
 
+export async function listManagedQuestions(options: { tag?: string; offset: number }) {
+    const query = new URLSearchParams({ limit: "50", offset: String(options.offset) });
+    if (options.tag) query.set("tag", options.tag);
+    return questionListResponseSchema.parse(
+        await authenticatedRequest<unknown>(`/v1/questions/mine?${query}`),
+    );
+}
+
+export async function getBankQuestion(id: string): Promise<BankQuestionDetail> {
+    return bankQuestionDetailSchema.parse(
+        await authenticatedRequest<unknown>(`/v1/questions/${id}`),
+    );
+}
+
 export async function getQuestion(id: string): Promise<QuestionDetail> {
-    return questionDetailSchema.parse(await authenticatedRequest<unknown>(`/v1/questions/${id}`));
+    return questionDetailSchema.parse(
+        await authenticatedRequest<unknown>(`/v1/questions/${id}/manage`),
+    );
+}
+
+export async function getPublishedQuestionVersions(id: string) {
+    return questionVersionsResponseSchema.parse(
+        await authenticatedRequest<unknown>(`/v1/questions/${id}/published-versions`),
+    );
 }
 
 export async function getQuestionVersions(id: string) {
@@ -38,7 +62,6 @@ export async function getQuestionVersions(id: string) {
 export async function createQuestion(input: {
     content: QuestionVersionContent;
     visibility: Visibility;
-    status: "draft" | "published";
 }): Promise<QuestionDetail> {
     return questionDetailSchema.parse(
         await authenticatedRequest<unknown>("/v1/questions", {
@@ -62,10 +85,7 @@ export async function createQuestionVersion(
 
 export async function updateQuestionMetadata(
     id: string,
-    value: {
-        visibility?: Visibility;
-        status?: ContentStatus;
-    },
+    value: { visibility: Visibility },
 ): Promise<QuestionDetail> {
     return questionDetailSchema.parse(
         await authenticatedRequest<unknown>(`/v1/questions/${id}`, {
@@ -74,6 +94,25 @@ export async function updateQuestionMetadata(
         }),
     );
 }
+
+async function questionAction(
+    id: string,
+    action: string,
+    bodyValue?: unknown,
+): Promise<QuestionDetail> {
+    return questionDetailSchema.parse(
+        await authenticatedRequest<unknown>(`/v1/questions/${id}/${action}`, {
+            method: "POST",
+            ...(bodyValue === undefined ? {} : { body: body(bodyValue) }),
+        }),
+    );
+}
+
+export const publishQuestion = (id: string, versionId: string) =>
+    questionAction(id, "publish", { versionId });
+export const unpublishQuestion = (id: string) => questionAction(id, "unpublish");
+export const archiveQuestion = (id: string) => questionAction(id, "archive");
+export const restoreQuestion = (id: string) => questionAction(id, "restore");
 
 export async function listTags(): Promise<Tag[]> {
     return tagListResponseSchema.parse(await authenticatedRequest<unknown>("/v1/tags")).tags;

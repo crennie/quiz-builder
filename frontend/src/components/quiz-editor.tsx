@@ -2,7 +2,7 @@ import { quizContentSchema, type QuizContent, type QuizVersion } from "@quiz-bui
 import { useQuery } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 
-import { getQuestionVersions, listQuestions, listTags } from "../api/questions";
+import { getPublishedQuestionVersions, listQuestions, listTags } from "../api/questions";
 import { useAuth } from "../auth/auth-state";
 
 type DraftQuestion = QuizContent["questions"][number] & {
@@ -318,15 +318,11 @@ function QuestionPicker({
     const tags = useQuery({ queryKey: ["tags", session?.user.id], queryFn: listTags });
     const selected = questions.data?.items.find((question) => question.id === selectedId);
     const versions = useQuery({
-        queryKey: ["question-versions", session?.user.id, selectedId],
-        queryFn: () => getQuestionVersions(selectedId),
-        enabled: Boolean(selected?.isOwner),
+        queryKey: ["published-question-versions", session?.user.id, selectedId],
+        queryFn: () => getPublishedQuestionVersions(selectedId),
+        enabled: Boolean(selected),
     });
-    const availableVersions = selected?.isOwner
-        ? (versions.data?.versions ?? [])
-        : selected
-          ? [selected.currentVersion]
-          : [];
+    const availableVersions = versions.data?.versions ?? [];
 
     return (
         <div className="panel quiz-picker" aria-label="Question bank picker">
@@ -376,7 +372,7 @@ function QuestionPicker({
                             .filter(
                                 (question) =>
                                     question.status !== "archived" &&
-                                    question.currentVersion.prompt
+                                    question.publishedVersion.prompt
                                         .toLowerCase()
                                         .includes(search.toLowerCase()),
                             )
@@ -387,7 +383,7 @@ function QuestionPicker({
                                         className="secondary"
                                         onClick={() => setSelectedId(question.id)}
                                     >
-                                        {question.currentVersion.prompt}
+                                        {question.publishedVersion.prompt}
                                     </button>
                                 </li>
                             ))}
@@ -421,11 +417,9 @@ function QuestionPicker({
             ) : null}
             {selected ? (
                 <div>
-                    <h4>Versions of {selected.currentVersion.prompt}</h4>
-                    {versions.isPending && selected.isOwner ? (
-                        <p role="status">Loading versions…</p>
-                    ) : null}
-                    {versions.isError && selected.isOwner ? (
+                    <h4>Versions of {selected.publishedVersion.prompt}</h4>
+                    {versions.isPending ? <p role="status">Loading versions…</p> : null}
+                    {versions.isError ? (
                         <p role="alert">Could not load versions. {versions.error.message}</p>
                     ) : null}
                     <ul className="card-list">

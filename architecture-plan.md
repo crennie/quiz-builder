@@ -1,5 +1,7 @@
 # Quiz Builder — Architecture & Implementation Plan
 
+The [content-production workflow plan](docs/plans/content-production-workflow.md) and [ADR-004](docs/architecture/decisions/ADR-004-question-publication-boundary.md) supersede this document's original question-publication and quiz-selection rules. Question creation now saves a draft; only an explicit publication operation enters the question bank. A quiz may newly select any accessible previously published version of a currently published question.
+
 ## 1. Goal
 
 Build `quiz-builder`, a full-stack TypeScript application with two primary capabilities:

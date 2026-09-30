@@ -1,11 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
+import type { BankQuestionDetail, QuestionDetail } from "@quiz-builder/contracts";
 
-import { createTag, listQuestions, listTags } from "../api/questions";
+import { createTag, listManagedQuestions, listQuestions, listTags } from "../api/questions";
 import { useAuth } from "../auth/auth-state";
 
-export function QuestionBankPage() {
+function displayVersion(question: BankQuestionDetail | QuestionDetail) {
+    return "publishedVersion" in question ? question.publishedVersion : question.currentVersion;
+}
+
+export function QuestionBankPage({ mine = false }: { mine?: boolean }) {
     const { session } = useAuth();
     const queryClient = useQueryClient();
     const [tag, setTag] = useState("");
@@ -14,9 +19,13 @@ export function QuestionBankPage() {
     const [visibility, setVisibility] = useState("");
     const [status, setStatus] = useState("");
     const [newTag, setNewTag] = useState("");
-    const questions = useQuery({
-        queryKey: ["questions", session?.user.id, tag, offset],
-        queryFn: () => listQuestions({ ...(tag ? { tag } : {}), offset }),
+    const questions = useQuery<{
+        items: Array<BankQuestionDetail | QuestionDetail>;
+        nextOffset: number | null;
+    }>({
+        queryKey: ["questions", mine ? "mine" : "bank", session?.user.id, tag, offset],
+        queryFn: () =>
+            (mine ? listManagedQuestions : listQuestions)({ ...(tag ? { tag } : {}), offset }),
     });
     const tags = useQuery({ queryKey: ["tags", session?.user.id], queryFn: listTags });
     const addTag = useMutation({
@@ -30,7 +39,7 @@ export function QuestionBankPage() {
         questions.data?.items.filter(
             (question) =>
                 (!search ||
-                    question.currentVersion.prompt.toLowerCase().includes(search.toLowerCase())) &&
+                    displayVersion(question).prompt.toLowerCase().includes(search.toLowerCase())) &&
                 (!visibility || question.visibility === visibility) &&
                 (!status || question.status === status),
         ) ?? [];
@@ -44,14 +53,17 @@ export function QuestionBankPage() {
         <div className="page-stack">
             <div className="page-heading">
                 <div>
-                    <p className="eyebrow">Question bank</p>
-                    <h1>Your questions</h1>
+                    <p className="eyebrow">{mine ? "Manage" : "Question bank"}</p>
+                    <h1>{mine ? "My questions" : "Published questions"}</h1>
                     <p className="muted">
                         Create reusable prompts, then revise them without changing earlier versions.
                     </p>
                 </div>
                 <Link className="button" to="/questions/new">
                     New question
+                </Link>
+                <Link to={mine ? "/questions" : "/questions/mine"}>
+                    {mine ? "Browse question bank" : "My drafts and questions"}
                 </Link>
             </div>
             <section className="panel" aria-label="Question filters">
@@ -98,9 +110,9 @@ export function QuestionBankPage() {
                         Status
                         <select value={status} onChange={(event) => setStatus(event.target.value)}>
                             <option value="">All</option>
-                            <option value="draft">Draft</option>
+                            {mine ? <option value="draft">Draft</option> : null}
                             <option value="published">Published</option>
-                            <option value="archived">Archived</option>
+                            {mine ? <option value="archived">Archived</option> : null}
                         </select>
                     </label>
                 </div>
@@ -170,15 +182,19 @@ export function QuestionBankPage() {
                             {filtered.map((question) => (
                                 <li className="question-card" key={question.id}>
                                     <Link
-                                        to="/questions/$questionId"
+                                        to={
+                                            mine
+                                                ? "/questions/mine/$questionId"
+                                                : "/questions/$questionId"
+                                        }
                                         params={{ questionId: question.id }}
                                         className="question-link"
                                     >
-                                        {question.currentVersion.prompt}
+                                        {displayVersion(question).prompt}
                                     </Link>
                                     <p className="muted small">
-                                        {question.currentVersion.questionType.replaceAll("_", " ")}{" "}
-                                        · Version {question.currentVersion.versionNumber}
+                                        {displayVersion(question).questionType.replaceAll("_", " ")}{" "}
+                                        · Version {displayVersion(question).versionNumber}
                                     </p>
                                     <div className="tag-row">
                                         <span className="tag">{question.status}</span>

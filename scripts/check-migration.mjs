@@ -35,10 +35,10 @@ try {
             'quiz_attempts', 'quiz_attempt_questions', 'feedback',
             'question_publication_events', 'question_review_submissions',
             'question_review_decisions', 'question_publication_gate_decisions',
-            'work_items', 'work_item_events'
+            'work_items', 'work_item_events', 'agent_actors', 'agent_generation_runs'
         )
     `);
-    assert.equal(tables.rows[0].count, 18);
+    assert.equal(tables.rows[0].count, 20);
 
     await database.query("INSERT INTO auth.users (id) VALUES ($1)", [userId]);
     await database.query("INSERT INTO public.profiles (id, display_name) VALUES ($1, 'Tester')", [
@@ -187,7 +187,28 @@ try {
         JOIN pg_namespace n ON n.oid = c.relnamespace
         WHERE n.nspname = 'public' AND c.relkind = 'r' AND c.relrowsecurity
     `);
-    assert.equal(rls.rows[0].count, 18);
+    assert.equal(rls.rows[0].count, 21);
+    const provenanceFks = await database.query(`
+        SELECT count(*)::int AS count FROM pg_constraint
+        WHERE conname IN ('questions_agent_origin_run_id_fkey',
+          'question_versions_agent_run_id_fkey', 'work_items_claimed_agent_actor_id_fkey',
+          'work_items_assigned_agent_actor_id_fkey',
+          'question_review_decisions_agent_execution_run_id_fkey',
+          'question_publication_gate_decisions_agent_execution_run_id_fkey')
+        AND contype = 'f'
+    `);
+    assert.equal(provenanceFks.rows[0].count, 6);
+    const immutableTriggers = await database.query(`
+        SELECT count(*)::int AS count FROM pg_trigger
+        WHERE tgname IN ('question_versions_immutable', 'quiz_versions_immutable',
+          'quiz_version_questions_immutable', 'quiz_attempts_snapshot_immutable',
+          'quiz_attempt_questions_snapshot_immutable',
+          'question_publication_events_immutable',
+          'question_review_submissions_immutable', 'question_review_decisions_immutable',
+          'question_publication_gate_decisions_immutable', 'work_item_events_immutable',
+          'agent_generation_runs_immutable', 'agent_execution_runs_immutable') AND NOT tgisinternal
+    `);
+    assert.equal(immutableTriggers.rows[0].count, 12);
     console.log(`Applied ${migrationNames.length} migration(s); schema constraints passed.`);
 } finally {
     await database.close();

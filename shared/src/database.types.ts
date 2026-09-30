@@ -14,6 +14,31 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_actors: {
+        Row: { code: string; created_at: string; id: string }
+        Insert: { code: string; created_at?: string; id: string }
+        Update: { code?: string; created_at?: string; id?: string }
+        Relationships: []
+      }
+      agent_execution_runs: {
+        Row: { agent_actor_id: string; created_at: string; id: string; metadata: Json; model: string; provider: string; work_item_id: string }
+        Insert: { agent_actor_id: string; created_at?: string; id?: string; metadata?: Json; model: string; provider: string; work_item_id: string }
+        Update: { agent_actor_id?: string; created_at?: string; id?: string; metadata?: Json; model?: string; provider?: string; work_item_id?: string }
+        Relationships: [
+          { foreignKeyName: "agent_execution_runs_agent_actor_id_fkey"; columns: ["agent_actor_id"]; isOneToOne: false; referencedRelation: "agent_actors"; referencedColumns: ["id"] },
+          { foreignKeyName: "agent_execution_runs_work_item_id_fkey"; columns: ["work_item_id"]; isOneToOne: true; referencedRelation: "work_items"; referencedColumns: ["id"] },
+        ]
+      }
+      agent_generation_runs: {
+        Row: { agent_actor_id: string; created_at: string; id: string; metadata: Json; model: string; provider: string; sponsor_id: string; work_item_id: string }
+        Insert: { agent_actor_id: string; created_at?: string; id?: string; metadata?: Json; model: string; provider: string; sponsor_id: string; work_item_id: string }
+        Update: { agent_actor_id?: string; created_at?: string; id?: string; metadata?: Json; model?: string; provider?: string; sponsor_id?: string; work_item_id?: string }
+        Relationships: [
+          { foreignKeyName: "agent_generation_runs_agent_actor_id_fkey"; columns: ["agent_actor_id"]; isOneToOne: false; referencedRelation: "agent_actors"; referencedColumns: ["id"] },
+          { foreignKeyName: "agent_generation_runs_sponsor_id_fkey"; columns: ["sponsor_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "agent_generation_runs_work_item_id_fkey"; columns: ["work_item_id"]; isOneToOne: false; referencedRelation: "work_items"; referencedColumns: ["id"] },
+        ]
+      }
       feedback: {
         Row: {
           category: Database["public"]["Enums"]["feedback_category"]
@@ -139,6 +164,7 @@ export type Database = {
       question_publication_events: {
         Row: {
           actor_id: string | null
+          agent_actor_id: string | null
           created_at: string
           event_type: string
           id: string
@@ -148,6 +174,7 @@ export type Database = {
         }
         Insert: {
           actor_id?: string | null
+          agent_actor_id?: string | null
           created_at?: string
           event_type: string
           id?: string
@@ -157,6 +184,7 @@ export type Database = {
         }
         Update: {
           actor_id?: string | null
+          agent_actor_id?: string | null
           created_at?: string
           event_type?: string
           id?: string
@@ -165,6 +193,7 @@ export type Database = {
           question_version_id?: string | null
         }
         Relationships: [
+          { foreignKeyName: "question_publication_events_agent_actor_id_fkey"; columns: ["agent_actor_id"]; isOneToOne: false; referencedRelation: "agent_actors"; referencedColumns: ["id"] },
           {
             foreignKeyName: "question_publication_events_actor_id_fkey"
             columns: ["actor_id"]
@@ -190,7 +219,9 @@ export type Database = {
       }
       question_publication_gate_decisions: {
         Row: {
-          actor_id: string
+          actor_id: string | null
+          agent_actor_id: string | null
+          agent_execution_run_id: string | null
           created_at: string
           decision: string
           findings: string
@@ -201,7 +232,9 @@ export type Database = {
           work_item_id: string
         }
         Insert: {
-          actor_id: string
+          actor_id?: string | null
+          agent_actor_id?: string | null
+          agent_execution_run_id?: string | null
           created_at?: string
           decision: string
           findings?: string
@@ -212,7 +245,9 @@ export type Database = {
           work_item_id: string
         }
         Update: {
-          actor_id?: string
+          actor_id?: string | null
+          agent_actor_id?: string | null
+          agent_execution_run_id?: string | null
           created_at?: string
           decision?: string
           findings?: string
@@ -223,6 +258,8 @@ export type Database = {
           work_item_id?: string
         }
         Relationships: [
+          { foreignKeyName: "question_publication_gate_decisions_agent_actor_id_fkey"; columns: ["agent_actor_id"]; isOneToOne: false; referencedRelation: "agent_actors"; referencedColumns: ["id"] },
+          { foreignKeyName: "question_publication_gate_decisions_agent_execution_run_id_fkey"; columns: ["agent_execution_run_id"]; isOneToOne: false; referencedRelation: "agent_execution_runs"; referencedColumns: ["id"] },
           {
             foreignKeyName: "question_publication_gate_decisions_actor_id_fkey"
             columns: ["actor_id"]
@@ -255,7 +292,9 @@ export type Database = {
       }
       question_review_decisions: {
         Row: {
-          actor_id: string
+          actor_id: string | null
+          agent_actor_id: string | null
+          agent_execution_run_id: string | null
           created_at: string
           decision: string
           findings: string
@@ -264,7 +303,9 @@ export type Database = {
           work_item_id: string
         }
         Insert: {
-          actor_id: string
+          actor_id?: string | null
+          agent_actor_id?: string | null
+          agent_execution_run_id?: string | null
           created_at?: string
           decision: string
           findings?: string
@@ -273,7 +314,9 @@ export type Database = {
           work_item_id: string
         }
         Update: {
-          actor_id?: string
+          actor_id?: string | null
+          agent_actor_id?: string | null
+          agent_execution_run_id?: string | null
           created_at?: string
           decision?: string
           findings?: string
@@ -282,6 +325,8 @@ export type Database = {
           work_item_id?: string
         }
         Relationships: [
+          { foreignKeyName: "question_review_decisions_agent_actor_id_fkey"; columns: ["agent_actor_id"]; isOneToOne: false; referencedRelation: "agent_actors"; referencedColumns: ["id"] },
+          { foreignKeyName: "question_review_decisions_agent_execution_run_id_fkey"; columns: ["agent_execution_run_id"]; isOneToOne: false; referencedRelation: "agent_execution_runs"; referencedColumns: ["id"] },
           {
             foreignKeyName: "question_review_decisions_actor_id_fkey"
             columns: ["actor_id"]
@@ -357,6 +402,7 @@ export type Database = {
       work_item_events: {
         Row: {
           actor_id: string | null
+          agent_actor_id: string | null
           claim_generation: number
           created_at: string
           details: Json
@@ -366,6 +412,7 @@ export type Database = {
         }
         Insert: {
           actor_id?: string | null
+          agent_actor_id?: string | null
           claim_generation: number
           created_at?: string
           details?: Json
@@ -375,6 +422,7 @@ export type Database = {
         }
         Update: {
           actor_id?: string | null
+          agent_actor_id?: string | null
           claim_generation?: number
           created_at?: string
           details?: Json
@@ -383,6 +431,7 @@ export type Database = {
           work_item_id?: string
         }
         Relationships: [
+          { foreignKeyName: "work_item_events_agent_actor_id_fkey"; columns: ["agent_actor_id"]; isOneToOne: false; referencedRelation: "agent_actors"; referencedColumns: ["id"] },
           {
             foreignKeyName: "work_item_events_actor_id_fkey"
             columns: ["actor_id"]
@@ -401,11 +450,13 @@ export type Database = {
       }
       work_items: {
         Row: {
+          assigned_agent_actor_id: string | null
           assigned_to: string
           attempts: number
           claim_generation: number
           claim_token: string | null
           claimed_by: string | null
+          claimed_agent_actor_id: string | null
           created_at: string
           id: string
           input: Json
@@ -420,11 +471,13 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_agent_actor_id?: string | null
           assigned_to: string
           attempts?: number
           claim_generation?: number
           claim_token?: string | null
           claimed_by?: string | null
+          claimed_agent_actor_id?: string | null
           created_at?: string
           id?: string
           input: Json
@@ -439,11 +492,13 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_agent_actor_id?: string | null
           assigned_to?: string
           attempts?: number
           claim_generation?: number
           claim_token?: string | null
           claimed_by?: string | null
+          claimed_agent_actor_id?: string | null
           created_at?: string
           id?: string
           input?: Json
@@ -458,6 +513,8 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          { foreignKeyName: "work_items_assigned_agent_actor_id_fkey"; columns: ["assigned_agent_actor_id"]; isOneToOne: false; referencedRelation: "agent_actors"; referencedColumns: ["id"] },
+          { foreignKeyName: "work_items_claimed_agent_actor_id_fkey"; columns: ["claimed_agent_actor_id"]; isOneToOne: false; referencedRelation: "agent_actors"; referencedColumns: ["id"] },
           {
             foreignKeyName: "work_items_assigned_to_fkey"
             columns: ["assigned_to"]
@@ -497,6 +554,7 @@ export type Database = {
       }
       question_versions: {
         Row: {
+          agent_run_id: string | null
           answer_config: Json
           created_at: string
           created_by: string
@@ -509,6 +567,7 @@ export type Database = {
           version_number: number
         }
         Insert: {
+          agent_run_id?: string | null
           answer_config: Json
           created_at?: string
           created_by: string
@@ -521,6 +580,7 @@ export type Database = {
           version_number: number
         }
         Update: {
+          agent_run_id?: string | null
           answer_config?: Json
           created_at?: string
           created_by?: string
@@ -533,6 +593,7 @@ export type Database = {
           version_number?: number
         }
         Relationships: [
+          { foreignKeyName: "question_versions_agent_run_id_fkey"; columns: ["agent_run_id"]; isOneToOne: false; referencedRelation: "agent_generation_runs"; referencedColumns: ["id"] },
           {
             foreignKeyName: "question_versions_created_by_fkey"
             columns: ["created_by"]
@@ -551,6 +612,7 @@ export type Database = {
       }
       questions: {
         Row: {
+          agent_origin_run_id: string | null
           created_at: string
           created_by: string
           current_version_id: string | null
@@ -561,6 +623,7 @@ export type Database = {
           visibility: Database["public"]["Enums"]["content_visibility"]
         }
         Insert: {
+          agent_origin_run_id?: string | null
           created_at?: string
           created_by: string
           current_version_id?: string | null
@@ -571,6 +634,7 @@ export type Database = {
           visibility?: Database["public"]["Enums"]["content_visibility"]
         }
         Update: {
+          agent_origin_run_id?: string | null
           created_at?: string
           created_by?: string
           current_version_id?: string | null
@@ -581,6 +645,7 @@ export type Database = {
           visibility?: Database["public"]["Enums"]["content_visibility"]
         }
         Relationships: [
+          { foreignKeyName: "questions_agent_origin_run_id_fkey"; columns: ["agent_origin_run_id"]; isOneToOne: false; referencedRelation: "agent_generation_runs"; referencedColumns: ["id"] },
           {
             foreignKeyName: "questions_created_by_fkey"
             columns: ["created_by"]

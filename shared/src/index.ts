@@ -188,6 +188,7 @@ export const questionVersionSchema = questionVersionContentSchema
         versionNumber: z.number().int().positive(),
         createdBy: z.uuid(),
         createdAt: apiTimestampSchema,
+        agentRunId: z.uuid().optional(),
     })
     .meta({ id: "QuestionVersion" });
 
@@ -205,6 +206,7 @@ export const questionDetailSchema = questionIdentitySchema
     .extend({
         isOwner: z.boolean(),
         currentVersion: questionVersionSchema,
+        agentOriginRunId: z.uuid().optional(),
     })
     .meta({ id: "QuestionDetail" });
 
@@ -244,12 +246,16 @@ export const createQuestionBodySchema = z.strictObject({
 
 export const updateQuestionMetadataBodySchema = z.strictObject({ visibility: visibilitySchema });
 export const publishQuestionBodySchema = z.strictObject({ versionId: z.uuid() });
+export const requestAgentQuestionBodySchema = z.strictObject({
+    brief: z.string().trim().min(10).max(1000),
+    requestKey: z.uuid(),
+});
 
 export const workItemInputSchema = z.discriminatedUnion("type", [
     z.strictObject({
         schemaVersion: z.literal(1),
         type: z.literal("CREATE_QUESTION"),
-        brief: z.string().min(1),
+        brief: z.string().trim().min(10).max(1000),
     }),
     z.strictObject({
         schemaVersion: z.literal(1),
@@ -271,9 +277,22 @@ export const workItemInputSchema = z.discriminatedUnion("type", [
 export const workItemResultSchema = z.discriminatedUnion("type", [
     z.strictObject({
         schemaVersion: z.literal(1),
+        type: z.literal("CREATE_QUESTION"),
+        questionId: z.uuid(),
+        versionId: z.uuid(),
+        agentRunId: z.uuid(),
+    }),
+    z.strictObject({
+        schemaVersion: z.literal(1),
         type: z.literal("REVIEW_QUESTION"),
         decision: z.enum(["approved", "changes_requested", "rejected"]),
         findings: z.string(),
+    }),
+    z.strictObject({
+        schemaVersion: z.literal(1),
+        type: z.literal("REVISE_QUESTION"),
+        versionId: z.uuid(),
+        agentRunId: z.uuid(),
     }),
     z.strictObject({
         schemaVersion: z.literal(1),
@@ -305,6 +324,7 @@ export const workItemSchema = z.strictObject({
     attempts: z.number().int().nonnegative(),
     claimGeneration: z.number().int().nonnegative(),
     claimToken: z.uuid().nullable(),
+    assignedAgentActorId: z.uuid().nullable(),
     leaseUntil: apiTimestampSchema.nullable(),
     createdAt: apiTimestampSchema,
 });

@@ -7,6 +7,7 @@ import {
     claimWorkItem,
     decideWorkItem,
     failWorkItem,
+    handOffFailedAgentItem,
     listWorkItems,
 } from "../api/content-workflow";
 import { useAuth } from "../auth/auth-state";
@@ -21,8 +22,11 @@ function WorkItemPanel({ item, refresh }: { item: WorkItem; refresh: () => Promi
         item.leaseUntil &&
         new Date(item.leaseUntil) > new Date();
     const canClaim =
-        item.status === "pending" ||
-        (item.status === "claimed" && item.leaseUntil && new Date(item.leaseUntil) <= new Date());
+        !item.assignedAgentActorId &&
+        (item.status === "pending" ||
+            (item.status === "claimed" &&
+                item.leaseUntil &&
+                new Date(item.leaseUntil) <= new Date()));
     async function run(action: () => Promise<unknown>) {
         setBusy(true);
         setError("");
@@ -40,9 +44,13 @@ function WorkItemPanel({ item, refresh }: { item: WorkItem; refresh: () => Promi
     return (
         <li className="panel form-grid">
             <div>
-                <strong>{item.prompt ?? item.itemType}</strong>
+                <strong>
+                    {item.prompt ??
+                        (item.input.type === "CREATE_QUESTION" ? item.input.brief : item.itemType)}
+                </strong>
                 <p className="muted small">
                     {item.queueName} · {item.status} · attempt {item.attempts}/3
+                    {item.assignedAgentActorId ? " · agent assigned" : ""}
                     {item.versionNumber ? ` · version ${item.versionNumber}` : ""}
                 </p>
                 {item.questionId ? (
@@ -60,7 +68,7 @@ function WorkItemPanel({ item, refresh }: { item: WorkItem; refresh: () => Promi
                     Claim item
                 </button>
             ) : null}
-            {active && (review || gate) ? (
+            {active && !item.assignedAgentActorId && (review || gate) ? (
                 <>
                     <label>
                         Findings
@@ -131,7 +139,9 @@ function WorkItemPanel({ item, refresh }: { item: WorkItem; refresh: () => Promi
                     </div>
                 </>
             ) : null}
-            {item.itemType === "REVISE_QUESTION" && item.status === "pending" ? (
+            {item.itemType === "REVISE_QUESTION" &&
+            item.status === "pending" &&
+            !item.assignedAgentActorId ? (
                 <p className="muted small">
                     Save a new question version to close this revision task, then submit it for
                     review.
@@ -147,6 +157,18 @@ function WorkItemPanel({ item, refresh }: { item: WorkItem; refresh: () => Promi
                     Cancel item
                 </button>
             ) : null}
+            {item.status === "failed" &&
+            item.assignedAgentActorId &&
+            item.itemType !== "CREATE_QUESTION" ? (
+                <button
+                    type="button"
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() => void run(() => handOffFailedAgentItem(item.id))}
+                >
+                    Hand off to human
+                </button>
+            ) : null}
             {error ? (
                 <p role="alert" className="error-text">
                     {error}
@@ -159,7 +181,18 @@ function WorkItemPanel({ item, refresh }: { item: WorkItem; refresh: () => Promi
 export function WorkQueuePage() {
     const { session } = useAuth();
     const client = useQueryClient();
-    const work = useQuery({ queryKey: ["work-items", session?.user.id], queryFn: listWorkItems });
+    const work = useQuery({
+        queryKey: ["work-items", session?.user.id],
+        queryFn: listWorkItems,
+        refetchInterval: (query) =>
+            query.state.data?.items.some(
+                (item) =>
+                    item.assignedAgentActorId &&
+                    (item.status === "pending" || item.status === "claimed"),
+            )
+                ? 3000
+                : false,
+    });
     const refresh = async () => {
         await client.invalidateQueries({ queryKey: ["work-items", session?.user.id] });
         await client.invalidateQueries({ queryKey: ["questions"] });

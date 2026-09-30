@@ -15,6 +15,7 @@ import {
     questionVersionContentSchema,
     questionVersionsResponseSchema,
     publishQuestionBodySchema,
+    requestAgentQuestionBodySchema,
     submitQuestionReviewBodySchema,
     claimWorkItemBodySchema,
     decideWorkItemBodySchema,
@@ -288,9 +289,26 @@ const workItemContent = { "application/json": { schema: apiSchema(workItemSchema
 const workItemParamsSchema = z.strictObject({ itemId: z.uuid() });
 registry.registerPath({
     method: "post",
+    path: "/api/v1/agent-questions",
+    tags: ["Workflow"],
+    summary: "Queue a private agent-generated question for configured review",
+    security: [{ BearerAuth: [] }],
+    request: {
+        body: {
+            content: { "application/json": { schema: apiSchema(requestAgentQuestionBodySchema) } },
+        },
+    },
+    responses: {
+        202: { description: "Queued creation item.", content: workItemContent },
+        429: { description: "Agent request quota reached.", content: errorContent },
+        ...commonErrors,
+    },
+});
+registry.registerPath({
+    method: "post",
     path: "/api/v1/questions/{questionId}/review-submissions",
     tags: ["Workflow"],
-    summary: "Submit the current candidate for human content review",
+    summary: "Submit the current candidate for configured content review",
     security: [{ BearerAuth: [] }],
     request: {
         params: questionParamsSchema,
@@ -321,6 +339,7 @@ for (const [action, body, summary] of [
     ["decision", decideWorkItemBodySchema, "Complete content review or publication gate"],
     ["fail", failWorkItemBodySchema, "Retry or fail a claimed item"],
     ["cancel", claimWorkItemBodySchema, "Cancel an assigned item"],
+    ["hand-off", claimWorkItemBodySchema, "Move failed agent work to the human queue"],
 ] as const) {
     registry.registerPath({
         method: "post",

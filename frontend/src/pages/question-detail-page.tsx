@@ -157,6 +157,12 @@ export function QuestionDetailPage() {
                     {current.currentVersion.questionType.replaceAll("_", " ")} · {current.status} ·{" "}
                     {current.visibility}
                 </p>
+                {current.agentOriginRunId ? (
+                    <p className="muted small">
+                        Agent-origin question. You own this draft; publication requires human review
+                        and a final gate decision.
+                    </p>
+                ) : null}
             </div>
             {current.isOwner ? (
                 <>
@@ -189,12 +195,14 @@ export function QuestionDetailPage() {
                                 </button>
                             ) : (
                                 <>
-                                    <button
-                                        type="button"
-                                        onClick={() => void changeLifecycle("publish")}
-                                    >
-                                        Publish current version
-                                    </button>
+                                    {!current.agentOriginRunId ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => void changeLifecycle("publish")}
+                                        >
+                                            Publish current version
+                                        </button>
+                                    ) : null}
                                     <button
                                         type="button"
                                         className="secondary"
@@ -315,7 +323,8 @@ export function QuestionDetailPage() {
                             <ol className="version-list">
                                 {versions.data.versions.map((version) => (
                                     <li key={version.id}>
-                                        <strong>Version {version.versionNumber}</strong> ·{" "}
+                                        <strong>Version {version.versionNumber}</strong>
+                                        {version.agentRunId ? " · Agent generated" : ""} ·{" "}
                                         {version.prompt}
                                         <span className="muted small">
                                             {new Date(version.createdAt).toLocaleDateString()}

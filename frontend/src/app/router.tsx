@@ -15,6 +15,7 @@ import { QuizDetailPage } from "../pages/quiz-detail-page";
 import { AttemptHistoryPage } from "../pages/attempt-history-page";
 import { AttemptPage } from "../pages/attempt-page";
 import { WorkQueuePage } from "../pages/work-queue-page";
+import { AgentQuestionPage } from "../pages/agent-question-page";
 
 const rootRoute = createRootRoute({ component: AppLayout, notFoundComponent: NotFoundPage });
 const homeRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: HomePage });
@@ -113,6 +114,15 @@ const workQueueRoute = createRoute({
         </RequireAuth>
     ),
 });
+const agentQuestionRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/questions/agent",
+    component: () => (
+        <RequireAuth>
+            <AgentQuestionPage />
+        </RequireAuth>
+    ),
+});
 const attemptRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/attempts/$attemptId",
@@ -137,6 +147,7 @@ export const router = createRouter({
         quizDetailRoute,
         attemptHistoryRoute,
         workQueueRoute,
+        agentQuestionRoute,
         attemptRoute,
     ]),
 });

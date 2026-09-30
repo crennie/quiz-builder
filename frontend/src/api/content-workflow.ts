@@ -1,6 +1,15 @@
 import { workItemListResponseSchema, workItemSchema, type WorkItem } from "@quiz-builder/contracts";
 import { authenticatedRequest } from "./client";
 
+export async function requestAgentQuestion(brief: string, requestKey: string) {
+    return workItemSchema.parse(
+        await authenticatedRequest<unknown>("/v1/agent-questions", {
+            method: "POST",
+            body: JSON.stringify({ brief, requestKey }),
+        }),
+    );
+}
+
 export async function submitQuestionReview(questionId: string, versionId: string) {
     return workItemSchema.parse(
         await authenticatedRequest<unknown>(`/v1/questions/${questionId}/review-submissions`, {
@@ -44,6 +53,14 @@ export async function failWorkItem(id: string, claimToken: string, reason: strin
 export async function cancelWorkItem(id: string): Promise<WorkItem> {
     return workItemSchema.parse(
         await authenticatedRequest<unknown>(`/v1/work-items/${id}/cancel`, {
+            method: "POST",
+            body: "{}",
+        }),
+    );
+}
+export async function handOffFailedAgentItem(id: string): Promise<WorkItem> {
+    return workItemSchema.parse(
+        await authenticatedRequest<unknown>(`/v1/work-items/${id}/hand-off`, {
             method: "POST",
             body: "{}",
         }),

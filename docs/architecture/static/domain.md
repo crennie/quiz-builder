@@ -5,6 +5,8 @@
 ```mermaid
 flowchart LR
     author["Author"]
+    agent["Question generator"]
+    run["Generation run<br/>Machine provenance"]
     learner["Learner"]
     question["Question<br/>Stable identity, visibility, status"]
     qversion["Question version<br/>Immutable content and grading"]
@@ -22,6 +24,10 @@ flowchart LR
     feedback["Feedback<br/>Exactly one target"]
 
     author -->|Owns| question
+    author -->|Sponsors| run
+    agent -->|Executes| run
+    run -->|Creates private draft| question
+    run -->|Records exact version| qversion
     author -->|Owns| quiz
     author -->|Defines| tag
     question -->|Has| qversion

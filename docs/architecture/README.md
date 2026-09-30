@@ -12,7 +12,9 @@ Quiz Builder is a practice application for authoring reusable questions and vers
   [authorization](decisions/ADR-002-api-authorization-boundary.md),
   [attempt evaluation storage](decisions/ADR-003-jsonb-attempt-evaluation.md),
   [publication](decisions/ADR-004-question-publication-boundary.md), and
-  [human review](decisions/ADR-005-human-review-and-work-queue.md).
+  [human review](decisions/ADR-005-human-review-and-work-queue.md), and
+  [sponsored agent creation](decisions/ADR-006-sponsored-agent-creation.md), and
+  [configured agent review and gate](decisions/ADR-007-configured-agent-review-and-gate.md).
 - [Constraints and quality](quality/constraints.md): fixed choices and quality expectations.
 
 ## Key Artifacts

@@ -2,6 +2,7 @@ import {
     claimWorkItemBodySchema,
     decideWorkItemBodySchema,
     failWorkItemBodySchema,
+    requestAgentQuestionBodySchema,
     submitQuestionReviewBodySchema,
     workItemListResponseSchema,
     workItemSchema,
@@ -16,10 +17,12 @@ import {
     claimWorkItem,
     decideWorkItem,
     failWorkItem,
+    handOffFailedAgentItem,
     listWorkItems,
     submitQuestionReview,
 } from "../db/content-workflow.ts";
 import { requireAuthentication } from "../middleware/authentication.ts";
+import { enqueueAgentQuestion } from "../agent/creation.ts";
 
 const itemParamsSchema = z.strictObject({ itemId: z.uuid() });
 function actor(request: Request): string {
@@ -28,6 +31,10 @@ function actor(request: Request): string {
 }
 
 export const contentWorkflowRouter = Router();
+contentWorkflowRouter.post("/agent-questions", requireAuthentication, async (request, response) => {
+    const { body } = validateRequest(request, { body: requestAgentQuestionBodySchema });
+    sendResponse(response, 202, workItemSchema, await enqueueAgentQuestion(actor(request), body));
+});
 contentWorkflowRouter.post(
     "/questions/:questionId/review-submissions",
     requireAuthentication,
@@ -98,6 +105,22 @@ contentWorkflowRouter.post(
             200,
             workItemSchema,
             await failWorkItem(params.itemId, actor(request), body.claimToken, body.reason),
+        );
+    },
+);
+contentWorkflowRouter.post(
+    "/work-items/:itemId/hand-off",
+    requireAuthentication,
+    async (request, response) => {
+        const { params } = validateRequest(request, {
+            params: itemParamsSchema,
+            body: claimWorkItemBodySchema,
+        });
+        sendResponse(
+            response,
+            200,
+            workItemSchema,
+            await handOffFailedAgentItem(params.itemId, actor(request)),
         );
     },
 );

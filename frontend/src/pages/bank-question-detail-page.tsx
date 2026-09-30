@@ -36,6 +36,7 @@ export function BankQuestionDetailPage() {
                 <h1>{current.publishedVersion.prompt}</h1>
                 <p className="muted">
                     {current.visibility} · Version {current.publishedVersion.versionNumber}
+                    {current.publishedVersion.agentRunId ? " · Agent generated" : ""}
                 </p>
             </div>
             {current.isOwner ? (
@@ -53,7 +54,8 @@ export function BankQuestionDetailPage() {
                     <ol className="version-list">
                         {versions.data.versions.map((version) => (
                             <li key={version.id}>
-                                <strong>Version {version.versionNumber}</strong> · {version.prompt}
+                                <strong>Version {version.versionNumber}</strong>
+                                {version.agentRunId ? " · Agent generated" : ""} · {version.prompt}
                             </li>
                         ))}
                     </ol>

@@ -15,7 +15,9 @@ vi.mock("../api/content-workflow", () => ({
     decideWorkItem: vi.fn(),
     failWorkItem: vi.fn(),
     cancelWorkItem: vi.fn(),
+    handOffFailedAgentItem: vi.fn(),
     submitQuestionReview: vi.fn(),
+    requestAgentQuestion: vi.fn(),
 }));
 
 const owner = "123e4567-e89b-42d3-a456-426614174030";
@@ -36,6 +38,7 @@ const pending: WorkItem = {
     attempts: 0,
     claimGeneration: 0,
     claimToken: null,
+    assignedAgentActorId: null,
     leaseUntil: null,
     createdAt: "2026-09-30T00:00:00.000Z",
 };
@@ -85,4 +88,77 @@ it("claims human review and records a content decision from the queue", async ()
         expect(workflow.decideWorkItem).toHaveBeenCalledWith(itemId, token, "approved", ""),
     );
     expect(await screen.findByText(/question-review · completed/)).toBeInTheDocument();
+});
+
+it("queues a sponsored agent question from the creation page", async () => {
+    const user = userEvent.setup();
+    vi.mocked(workflow.requestAgentQuestion).mockResolvedValue(pending);
+    vi.mocked(workflow.listWorkItems).mockResolvedValue({ items: [pending] });
+    vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+    const testRouter = createRouter({
+        routeTree: router.routeTree,
+        history: createMemoryHistory({ initialEntries: ["/questions/agent"] }),
+    });
+    render(
+        <QueryClientProvider client={createQueryClient()}>
+            <AuthContext.Provider
+                value={{
+                    session: { user: { id: owner } } as Session,
+                    loading: false,
+                    configured: true,
+                }}
+            >
+                <RouterProvider router={testRouter} />
+            </AuthContext.Provider>
+        </QueryClientProvider>,
+    );
+    await user.type(
+        await screen.findByRole("textbox", { name: "Question brief" }),
+        "Create a question about planets",
+    );
+    await user.click(screen.getByRole("button", { name: "Queue generation" }));
+    await waitFor(() =>
+        expect(workflow.requestAgentQuestion).toHaveBeenCalledWith(
+            "Create a question about planets",
+            expect.any(String),
+        ),
+    );
+    expect(await screen.findByRole("heading", { name: "Work queue" })).toBeInTheDocument();
+});
+
+it("offers human handoff for a failed agent review", async () => {
+    const user = userEvent.setup();
+    const failed: WorkItem = {
+        ...pending,
+        status: "failed",
+        attempts: 3,
+        assignedAgentActorId: "00000000-0000-4000-8000-00000000a002",
+    };
+    vi.mocked(workflow.listWorkItems).mockResolvedValue({ items: [failed] });
+    vi.mocked(workflow.handOffFailedAgentItem).mockResolvedValue({
+        ...failed,
+        status: "pending",
+        attempts: 0,
+        assignedAgentActorId: null,
+    });
+    vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+    const testRouter = createRouter({
+        routeTree: router.routeTree,
+        history: createMemoryHistory({ initialEntries: ["/work-items"] }),
+    });
+    render(
+        <QueryClientProvider client={createQueryClient()}>
+            <AuthContext.Provider
+                value={{
+                    session: { user: { id: owner } } as Session,
+                    loading: false,
+                    configured: true,
+                }}
+            >
+                <RouterProvider router={testRouter} />
+            </AuthContext.Provider>
+        </QueryClientProvider>,
+    );
+    await user.click(await screen.findByRole("button", { name: "Hand off to human" }));
+    expect(workflow.handOffFailedAgentItem).toHaveBeenCalledWith(itemId);
 });

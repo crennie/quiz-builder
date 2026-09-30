@@ -10,6 +10,24 @@ import { pool } from "./index.ts";
 import { withTransaction } from "./transaction.ts";
 import type { QueryExecutor } from "./question-bank.ts";
 
+export const REVIEW_AGENT_ID = "00000000-0000-4000-8000-00000000a002";
+export const REVISION_AGENT_ID = "00000000-0000-4000-8000-00000000a003";
+export const GATE_AGENT_ID = "00000000-0000-4000-8000-00000000a004";
+
+export type WorkflowPolicy = {
+    version: number;
+    mode: string;
+    source: string;
+    agentOriginRunId?: string;
+    reviewerId: string;
+    gateActorId: string;
+    reviewerAgentId: string | null;
+    revisionAgentId: string | null;
+    gateAgentId: string | null;
+    selfReviewAllowed: boolean;
+    directPublish: boolean;
+};
+
 type ItemRow = {
     id: string;
     queue_name: WorkItem["queueName"];
@@ -26,6 +44,8 @@ type ItemRow = {
     lease_until: string | Date | null;
     created_at: string | Date;
     assigned_to: string;
+    assigned_agent_actor_id: string | null;
+    claimed_agent_actor_id: string | null;
     submission_id: string | null;
     operation_key: string;
 };
@@ -49,7 +69,8 @@ function mapItem(row: ItemRow): WorkItem {
         status: row.status,
         attempts: row.attempts,
         claimGeneration: row.claim_generation,
-        claimToken: row.claim_token,
+        claimToken: row.assigned_agent_actor_id ? null : row.claim_token,
+        assignedAgentActorId: row.assigned_agent_actor_id,
         leaseUntil: row.lease_until ? new Date(row.lease_until).toISOString() : null,
         createdAt: new Date(row.created_at).toISOString(),
     });
@@ -71,12 +92,20 @@ async function event(
     type: string,
     generation: number,
     details: Record<string, unknown> = {},
+    agentActorId: string | null = null,
 ) {
     await database.query(
         `INSERT INTO public.work_item_events
-         (work_item_id, actor_id, event_type, claim_generation, details)
-         VALUES ($1, $2, $3, $4, $5::jsonb)`,
-        [itemId, actorId, type, generation, JSON.stringify(details)],
+         (work_item_id, actor_id, agent_actor_id, event_type, claim_generation, details)
+         VALUES ($1, $2, $3, $4, $5, $6::jsonb)`,
+        [
+            itemId,
+            agentActorId ? null : actorId,
+            agentActorId,
+            type,
+            generation,
+            JSON.stringify(details),
+        ],
     );
 }
 
@@ -89,6 +118,7 @@ async function enqueue(
         versionId: string;
         submissionId: string;
         assignee: string;
+        agentActorId?: string | null;
         input: unknown;
         key: string;
     },
@@ -98,8 +128,8 @@ async function enqueue(
     const inserted = await database.query<{ id: string }>(
         `INSERT INTO public.work_items
          (queue_name, item_type, question_id, question_version_id, submission_id,
-          assigned_to, input, operation_key)
-         VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8)
+          assigned_to, assigned_agent_actor_id, input, operation_key)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9)
          ON CONFLICT (operation_key) DO NOTHING RETURNING id`,
         [
             values.queue,
@@ -108,6 +138,7 @@ async function enqueue(
             values.versionId,
             values.submissionId,
             values.assignee,
+            values.agentActorId ?? null,
             JSON.stringify(input),
             values.key,
         ],
@@ -130,9 +161,14 @@ export async function submitQuestionReviewInTransaction(
     versionId: string,
     actorId: string,
     database: QueryExecutor,
+    policyOverride?: WorkflowPolicy,
 ): Promise<WorkItem> {
-    const question = await database.query<{ current_version_id: string; status: string }>(
-        `SELECT current_version_id, status FROM public.questions
+    const question = await database.query<{
+        current_version_id: string;
+        status: string;
+        agent_origin_run_id: string | null;
+    }>(
+        `SELECT current_version_id, status, agent_origin_run_id FROM public.questions
          WHERE id = $1 AND created_by = $2 FOR UPDATE`,
         [questionId, actorId],
     );
@@ -153,14 +189,32 @@ export async function submitQuestionReviewInTransaction(
         if (!item.rows[0]) throw new Error("Review submission has no work item");
         return mapItem(item.rows[0]);
     }
-    const policy = {
-        version: 1,
-        mode: "human_review",
+    const policy: WorkflowPolicy = policyOverride ?? {
+        version: 2,
+        mode: "configured_review",
+        source: question.rows[0].agent_origin_run_id ? "agent" : "human",
+        ...(question.rows[0].agent_origin_run_id
+            ? { agentOriginRunId: question.rows[0].agent_origin_run_id }
+            : {}),
         reviewerId: actorId,
         gateActorId: actorId,
+        reviewerAgentId: process.env.CONTENT_AGENT_REVIEW === "true" ? REVIEW_AGENT_ID : null,
+        revisionAgentId: process.env.CONTENT_AGENT_REVISION === "true" ? REVISION_AGENT_ID : null,
+        gateAgentId: process.env.CONTENT_AGENT_GATE === "true" ? GATE_AGENT_ID : null,
         selfReviewAllowed: true,
         directPublish: false,
     };
+    if (policy.reviewerAgentId) {
+        const source = await database.query<{ agent_actor_id: string | null }>(
+            `SELECT r.agent_actor_id FROM public.question_versions v
+             LEFT JOIN public.agent_generation_runs r ON r.id = v.agent_run_id
+             WHERE v.id = $1`,
+            [versionId],
+        );
+        if (source.rows[0]?.agent_actor_id === policy.reviewerAgentId)
+            policy.reviewerAgentId = null;
+    }
+    policy.selfReviewAllowed = !policy.reviewerAgentId;
     const created = await database.query<{ id: string }>(
         `INSERT INTO public.question_review_submissions
          (question_id, question_version_id, submitted_by, policy_snapshot)
@@ -175,6 +229,7 @@ export async function submitQuestionReviewInTransaction(
         versionId,
         submissionId,
         assignee: actorId,
+        agentActorId: policy.reviewerAgentId,
         input: { schemaVersion: 1, type: "REVIEW_QUESTION", versionId },
         key: `review:${submissionId}`,
     });
@@ -201,6 +256,12 @@ export async function claimWorkItemInTransaction(
     database: QueryExecutor,
 ) {
     const item = await getItem(id, actorId, database, true);
+    if (item.assigned_agent_actor_id)
+        throw new AppError(
+            403,
+            "WORK_ITEM_MACHINE_ONLY",
+            "This item is executed by an agent worker",
+        );
     if (
         item.status !== "pending" &&
         !(item.status === "claimed" && item.lease_until && new Date(item.lease_until) <= new Date())
@@ -250,6 +311,7 @@ export async function decideWorkItemInTransaction(
     decision: "approved" | "approve_and_publish" | "changes_requested" | "rejected",
     findings: string,
     database: QueryExecutor,
+    agent?: { id: string; executionRunId: string },
 ): Promise<WorkItem> {
     // Lock the question first, matching candidate creation and submission.
     const initial = await getItem(id, actorId, database);
@@ -265,6 +327,11 @@ export async function decideWorkItemInTransaction(
     );
     const question = questions.rows[0];
     const item = await getItem(id, actorId, database, true);
+    if (agent) {
+        if (item.assigned_agent_actor_id !== agent.id || item.claimed_agent_actor_id !== agent.id)
+            throw new AppError(403, "WORK_ITEM_WRONG_AGENT", "Agent is not assigned to this item");
+    } else if (item.assigned_agent_actor_id)
+        throw new AppError(403, "WORK_ITEM_MACHINE_ONLY", "This item is assigned to an agent");
     if (!item.question_id || !item.question_version_id || !item.submission_id)
         throw new AppError(
             409,
@@ -306,12 +373,54 @@ export async function decideWorkItemInTransaction(
         question.current_version_id !== item.question_version_id
     )
         throw new AppError(409, "STALE_QUESTION_VERSION", "The candidate is no longer current");
+    const policyRow = await database.query<{ policy_snapshot: WorkflowPolicy }>(
+        `SELECT policy_snapshot FROM public.question_review_submissions WHERE id = $1`,
+        [item.submission_id],
+    );
+    const policyForItem = policyRow.rows[0]?.policy_snapshot;
+    if (!policyForItem) throw new Error("Review policy is missing");
+    if (
+        agent &&
+        agent.id !==
+            (item.item_type === "REVIEW_QUESTION"
+                ? policyForItem.reviewerAgentId
+                : policyForItem.gateAgentId)
+    )
+        throw new AppError(403, "WORK_ITEM_WRONG_AGENT", "Agent does not match review policy");
+    if (agent && item.item_type === "REVIEW_QUESTION") {
+        const source = await database.query<{ agent_actor_id: string | null }>(
+            `SELECT r.agent_actor_id FROM public.question_versions v
+             LEFT JOIN public.agent_generation_runs r ON r.id = v.agent_run_id
+             WHERE v.id = $1`,
+            [item.question_version_id],
+        );
+        if (source.rows[0]?.agent_actor_id === agent.id)
+            throw new AppError(403, "AGENT_SELF_REVIEW", "Agent cannot review its own version");
+    }
+    if (
+        agent &&
+        item.item_type === "APPROVE_PUBLICATION" &&
+        agent.id === policyForItem.reviewerAgentId
+    )
+        throw new AppError(
+            403,
+            "AGENT_GATE_NOT_INDEPENDENT",
+            "Gate actor must differ from reviewer",
+        );
     if (item.item_type === "REVIEW_QUESTION") {
         const review = await database.query<{ id: string }>(
             `INSERT INTO public.question_review_decisions
-             (submission_id, work_item_id, actor_id, decision, findings)
-             VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-            [item.submission_id, id, actorId, decision, findings],
+             (submission_id, work_item_id, actor_id, agent_actor_id, agent_execution_run_id, decision, findings)
+             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+            [
+                item.submission_id,
+                id,
+                agent ? null : actorId,
+                agent?.id ?? null,
+                agent?.executionRunId ?? null,
+                decision,
+                findings,
+            ],
         );
         if (decision === "approved") {
             await enqueue(database, {
@@ -321,6 +430,7 @@ export async function decideWorkItemInTransaction(
                 versionId: item.question_version_id,
                 submissionId: item.submission_id,
                 assignee: actorId,
+                agentActorId: policyForItem.gateAgentId,
                 input: {
                     schemaVersion: 1,
                     type: "APPROVE_PUBLICATION",
@@ -337,30 +447,34 @@ export async function decideWorkItemInTransaction(
         );
         if (review.rows[0]?.decision !== "approved")
             throw new AppError(409, "REVIEW_NOT_APPROVED", "Content review is not approved");
-        const submission = await database.query<{ policy_snapshot: unknown }>(
-            `SELECT policy_snapshot FROM public.question_review_submissions WHERE id = $1`,
-            [item.submission_id],
-        );
         await database.query(
             `INSERT INTO public.question_publication_gate_decisions
-             (submission_id, review_decision_id, work_item_id, actor_id, decision, findings, policy_snapshot)
-             VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)`,
+             (submission_id, review_decision_id, work_item_id, actor_id, agent_actor_id,
+              agent_execution_run_id, decision, findings, policy_snapshot)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)`,
             [
                 item.submission_id,
                 review.rows[0].id,
                 id,
-                actorId,
+                agent ? null : actorId,
+                agent?.id ?? null,
+                agent?.executionRunId ?? null,
                 decision,
                 findings,
-                JSON.stringify(submission.rows[0].policy_snapshot),
+                JSON.stringify(policyForItem),
             ],
         );
         if (decision === "approve_and_publish") {
             await database.query(
                 `INSERT INTO public.question_publication_events
-                 (question_id, question_version_id, actor_id, event_type)
-                 VALUES ($1, $2, $3, 'published')`,
-                [item.question_id, item.question_version_id, actorId],
+                 (question_id, question_version_id, actor_id, agent_actor_id, event_type)
+                 VALUES ($1, $2, $3, $4, 'published')`,
+                [
+                    item.question_id,
+                    item.question_version_id,
+                    agent ? null : actorId,
+                    agent?.id ?? null,
+                ],
             );
             await database.query(
                 `UPDATE public.questions SET status = 'published',
@@ -370,6 +484,10 @@ export async function decideWorkItemInTransaction(
         }
     }
     if (decision === "changes_requested") {
+        const cycles = await database.query<{ count: number }>(
+            `SELECT count(*)::int AS count FROM public.question_review_submissions WHERE question_id = $1`,
+            [item.question_id],
+        );
         await enqueue(database, {
             queue: "question-revision",
             type: "REVISE_QUESTION",
@@ -377,6 +495,7 @@ export async function decideWorkItemInTransaction(
             versionId: item.question_version_id,
             submissionId: item.submission_id,
             assignee: actorId,
+            agentActorId: cycles.rows[0].count < 3 ? policyForItem.revisionAgentId : null,
             input: {
                 schemaVersion: 1,
                 type: "REVISE_QUESTION",
@@ -389,7 +508,7 @@ export async function decideWorkItemInTransaction(
         `UPDATE public.work_items SET status = 'completed', updated_at = now() WHERE id = $1`,
         [id],
     );
-    await event(database, id, actorId, "completed", item.claim_generation, { result });
+    await event(database, id, actorId, "completed", item.claim_generation, { result }, agent?.id);
     return mapItem(await getItem(id, actorId, database));
 }
 
@@ -413,6 +532,12 @@ export async function failWorkItemInTransaction(
     database: QueryExecutor,
 ) {
     const item = await getItem(id, actorId, database, true);
+    if (item.assigned_agent_actor_id)
+        throw new AppError(
+            403,
+            "WORK_ITEM_MACHINE_ONLY",
+            "This item is executed by an agent worker",
+        );
     validateClaim(item, token);
     const exhausted = item.attempts >= 3;
     await database.query(
@@ -440,7 +565,8 @@ export async function cancelWorkItemInTransaction(
         throw new AppError(409, "WORK_ITEM_NOT_CANCELLABLE", "Work item is already closed");
     await database.query(
         `UPDATE public.work_items SET status = 'cancelled', claim_token = NULL,
-        claimed_by = NULL, lease_until = NULL, updated_at = now() WHERE id = $1`,
+        claimed_by = NULL, claimed_agent_actor_id = NULL,
+        lease_until = NULL, updated_at = now() WHERE id = $1`,
         [id],
     );
     await event(database, id, actorId, "cancelled", item.claim_generation);
@@ -451,18 +577,56 @@ export function cancelWorkItem(id: string, actorId: string) {
     return withTransaction((db) => cancelWorkItemInTransaction(id, actorId, db));
 }
 
+export async function handOffFailedAgentItemInTransaction(
+    id: string,
+    actorId: string,
+    database: QueryExecutor,
+) {
+    const item = await getItem(id, actorId, database, true);
+    if (
+        !item.assigned_agent_actor_id ||
+        item.item_type === "CREATE_QUESTION" ||
+        item.status !== "failed"
+    )
+        throw new AppError(
+            409,
+            "WORK_ITEM_NOT_HANDOFFABLE",
+            "Only failed agent workflow items can be handed to a human",
+        );
+    await database.query(
+        `UPDATE public.work_items SET assigned_agent_actor_id = NULL, status = 'pending',
+         attempts = 0, claim_token = NULL, claimed_agent_actor_id = NULL,
+         claimed_by = NULL, lease_until = NULL, updated_at = now() WHERE id = $1`,
+        [id],
+    );
+    await event(database, id, actorId, "retry", item.claim_generation, {
+        reason: "manual_handoff",
+        previousAgentActorId: item.assigned_agent_actor_id,
+    });
+    return mapItem(await getItem(id, actorId, database));
+}
+
+export function handOffFailedAgentItem(id: string, actorId: string) {
+    return withTransaction((database) =>
+        handOffFailedAgentItemInTransaction(id, actorId, database),
+    );
+}
+
 export async function supersedeQuestionWorkItems(
     questionId: string,
     newVersionId: string,
     actorId: string,
     database: QueryExecutor,
+    excludeItemId?: string,
 ) {
     const cancelled = await database.query<{ id: string; claim_generation: number }>(
         `UPDATE public.work_items SET status = 'cancelled', claim_token = NULL,
-         claimed_by = NULL, lease_until = NULL, updated_at = now()
+         claimed_by = NULL, claimed_agent_actor_id = NULL,
+         lease_until = NULL, updated_at = now()
          WHERE question_id = $1 AND question_version_id <> $2
+         AND ($3::uuid IS NULL OR id <> $3)
          AND status IN ('pending', 'claimed') RETURNING id, claim_generation`,
-        [questionId, newVersionId],
+        [questionId, newVersionId, excludeItemId ?? null],
     );
     for (const row of cancelled.rows)
         await event(database, row.id, actorId, "cancelled", row.claim_generation, {

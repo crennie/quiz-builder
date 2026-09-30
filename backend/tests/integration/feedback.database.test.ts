@@ -148,6 +148,14 @@ describe("feedback persistence", () => {
         expect(reviewed.reviewedAt).not.toBeNull();
         const resolved = await updateFeedbackStatus(questionFeedback.id, ownerId, "resolved", sql);
         expect(resolved.reviewedAt).toBe(reviewed.reviewedAt);
+        const dismissed = await updateFeedbackStatus(
+            questionFeedback.id,
+            ownerId,
+            "dismissed",
+            sql,
+        );
+        expect(dismissed.status).toBe("dismissed");
+        expect(dismissed.reviewedAt).toBe(reviewed.reviewedAt);
         const reopened = await updateFeedbackStatus(questionFeedback.id, ownerId, "open", sql);
         expect(reopened.reviewedAt).toBeNull();
     });

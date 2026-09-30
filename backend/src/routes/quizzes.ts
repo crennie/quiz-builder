@@ -39,8 +39,12 @@ export const quizRouter = Router();
 
 quizRouter.get("/quizzes", optionalAuthentication, async (request, response) => {
     const { query } = validateRequest(request, { query: quizListQuerySchema });
+    if (query.scope === "mine" && !request.authenticatedUser) {
+        throw new AppError(401, "UNAUTHORIZED", "A valid access token is required");
+    }
     const result = await listQuizzes({
         viewerId: request.authenticatedUser?.id ?? null,
+        scope: query.scope,
         tagSlug: query.tag,
         limit: query.limit,
         offset: query.offset,

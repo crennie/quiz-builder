@@ -10,6 +10,7 @@
         "format:check": "prettier --check shared/src shared/package.json shared/tsconfig.json scripts README.md AGENTS.md package.json",
         "typecheck:shared": "npm run typecheck --workspace=@quiz-builder/contracts",
         "test:shared": "npm test --workspace=@quiz-builder/contracts",
+        "check:use-cases": "node scripts/check-use-case-coverage.mjs",
         "db:check-schema": "node scripts/check-migration.mjs",
         "db:start": "supabase start",
         "db:reset": "supabase db reset",

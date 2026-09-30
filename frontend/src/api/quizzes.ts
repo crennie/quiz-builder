@@ -12,9 +12,10 @@ import { authenticatedRequest } from "./client";
 
 const body = (value: unknown) => JSON.stringify(value);
 
-export async function listQuizzes(options: { tag?: string; offset: number }) {
+export async function listQuizzes(options: { tag?: string; scope?: "mine"; offset: number }) {
     const query = new URLSearchParams({ limit: "50", offset: String(options.offset) });
     if (options.tag) query.set("tag", options.tag);
+    if (options.scope) query.set("scope", options.scope);
     return quizListResponseSchema.parse(
         await authenticatedRequest<unknown>(`/v1/quizzes?${query}`),
     );

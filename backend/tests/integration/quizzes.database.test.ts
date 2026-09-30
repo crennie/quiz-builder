@@ -79,6 +79,65 @@ describe("quiz persistence", () => {
         );
     }
 
+    it("paginates owned quizzes before mixing in newer public quizzes", async () => {
+        const ownedQuestion = await makeQuestion();
+        const publicQuestion = await makeQuestion(otherId, "public");
+        const quizContent = (title: string, question: typeof ownedQuestion) => ({
+            title,
+            description: null,
+            settings,
+            questions: [
+                {
+                    questionId: question.id,
+                    questionVersionId: question.currentVersion.id,
+                    points: 1,
+                    required: true,
+                    timeLimitSeconds: null,
+                },
+            ],
+        });
+        const ownedIds: string[] = [];
+        for (const title of ["Owned first", "Owned second"]) {
+            const quiz = await createQuizInTransaction(
+                ownerId,
+                {
+                    content: quizContent(title, ownedQuestion),
+                    visibility: "private",
+                    status: "draft",
+                },
+                sql,
+            );
+            ownedIds.push(quiz.id);
+        }
+        for (const title of ["Public first", "Public second"]) {
+            await createQuizInTransaction(
+                otherId,
+                {
+                    content: quizContent(title, publicQuestion),
+                    visibility: "public",
+                    status: "published",
+                },
+                sql,
+            );
+        }
+
+        const first = await listQuizzes(
+            { viewerId: ownerId, scope: "mine", limit: 1, offset: 0 },
+            sql,
+        );
+        const second = await listQuizzes(
+            { viewerId: ownerId, scope: "mine", limit: 1, offset: 1 },
+            sql,
+        );
+        expect(first.items).toHaveLength(1);
+        expect(first.nextOffset).toBe(1);
+        expect(second.items).toHaveLength(1);
+        expect(second.nextOffset).toBeNull();
+        expect([...first.items, ...second.items].map((item) => item.id).sort()).toEqual(
+            ownedIds.sort(),
+        );
+    });
+
     it("creates versions only for changed attempt content and preserves explicit source versions", async () => {
         const first = await makeQuestion();
         const second = await makeQuestion();

@@ -365,6 +365,7 @@ describe("HTTP and database core workflows", () => {
         expect((await call("post", `/quizzes/${quiz.id}/attempts`, "learner")).status).toBe(201);
 
         await call("patch", `/questions/${question.id}`, "author", { visibility: "private" });
+        expect((await call("post", `/quizzes/${quiz.id}/attempts`, "learner")).status).toBe(201);
         await call("patch", `/quizzes/${quiz.id}`, "author", { visibility: "private" });
         expect((await call("get", `/questions/${question.id}`, "outsider")).status).toBe(404);
         expect((await call("get", `/quizzes/${quiz.id}`, "outsider")).status).toBe(404);
@@ -482,6 +483,13 @@ describe("HTTP and database core workflows", () => {
                 (item) => item.id,
             ),
         ).toEqual([quiz.id]);
+        const maliciousTag = encodeURIComponent("geography' OR true --");
+        const literalFilter = await call<Page<QuestionDetail>>(
+            "get",
+            `/questions?tag=${maliciousTag}`,
+        );
+        expect(literalFilter.status).toBe(200);
+        expect(literalFilter.body.items).toEqual([]);
 
         await call("patch", `/questions/${secondQuestion.body.id}`, "author", {
             visibility: "private",

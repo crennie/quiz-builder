@@ -140,18 +140,31 @@ export async function getQuizDetail(
 }
 
 export async function listQuizzes(
-    options: { viewerId: string | null; tagSlug?: string; limit: number; offset: number },
+    options: {
+        viewerId: string | null;
+        scope?: "all" | "mine";
+        tagSlug?: string;
+        limit: number;
+        offset: number;
+    },
     database: QueryExecutor = pool,
 ): Promise<{ items: QuizDetail[]; nextOffset: number | null }> {
     const rows = await database.query<QuizRow>(
         `SELECT q.* FROM public.quizzes q
-         WHERE (q.created_by = $1::uuid OR (q.status = 'published' AND q.visibility = 'public'))
+         WHERE (q.created_by = $1::uuid OR
+           ($5::text = 'all' AND q.status = 'published' AND q.visibility = 'public'))
            AND ($2::text IS NULL OR EXISTS (
              SELECT 1 FROM public.quiz_tags qt JOIN public.tags t ON t.id = qt.tag_id
              WHERE qt.quiz_id = q.id AND t.slug = $2
            ))
          ORDER BY q.created_at DESC, q.id DESC LIMIT $3 OFFSET $4`,
-        [options.viewerId, options.tagSlug ?? null, options.limit + 1, options.offset],
+        [
+            options.viewerId,
+            options.tagSlug ?? null,
+            options.limit + 1,
+            options.offset,
+            options.scope ?? "all",
+        ],
     );
     const items: QuizDetail[] = [];
     for (const row of rows.rows.slice(0, options.limit)) {

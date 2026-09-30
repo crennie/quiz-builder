@@ -60,6 +60,15 @@ try {
         questionId,
     ]);
     await assert.rejects(
+        database.query(
+            `INSERT INTO public.question_versions
+             (question_id, version_number, prompt, question_type, answer_config, grading_config, created_by)
+             VALUES ($1, 1, 'Duplicate', 'exact_text', '{}', '{}', $2)`,
+            [questionId, userId],
+        ),
+        { code: "23505" },
+    );
+    await assert.rejects(
         database.query("UPDATE public.questions SET current_version_id = $1 WHERE id = $2", [
             questionVersionId,
             otherQuestionId,
@@ -85,6 +94,14 @@ try {
         quizVersionId,
         quizId,
     ]);
+    await assert.rejects(
+        database.query(
+            `INSERT INTO public.quiz_versions (quiz_id, version_number, title, settings, created_by)
+             VALUES ($1, 1, 'Duplicate', '{}', $2)`,
+            [quizId, userId],
+        ),
+        { code: "23505" },
+    );
     await database.query(
         `INSERT INTO public.quiz_version_questions
          (id, quiz_version_id, question_id, question_version_id, position, points)

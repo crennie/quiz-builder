@@ -2,15 +2,19 @@
 
 ## System
 
-Quiz Builder is a practice application for authoring reusable questions and versioned quizzes, taking quizzes, grading deterministic answers, and reviewing feedback. It preserves the exact content used by historical attempts. The backend supports these flows; the web interface supports sign-in, question and quiz management, quiz taking, result review, attempt history, and feedback submission. Reviewing received feedback remains an API workflow.
+Quiz Builder is a practice application for authoring reusable questions and versioned quizzes, taking quizzes, grading deterministic answers, and reviewing feedback. It preserves the exact content used by historical attempts. The backend supports these flows and optional trusted agent content work; the web interface supports sign-in, question and quiz management, human content review and publication work, quiz taking, result review, attempt history, and feedback submission. Reviewing received feedback remains an API workflow.
 
 ## Architecture Views
 
 - [Static structure](static/context.md): system context, runtime containers, domain, data, and API components.
 - [Runtime behavior](dynamic/save-quiz.md): significant save and attempt flows.
 - Decisions: [versioning](decisions/ADR-001-immutable-content-versions.md),
-  [authorization](decisions/ADR-002-api-authorization-boundary.md), and
-  [attempt evaluation storage](decisions/ADR-003-jsonb-attempt-evaluation.md).
+  [authorization](decisions/ADR-002-api-authorization-boundary.md),
+  [attempt evaluation storage](decisions/ADR-003-jsonb-attempt-evaluation.md),
+  [publication](decisions/ADR-004-question-publication-boundary.md), and
+  [human review](decisions/ADR-005-human-review-and-work-queue.md), and
+  [sponsored agent creation](decisions/ADR-006-sponsored-agent-creation.md), and
+  [configured agent review and gate](decisions/ADR-007-configured-agent-review-and-gate.md).
 - [Constraints and quality](quality/constraints.md): fixed choices and quality expectations.
 
 ## Key Artifacts

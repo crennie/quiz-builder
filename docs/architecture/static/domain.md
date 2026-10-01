@@ -5,10 +5,16 @@
 ```mermaid
 flowchart LR
     author["Author"]
+    agent["Question generator"]
+    run["Generation run<br/>Machine provenance"]
     learner["Learner"]
     question["Question<br/>Stable identity, visibility, status"]
     qversion["Question version<br/>Immutable content and grading"]
     publication["Publication history<br/>Eligible versions and default"]
+    submission["Review submission<br/>Exact version and policy"]
+    review["Content review decision"]
+    gate["Publication gate decision"]
+    work["Work item<br/>Routing, lease, events"]
     quiz["Quiz<br/>Stable identity, visibility, status"]
     version["Quiz version<br/>Immutable attempt content"]
     member["Quiz question<br/>Order, points, exact question version"]
@@ -18,11 +24,20 @@ flowchart LR
     feedback["Feedback<br/>Exactly one target"]
 
     author -->|Owns| question
+    author -->|Sponsors| run
+    agent -->|Executes| run
+    run -->|Creates private draft| question
+    run -->|Records exact version| qversion
     author -->|Owns| quiz
     author -->|Defines| tag
     question -->|Has| qversion
     question -->|Publishes| publication
     publication -->|Records exact version| qversion
+    qversion -->|Submitted as| submission
+    submission -->|Decided by| review
+    review -->|Approved content awaits| work
+    work -->|Routes final decision| gate
+    gate -->|May publish| publication
     quiz -->|Has| version
     version -->|Orders| member
     member -->|Pins| qversion
@@ -37,6 +52,6 @@ flowchart LR
     feedback -->|May target| presented
 ```
 
-Each feedback item targets exactly one of the three shown concepts. A quiz's visibility controls whether it can be attempted; source question visibility controls question-bank access and does not change an existing quiz version. A question can keep an unpublished current candidate while its earlier published default remains in the bank. Any previously published version of an accessible, currently published question can be newly selected for a quiz; a draft version cannot. Review decisions will be separate from question status in a later workflow phase. Tags and visibility/status belong to stable identities, so editing them does not create a content version. Question and quiz versions are immutable. Attempts retain their quiz version and frozen settings, question, answer, and grading snapshots. Points may be fractional.
+Each feedback item targets exactly one of the three shown concepts. A quiz's visibility controls whether it can be attempted; source question visibility controls question-bank access and does not change an existing quiz version. A question can keep an unpublished current candidate while its earlier published default remains in the bank. Any previously published version of an accessible, currently published question can be newly selected for a quiz; a draft version cannot. A submitted candidate has an immutable policy snapshot and distinct content-review and publication-gate decisions. Work items route those decisions and track leases; their status is not a question status. Tags and visibility/status belong to stable identities, so editing them does not create a content version. Question and quiz versions are immutable. Attempts retain their quiz version and frozen settings, question, answer, and grading snapshots. Points may be fractional.
 
 Supported question types are exact text, single choice, and multiple choice. Grading is currently deterministic. Correct answers are practice content, not a secret assessment boundary; review presentation is controlled by quiz settings.

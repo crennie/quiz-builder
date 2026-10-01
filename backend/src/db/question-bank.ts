@@ -20,6 +20,7 @@ import type { PoolClient } from "pg";
 import { AppError } from "../errors/app-error.ts";
 import { pool } from "./index.ts";
 import { withTransaction } from "./transaction.ts";
+import { supersedeQuestionWorkItems } from "./content-workflow.ts";
 
 export type QueryExecutor = Pick<PoolClient, "query">;
 type QuestionRow = Database["public"]["Tables"]["questions"]["Row"];
@@ -35,6 +36,7 @@ type ListRow = QuestionRow & {
     explanation: string | null;
     version_created_by: string;
     version_created_at: string;
+    agent_run_id: string | null;
 };
 type QuestionTagRow = TagRow & { question_id: string };
 
@@ -68,6 +70,7 @@ function mapVersion(row: VersionRow): QuestionVersion {
         versionNumber: row.version_number,
         createdBy: row.created_by,
         createdAt: iso(row.created_at),
+        ...(row.agent_run_id ? { agentRunId: row.agent_run_id } : {}),
     });
 }
 
@@ -133,6 +136,7 @@ export async function getQuestionDetail(
         ...base,
         isOwner: true,
         currentVersion: mapVersion(version),
+        ...(question.agent_origin_run_id ? { agentOriginRunId: question.agent_origin_run_id } : {}),
     });
 }
 
@@ -176,7 +180,8 @@ export async function listQuestions(
     const rows = await database.query<ListRow>(
         `SELECT q.*, v.id AS version_id, v.version_number, v.prompt, v.question_type,
                 v.answer_config, v.grading_config, v.explanation,
-                v.created_by AS version_created_by, v.created_at AS version_created_at
+                v.created_by AS version_created_by, v.created_at AS version_created_at,
+                v.agent_run_id
          FROM public.questions q
          JOIN public.question_versions v ON v.id = q.default_published_version_id
          WHERE q.status = 'published'
@@ -217,6 +222,7 @@ export async function listQuestions(
                 explanation: row.explanation,
                 created_by: row.version_created_by,
                 created_at: row.version_created_at,
+                agent_run_id: row.agent_run_id,
             }),
         }),
     );
@@ -234,7 +240,8 @@ export async function listManagedQuestions(
     const rows = await database.query<ListRow>(
         `SELECT q.*, v.id AS version_id, v.version_number, v.prompt, v.question_type,
                 v.answer_config, v.grading_config, v.explanation,
-                v.created_by AS version_created_by, v.created_at AS version_created_at
+                v.created_by AS version_created_by, v.created_at AS version_created_at,
+                v.agent_run_id
          FROM public.questions q
          JOIN public.question_versions v ON v.id = q.current_version_id
          WHERE q.created_by = $1::uuid
@@ -273,6 +280,7 @@ export async function listManagedQuestions(
                     explanation: row.explanation,
                     created_by: row.version_created_by,
                     created_at: row.version_created_at,
+                    agent_run_id: row.agent_run_id,
                 }),
             }),
         ),
@@ -325,12 +333,13 @@ export async function createQuestionInTransaction(
         visibility: Visibility;
     },
     database: QueryExecutor,
+    agentRunId: string | null = null,
 ): Promise<QuestionDetail> {
     const content = questionVersionContentSchema.parse(input.content);
     const questions = await database.query<QuestionRow>(
-        `INSERT INTO public.questions (created_by, visibility)
-         VALUES ($1, $2) RETURNING *`,
-        [ownerId, input.visibility],
+        `INSERT INTO public.questions (created_by, visibility, agent_origin_run_id)
+         VALUES ($1, $2, $3) RETURNING *`,
+        [ownerId, input.visibility, agentRunId],
     );
     const question = questions.rows[0];
     if (!question) throw new Error("Question insertion returned no row");
@@ -338,8 +347,8 @@ export async function createQuestionInTransaction(
     const versions = await database.query<VersionRow>(
         `INSERT INTO public.question_versions
            (question_id, version_number, prompt, question_type, answer_config,
-            grading_config, explanation, created_by)
-         VALUES ($1, 1, $2, $3, $4::jsonb, $5::jsonb, $6, $7)
+            grading_config, explanation, created_by, agent_run_id)
+         VALUES ($1, 1, $2, $3, $4::jsonb, $5::jsonb, $6, $7, $8)
          RETURNING *`,
         [
             question.id,
@@ -349,6 +358,7 @@ export async function createQuestionInTransaction(
             JSON.stringify(content.gradingConfig),
             content.explanation,
             ownerId,
+            agentRunId,
         ],
     );
     const version = versions.rows[0];
@@ -379,6 +389,8 @@ export async function createQuestionVersionInTransaction(
     ownerId: string,
     content: QuestionVersionContent,
     database: QueryExecutor,
+    agentRunId?: string,
+    revisionWorkItemId?: string,
 ): Promise<QuestionDetail> {
     const validatedContent = questionVersionContentSchema.parse(content);
     const questions = await database.query<QuestionRow>(
@@ -403,8 +415,8 @@ export async function createQuestionVersionInTransaction(
     const versions = await database.query<VersionRow>(
         `INSERT INTO public.question_versions
            (question_id, version_number, prompt, question_type, answer_config,
-            grading_config, explanation, created_by)
-         VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7, $8)
+            grading_config, explanation, created_by, agent_run_id)
+         VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7, $8, $9)
          RETURNING *`,
         [
             questionId,
@@ -415,6 +427,7 @@ export async function createQuestionVersionInTransaction(
             JSON.stringify(validatedContent.gradingConfig),
             validatedContent.explanation,
             ownerId,
+            agentRunId ?? null,
         ],
     );
     const version = versions.rows[0];
@@ -425,6 +438,7 @@ export async function createQuestionVersionInTransaction(
          WHERE id = $2`,
         [version.id, questionId],
     );
+    await supersedeQuestionWorkItems(questionId, version.id, ownerId, database, revisionWorkItemId);
     const detail = await getQuestionDetail(questionId, ownerId, database);
     if (!detail) throw new Error("Revised question was not found");
     return detail;
@@ -489,12 +503,19 @@ async function recordPublicationEvent(
     actorId: string,
     eventType: string,
     database: QueryExecutor,
+    policySnapshot: Record<string, unknown> | null = null,
 ): Promise<void> {
     await database.query(
         `INSERT INTO public.question_publication_events
-           (question_id, question_version_id, actor_id, event_type)
-         VALUES ($1, $2, $3, $4)`,
-        [questionId, versionId, actorId, eventType],
+           (question_id, question_version_id, actor_id, event_type, policy_snapshot)
+         VALUES ($1, $2, $3, $4, $5::jsonb)`,
+        [
+            questionId,
+            versionId,
+            actorId,
+            eventType,
+            policySnapshot ? JSON.stringify(policySnapshot) : null,
+        ],
     );
 }
 
@@ -511,23 +532,42 @@ export async function publishQuestionInTransaction(
     if (question.current_version_id !== versionId) {
         throw new AppError(409, "STALE_QUESTION_VERSION", "Publish the current candidate version");
     }
+    if (question.agent_origin_run_id)
+        throw new AppError(403, "AGENT_REVIEW_REQUIRED", "Agent-origin questions require review");
+    const submitted = await database.query<{ id: string }>(
+        `SELECT id FROM public.question_review_submissions WHERE question_version_id = $1`,
+        [versionId],
+    );
+    if (submitted.rows[0]) {
+        throw new AppError(
+            409,
+            "REVIEW_REQUIRED",
+            "This version must complete its review workflow",
+        );
+    }
     if (question.status === "published" && question.default_published_version_id === versionId) {
         const detail = await getQuestionDetail(questionId, ownerId, database);
         if (!detail) throw new Error("Published question was not found");
         return detail;
     }
-    const version = await database.query<{ created_by: string }>(
-        `SELECT created_by FROM public.question_versions WHERE question_id = $1 AND id = $2`,
+    const version = await database.query<{ created_by: string; agent_run_id: string | null }>(
+        `SELECT created_by, agent_run_id FROM public.question_versions WHERE question_id = $1 AND id = $2`,
         [questionId, versionId],
     );
-    if (version.rows[0]?.created_by !== ownerId) {
+    if (version.rows[0]?.created_by !== ownerId || version.rows[0]?.agent_run_id) {
         throw new AppError(
             403,
             "PUBLISH_NOT_ALLOWED",
             "Only a human-authored candidate can publish directly",
         );
     }
-    await recordPublicationEvent(questionId, versionId, ownerId, "direct_approved", database);
+    await recordPublicationEvent(questionId, versionId, ownerId, "direct_approved", database, {
+        version: 1,
+        mode: "direct_human",
+        actorId: ownerId,
+        humanAuthRequired: true,
+        reviewSubmissionAllowed: false,
+    });
     await recordPublicationEvent(questionId, versionId, ownerId, "published", database);
     await database.query(
         `UPDATE public.questions

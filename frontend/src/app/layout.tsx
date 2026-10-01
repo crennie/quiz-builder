@@ -18,6 +18,7 @@ export function AppLayout() {
                     <Link to="/questions">Questions</Link>
                     <Link to="/quizzes">Quizzes</Link>
                     <Link to="/attempts">Attempts</Link>
+                    {session ? <Link to="/work-items">Work queue</Link> : null}
                     {session ? (
                         <button
                             className="text-button"

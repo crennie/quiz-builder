@@ -188,6 +188,7 @@ export const questionVersionSchema = questionVersionContentSchema
         versionNumber: z.number().int().positive(),
         createdBy: z.uuid(),
         createdAt: apiTimestampSchema,
+        agentRunId: z.uuid().optional(),
     })
     .meta({ id: "QuestionVersion" });
 
@@ -205,6 +206,7 @@ export const questionDetailSchema = questionIdentitySchema
     .extend({
         isOwner: z.boolean(),
         currentVersion: questionVersionSchema,
+        agentOriginRunId: z.uuid().optional(),
     })
     .meta({ id: "QuestionDetail" });
 
@@ -244,6 +246,101 @@ export const createQuestionBodySchema = z.strictObject({
 
 export const updateQuestionMetadataBodySchema = z.strictObject({ visibility: visibilitySchema });
 export const publishQuestionBodySchema = z.strictObject({ versionId: z.uuid() });
+export const requestAgentQuestionBodySchema = z.strictObject({
+    brief: z.string().trim().min(10).max(1000),
+    requestKey: z.uuid(),
+});
+
+export const workItemInputSchema = z.discriminatedUnion("type", [
+    z.strictObject({
+        schemaVersion: z.literal(1),
+        type: z.literal("CREATE_QUESTION"),
+        brief: z.string().trim().min(10).max(1000),
+    }),
+    z.strictObject({
+        schemaVersion: z.literal(1),
+        type: z.literal("REVIEW_QUESTION"),
+        versionId: z.uuid(),
+    }),
+    z.strictObject({
+        schemaVersion: z.literal(1),
+        type: z.literal("REVISE_QUESTION"),
+        sourceVersionId: z.uuid(),
+    }),
+    z.strictObject({
+        schemaVersion: z.literal(1),
+        type: z.literal("APPROVE_PUBLICATION"),
+        versionId: z.uuid(),
+        reviewDecisionId: z.uuid(),
+    }),
+]);
+export const workItemResultSchema = z.discriminatedUnion("type", [
+    z.strictObject({
+        schemaVersion: z.literal(1),
+        type: z.literal("CREATE_QUESTION"),
+        questionId: z.uuid(),
+        versionId: z.uuid(),
+        agentRunId: z.uuid(),
+    }),
+    z.strictObject({
+        schemaVersion: z.literal(1),
+        type: z.literal("REVIEW_QUESTION"),
+        decision: z.enum(["approved", "changes_requested", "rejected"]),
+        findings: z.string(),
+    }),
+    z.strictObject({
+        schemaVersion: z.literal(1),
+        type: z.literal("REVISE_QUESTION"),
+        versionId: z.uuid(),
+        agentRunId: z.uuid(),
+    }),
+    z.strictObject({
+        schemaVersion: z.literal(1),
+        type: z.literal("APPROVE_PUBLICATION"),
+        decision: z.enum(["approve_and_publish", "changes_requested", "rejected"]),
+        findings: z.string(),
+    }),
+]);
+export const workItemSchema = z.strictObject({
+    id: z.uuid(),
+    queueName: z.enum([
+        "question-creation",
+        "question-review",
+        "question-revision",
+        "question-ready-to-publish",
+    ]),
+    itemType: z.enum([
+        "CREATE_QUESTION",
+        "REVIEW_QUESTION",
+        "REVISE_QUESTION",
+        "APPROVE_PUBLICATION",
+    ]),
+    questionId: z.uuid().nullable(),
+    questionVersionId: z.uuid().nullable(),
+    versionNumber: z.number().int().positive().nullable(),
+    prompt: z.string().nullable(),
+    input: workItemInputSchema,
+    status: z.enum(["pending", "claimed", "completed", "failed", "cancelled"]),
+    attempts: z.number().int().nonnegative(),
+    claimGeneration: z.number().int().nonnegative(),
+    claimToken: z.uuid().nullable(),
+    assignedAgentActorId: z.uuid().nullable(),
+    leaseUntil: apiTimestampSchema.nullable(),
+    createdAt: apiTimestampSchema,
+});
+export const workItemListResponseSchema = z.strictObject({ items: z.array(workItemSchema) });
+export const submitQuestionReviewBodySchema = z.strictObject({ versionId: z.uuid() });
+export const claimWorkItemBodySchema = z.strictObject({});
+export const decideWorkItemBodySchema = z.strictObject({
+    claimToken: z.uuid(),
+    decision: z.enum(["approved", "approve_and_publish", "changes_requested", "rejected"]),
+    findings: z.string().trim().max(5000).default(""),
+});
+export const failWorkItemBodySchema = z.strictObject({
+    claimToken: z.uuid(),
+    reason: z.string().trim().min(1).max(1000),
+});
+export type WorkItem = z.output<typeof workItemSchema>;
 
 export const createTagBodySchema = z.strictObject({
     name: z.string().trim().min(1).max(100),

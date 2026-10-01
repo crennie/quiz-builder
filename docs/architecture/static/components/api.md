@@ -5,7 +5,7 @@
 ```mermaid
 flowchart LR
     client["Web or API client"]
-    routes["HTTP routes<br/>Question bank, quizzes, attempts, feedback, profile"]
+    routes["HTTP routes<br/>Question bank, workflow, quizzes, attempts, feedback, profile"]
     auth["Authentication middleware<br/>Token verification and profile lookup"]
     contracts["Validation and response boundary<br/>Zod contracts; OpenAPI schemas"]
     domain["Domain operations<br/>Versioning, access rules, attempt lifecycle"]
@@ -25,6 +25,6 @@ flowchart LR
     persistence -->|SQL via pg pool| db
 ```
 
-Routes are thin request adapters. Database modules currently contain the domain checks and transactional operations. Auth middleware verifies tokens before protected handlers and creates a profile when needed. Question bank reads project the default published version; separate owner-management reads expose candidates. Explicit publication operations update the pointer and append audit events in one transaction. Quiz membership checks require exact-version publication history. Read and write queries enforce ownership, visibility, and lifecycle rules; RLS is enabled without direct Data API policies. The evaluator reads frozen attempt snapshots, not a question's latest version. Zod also validates JSONB values when they cross back into application code.
+Routes are thin request adapters. Database modules currently contain the domain checks and transactional operations. Auth middleware verifies tokens before protected handlers and creates a profile when needed. Question bank reads project the default published version; separate owner-management reads expose candidates. Explicit publication operations update the pointer and append audit events in one transaction. Human review operations create assigned work items, fence decisions with leased claim tokens, and publish only after the final gate approves. Quiz membership checks require exact-version publication history. Read and write queries enforce ownership, visibility, and lifecycle rules; RLS is enabled without direct Data API policies. The evaluator reads frozen attempt snapshots, not a question's latest version. Zod also validates JSONB values when they cross back into application code.
 
 The API's OpenAPI document is generated from API schemas at build time. See [API conventions](../../../../backend/docs/api-conventions.md) for endpoint contract details.

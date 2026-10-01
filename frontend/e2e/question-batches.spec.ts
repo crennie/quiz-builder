@@ -2,9 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { expect, test } from "@playwright/test";
 
-test("imports a two-question artifact as private drafts and queues an explicit review", async ({
-    page,
-}) => {
+test("imports a batch and publishes one reviewed question into the bank", async ({ page }) => {
     await page.goto("/sign-in");
     await page.getByRole("button", { name: "New here? Create an account" }).click();
     await page.getByLabel("Email").fill(`batch-${randomUUID()}@example.test`);
@@ -65,4 +63,21 @@ test("imports a two-question artifact as private drafts and queues an explicit r
     await page.goto("/work-items");
     await expect(page.getByText(firstPrompt)).toBeVisible();
     await expect(page.getByRole("button", { name: "Claim item" })).toBeVisible();
+
+    await page.goto("/questions");
+    await expect(page.getByRole("link", { name: firstPrompt })).toHaveCount(0);
+    await page.goto("/work-items");
+    await page.getByRole("button", { name: "Claim item" }).click();
+    await page.getByRole("button", { name: "Approve content" }).click();
+    await expect(page.getByRole("button", { name: "Claim item" })).toBeVisible();
+
+    await page.goto("/questions");
+    await expect(page.getByRole("link", { name: firstPrompt })).toHaveCount(0);
+    await page.goto("/work-items");
+    await page.getByRole("button", { name: "Claim item" }).click();
+    await page.getByRole("button", { name: "Approve and publish" }).click();
+
+    await page.goto("/questions");
+    await expect(page.getByRole("link", { name: firstPrompt })).toBeVisible();
+    await expect(page.getByRole("link", { name: secondPrompt })).toHaveCount(0);
 });

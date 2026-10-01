@@ -80,6 +80,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Check formatting
+        run: npm run format:check
+
       - name: Test
         run: npm test
 
@@ -117,6 +120,9 @@ jobs:
 
       - name: Start local Supabase
         run: npx supabase start --exclude realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+
+      - name: Test Supabase schema
+        run: npm run db:test
 
       - name: Check generated database types
         run: npm run db:types && git diff --exit-code -- shared/src/database.types.ts
@@ -186,6 +192,9 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
 
       - name: Test
         run: npm test

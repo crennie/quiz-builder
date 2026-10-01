@@ -35,10 +35,11 @@ try {
             'quiz_attempts', 'quiz_attempt_questions', 'feedback',
             'question_publication_events', 'question_review_submissions',
             'question_review_decisions', 'question_publication_gate_decisions',
-            'work_items', 'work_item_events', 'agent_actors', 'agent_generation_runs'
+            'work_items', 'work_item_events', 'agent_actors', 'agent_generation_runs',
+            'agent_execution_runs'
         )
     `);
-    assert.equal(tables.rows[0].count, 20);
+    assert.equal(tables.rows[0].count, 21);
 
     await database.query("INSERT INTO auth.users (id) VALUES ($1)", [userId]);
     await database.query("INSERT INTO public.profiles (id, display_name) VALUES ($1, 'Tester')", [

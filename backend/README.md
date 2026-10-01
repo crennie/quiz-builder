@@ -52,7 +52,7 @@ The provider receives no database credential and cannot call a machine completio
 ## Optional agent review, revision, and gate
 
 Set `CONTENT_AGENT_REVIEW=true`, `CONTENT_AGENT_REVISION=true`, or `CONTENT_AGENT_GATE=true` on
-the API and creation worker independently to assign future submissions to the corresponding machine role. The choice
+both the API and creation worker to assign future submissions to the corresponding machine role. Keep these settings consistent across the two processes. The choice
 is captured in each submission; changing the setting does not reroute existing items. Run a
 separate `npm run worker:content` process for each enabled role with `AGENT_WORKER_ROLE` set to
 `review`, `revision`, or `gate`. Each process needs its own

@@ -80,7 +80,7 @@ reported by `supabase status`. They create their own local users and content. In
 with `npx playwright install chromium` if it is not already available. CI also regenerates database
 types from the local stack and checks the committed file for drift.
 
-**Local validation status (2026-09-29):** A full CI-equivalent run is blocked in the agent
-container because Docker is unavailable. The Supabase SQL tests, generated-type drift check,
-live PostgreSQL transaction tests, and Playwright browser tests still need a Docker-enabled
-environment. Docker-free checks passed.
+**Content workflow closeout (2026-10-01):** Docker-free checks pass. This container has no Docker
+executable, so Supabase SQL tests, generated-type drift verification, local browser tests, and
+live PostgreSQL transaction tests remain for CI or another Docker-enabled environment. The
+[closeout record](docs/plans/content-production-workflow-closeout.md) gives the exact handover.

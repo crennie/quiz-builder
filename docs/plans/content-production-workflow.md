@@ -1,6 +1,6 @@
 # Content production workflow and automation foundation
 
-**Status:** Repository validated on 2026-09-30. Phases 1–4 are implemented. Phase 3 uses human sponsorship and a trusted backend worker as recorded in [ADR-006](../architecture/decisions/ADR-006-sponsored-agent-creation.md); Phase 4 adds configured agent roles as recorded in [ADR-007](../architecture/decisions/ADR-007-configured-agent-review-and-gate.md).
+**Status:** Phases 1–4 are implemented. Local validation is complete; full Supabase and browser gates remain pending in an environment with Docker. The [closeout and handover record](content-production-workflow-closeout.md) tracks exact checks and remaining verification. Phase 3 uses human sponsorship and a trusted backend worker as recorded in [ADR-006](../architecture/decisions/ADR-006-sponsored-agent-creation.md); Phase 4 adds configured agent roles as recorded in [ADR-007](../architecture/decisions/ADR-007-configured-agent-review-and-gate.md).
 
 This is the working revision of the proposed content-production plan. It preserves the objective: a human or agent may create, review, or revise questions through the same application-owned workflow. Drafts can remain private indefinitely; publication is deliberate; agent-created content requires review; quiz attempts remain human-only. Read [the existing architecture plan](../../architecture-plan.md) and [current architecture views](../architecture/README.md) before implementation.
 

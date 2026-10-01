@@ -16,6 +16,7 @@ import { AttemptHistoryPage } from "../pages/attempt-history-page";
 import { AttemptPage } from "../pages/attempt-page";
 import { WorkQueuePage } from "../pages/work-queue-page";
 import { AgentQuestionPage } from "../pages/agent-question-page";
+import { QuestionBatchPage } from "../pages/question-batch-page";
 
 const rootRoute = createRootRoute({ component: AppLayout, notFoundComponent: NotFoundPage });
 const homeRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: HomePage });
@@ -48,6 +49,15 @@ const newQuestionRoute = createRoute({
     component: () => (
         <RequireAuth>
             <NewQuestionPage />
+        </RequireAuth>
+    ),
+});
+const questionBatchRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/questions/batches",
+    component: () => (
+        <RequireAuth>
+            <QuestionBatchPage />
         </RequireAuth>
     ),
 });
@@ -140,6 +150,7 @@ export const router = createRouter({
         questionBankRoute,
         myQuestionsRoute,
         newQuestionRoute,
+        questionBatchRoute,
         questionDetailRoute,
         manageQuestionRoute,
         quizListRoute,

@@ -131,6 +131,90 @@ export type Database = {
         }
         Relationships: []
       }
+      question_batches: {
+        Row: {
+          artifact: Json
+          artifact_sha256: string
+          batch_key: string
+          created_at: string
+          id: string
+          sponsor_id: string
+        }
+        Insert: {
+          artifact: Json
+          artifact_sha256: string
+          batch_key: string
+          created_at?: string
+          id?: string
+          sponsor_id: string
+        }
+        Update: {
+          artifact?: Json
+          artifact_sha256?: string
+          batch_key?: string
+          created_at?: string
+          id?: string
+          sponsor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_batches_sponsor_id_fkey"
+            columns: ["sponsor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_batch_items: {
+        Row: {
+          batch_id: string
+          created_at: string
+          item_key: string
+          position: number
+          question_id: string
+          question_version_id: string
+        }
+        Insert: {
+          batch_id: string
+          created_at?: string
+          item_key: string
+          position: number
+          question_id: string
+          question_version_id: string
+        }
+        Update: {
+          batch_id?: string
+          created_at?: string
+          item_key?: string
+          position?: number
+          question_id?: string
+          question_version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_batch_items_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "question_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_batch_items_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: true
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_batch_items_version_fkey"
+            columns: ["question_id", "question_version_id"]
+            isOneToOne: true
+            referencedRelation: "question_versions"
+            referencedColumns: ["question_id", "id"]
+          },
+        ]
+      }
       question_tags: {
         Row: {
           question_id: string

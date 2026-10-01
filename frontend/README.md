@@ -50,6 +50,12 @@ text, single choice, and multiple choice answers; it validates content with the 
 as the backend. Saving an existing question creates a new version. Visibility, status, and tags
 can be changed separately without creating a content version. Archived questions cannot be revised.
 
+Use **Import question batch** in the question bank to upload a versioned JSON batch, inspect its
+topic and questions, and retain the artifact. The separate **Create private drafts** action
+materializes all questions and their tags. Open a draft or submit its original version for review
+from the batch screen. The [REST example batch](../docs/examples/rest-endpoints-batch.json) shows
+the file format. Import does not require a configured question provider.
+
 ## Quiz management
 
 Open **Quizzes** to list, create, and edit quizzes. The editor chooses exact question versions,

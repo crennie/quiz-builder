@@ -1,4 +1,11 @@
-import { workItemListResponseSchema, workItemSchema, type WorkItem } from "@quiz-builder/contracts";
+import {
+    questionBatchListSchema,
+    questionBatchSchema,
+    workItemListResponseSchema,
+    workItemSchema,
+    type QuestionBatchArtifact,
+    type WorkItem,
+} from "@quiz-builder/contracts";
 import { authenticatedRequest } from "./client";
 
 export async function requestAgentQuestion(brief: string, requestKey: string) {
@@ -6,6 +13,36 @@ export async function requestAgentQuestion(brief: string, requestKey: string) {
         await authenticatedRequest<unknown>("/v1/agent-questions", {
             method: "POST",
             body: JSON.stringify({ brief, requestKey }),
+        }),
+    );
+}
+
+export async function ingestQuestionBatch(artifact: QuestionBatchArtifact) {
+    return questionBatchSchema.parse(
+        await authenticatedRequest<unknown>("/v1/question-batches", {
+            method: "POST",
+            body: JSON.stringify(artifact),
+        }),
+    );
+}
+
+export async function listQuestionBatches() {
+    return questionBatchListSchema.parse(
+        await authenticatedRequest<unknown>("/v1/question-batches"),
+    );
+}
+
+export async function getQuestionBatch(id: string) {
+    return questionBatchSchema.parse(
+        await authenticatedRequest<unknown>(`/v1/question-batches/${id}`),
+    );
+}
+
+export async function materializeQuestionBatch(id: string) {
+    return questionBatchSchema.parse(
+        await authenticatedRequest<unknown>(`/v1/question-batches/${id}/materialize`, {
+            method: "POST",
+            body: "{}",
         }),
     );
 }

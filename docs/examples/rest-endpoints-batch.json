@@ -1,0 +1,110 @@
+{
+    "schemaVersion": 1,
+    "batchKey": "00000000-0000-4000-8000-00000000b001",
+    "topic": "REST endpoints",
+    "source": {
+        "kind": "external_agent",
+        "label": "Manually prepared agent draft"
+    },
+    "tags": ["Technical", "Backend", "REST APIs"],
+    "questions": [
+        {
+            "key": "rest-01",
+            "content": {
+                "prompt": "Which request follows a typical resource-oriented design for retrieving order 42?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        { "id": "a", "text": "POST /getOrder/42" },
+                        { "id": "b", "text": "GET /orders/42" },
+                        { "id": "c", "text": "DELETE /orders/42" },
+                        { "id": "d", "text": "PATCH /orders/42" }
+                    ],
+                    "correctOptionId": "b"
+                },
+                "gradingConfig": { "questionType": "multiple_choice_single" },
+                "explanation": "GET retrieves a representation of the identified resource."
+            }
+        },
+        {
+            "key": "rest-02",
+            "content": {
+                "prompt": "A POST /orders request creates order 42. Which response best tells the client what was created and where to find it?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        { "id": "a", "text": "201 Created with Location: /orders/42" },
+                        { "id": "b", "text": "404 Not Found" },
+                        { "id": "c", "text": "405 Method Not Allowed" },
+                        { "id": "d", "text": "204 No Content with no resource location" }
+                    ],
+                    "correctOptionId": "a"
+                },
+                "gradingConfig": { "questionType": "multiple_choice_single" },
+                "explanation": "201 reports creation, and Location identifies the new resource."
+            }
+        },
+        {
+            "key": "rest-03",
+            "content": {
+                "prompt": "Which method is defined as idempotent when replacing the representation at /profiles/7?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        { "id": "a", "text": "POST" },
+                        { "id": "b", "text": "PUT" },
+                        { "id": "c", "text": "CONNECT" },
+                        { "id": "d", "text": "None of these" }
+                    ],
+                    "correctOptionId": "b"
+                },
+                "gradingConfig": { "questionType": "multiple_choice_single" },
+                "explanation": "Repeating the same PUT request has the same intended effect as sending it once."
+            }
+        },
+        {
+            "key": "rest-04",
+            "content": {
+                "prompt": "/orders/42 exists, but it does not support the request method. Which status fits?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        { "id": "a", "text": "400 Bad Request" },
+                        { "id": "b", "text": "404 Not Found" },
+                        { "id": "c", "text": "405 Method Not Allowed" },
+                        { "id": "d", "text": "500 Internal Server Error" }
+                    ],
+                    "correctOptionId": "c"
+                },
+                "gradingConfig": { "questionType": "multiple_choice_single" },
+                "explanation": "405 means the server knows the method but the target resource does not support it."
+            }
+        },
+        {
+            "key": "rest-05",
+            "content": {
+                "prompt": "What does stateless communication mean in REST?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        { "id": "a", "text": "The server cannot store orders." },
+                        {
+                            "id": "b",
+                            "text": "Each request contains the information needed to understand it without relying on a previous request."
+                        },
+                        { "id": "c", "text": "Every request must create a new resource." },
+                        { "id": "d", "text": "Responses cannot be cached." }
+                    ],
+                    "correctOptionId": "b"
+                },
+                "gradingConfig": { "questionType": "multiple_choice_single" },
+                "explanation": "Statelessness concerns request context; it does not prohibit storing resources."
+            }
+        }
+    ]
+}

@@ -1,6 +1,6 @@
 # Quiz Builder use-case checklist
 
-This is the product inventory as implemented on 2026-09-30, organized as **epic → feature → use case**. It covers user journeys, UI behavior, API operations, domain rules, and visible gaps. The [architecture plan](../architecture-plan.md) defines v1; the [current architecture](architecture/README.md) and source code determine the checked state.
+This is the product inventory as implemented on 2026-10-01, organized as **epic → feature → use case**. It covers user journeys, UI behavior, API operations, domain rules, and visible gaps. The [architecture plan](../architecture-plan.md) defines v1; the [current architecture](architecture/README.md) and source code determine the checked state.
 
 - `[x]` means the behavior has an implementation path in the repository. It does **not** mean a browser test exists or that a live deployment was verified.
 - `[ ]` means the behavior is missing or only partially implemented. Some unchecked items are candidate improvements rather than committed v1 requirements. Split rows distinguish existing partial behavior from the remaining work.
@@ -190,6 +190,23 @@ This is the product inventory as implemented on 2026-09-30, organized as **epic 
 - [x] **CORE-05 · API** — Provide health checks, request IDs, structured logging, and centralized error handling.
 - [x] **CORE-06 · UI** — Parse API responses with shared contracts and show action or query errors near the relevant flow.
 
+## Epic 10 — Question batch ingestion
+
+### Feature: Retain a portable artifact
+
+- [x] **BATCH-01 · UI/API** — Upload and preview one versioned JSON artifact with 1–20 uniquely keyed, gradeable questions, a declared source, and tags; reject invalid or oversized input before retaining it.
+- [x] **BATCH-02 · Rule** — Keep the retained artifact and digest immutable; accept an identical retry for the same sponsor and batch key, but reject changed content for that key.
+- [x] **BATCH-03 · UI/API** — List the author's recent batches and reopen a retained artifact, including its source declaration, digest, and materialization status.
+- [x] **BATCH-04 · API** — Let only the authenticated sponsor read or materialize a batch; derive sponsorship from the verified session rather than the artifact.
+
+### Feature: Create drafts and enter review
+
+- [x] **BATCH-05 · UI/API** — Materialize all batch items in a separate explicit step as private draft questions with resolved author-owned tags; retrying returns the existing mappings.
+- [x] **BATCH-06 · Rule** — Roll back every draft, tag, and item mapping when a later item fails, leaving the retained artifact available for a retry.
+- [x] **BATCH-07 · Rule** — Preserve each artifact key's first question-version mapping after revisions, while showing the question's current version separately.
+- [x] **BATCH-08 · UI/API** — Require explicit submission of an imported current version to review; block direct publication and route a declared external-agent source to human review.
+- [ ] **BATCH-09 · API** — Have a trusted automatic producer emit this batch artifact and enter the same ingestion boundary. The configured creation worker currently uses its separate creation flow.
+
 ## Later work outside v1
 
 These are [explicit future extensions](../architecture-plan.md#13-future-core-work), not missing v1 acceptance criteria. Each would need its own use-case breakdown before implementation or automation.
@@ -201,7 +218,7 @@ These are [explicit future extensions](../architecture-plan.md#13-future-core-wo
 - [ ] **FUTURE-05** — Public creator profiles, community discovery, and social sharing.
 - [ ] **FUTURE-06** — Advanced tags, full-text search, and richer discovery.
 - [ ] **FUTURE-07** — Learning analytics, spaced repetition, and review scheduling.
-- [ ] **FUTURE-08** — Import/export and bulk question or quiz workflows.
+- [ ] **FUTURE-08** — Question export and bulk quiz workflows. Question batch import is covered by Epic 10.
 - [ ] **FUTURE-09** — Stronger RLS if clients access application tables directly.
 
 ## Using this for automation

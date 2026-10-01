@@ -493,6 +493,46 @@
             "file": "shared/src/index.test.ts",
             "name": "quiz content requires explicit question versions and permits fractional points",
             "ids": ["QUIZ-05", "QUIZ-07", "CORE-01"]
+        },
+        {
+            "file": "shared/src/index.test.ts",
+            "name": "question batches require bounded, uniquely keyed, gradeable entries",
+            "ids": ["BATCH-01"]
+        },
+        {
+            "file": "backend/tests/integration/question-batches.api.test.ts",
+            "name": "requires an authenticated uploader and validates the full batch before ingest",
+            "ids": ["BATCH-01", "BATCH-04"]
+        },
+        {
+            "file": "backend/tests/integration/question-batches.api.test.ts",
+            "name": "passes the authenticated sponsor to reads and materialization",
+            "ids": ["BATCH-04"]
+        },
+        {
+            "file": "backend/tests/integration/question-batches.api.test.ts",
+            "name": "rejects an oversized batch request with a bounded error",
+            "ids": ["BATCH-01"]
+        },
+        {
+            "file": "backend/tests/integration/question-batches.database.test.ts",
+            "name": "retains one immutable batch, creates tagged drafts on a separate idempotent step, and requires review",
+            "ids": ["BATCH-02", "BATCH-03", "BATCH-04", "BATCH-05", "BATCH-07", "BATCH-08"]
+        },
+        {
+            "file": "backend/tests/integration/question-batches.database.test.ts",
+            "name": "rolls back every draft, mapping, and tag when a later batch item fails",
+            "ids": ["BATCH-06"]
+        },
+        {
+            "file": "frontend/src/pages/question-batch-page.test.tsx",
+            "name": "uploads a batch artifact, materializes drafts, then explicitly submits one for review",
+            "ids": ["BATCH-01", "BATCH-05", "BATCH-08"]
+        },
+        {
+            "file": "frontend/e2e/question-batches.spec.ts",
+            "name": "imports a two-question artifact as private drafts and queues an explicit review",
+            "ids": ["BATCH-01", "BATCH-03", "BATCH-05", "BATCH-08"]
         }
     ]
 }

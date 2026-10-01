@@ -5,6 +5,7 @@ import {
     answerConfigSchema,
     evaluationResultSchema,
     feedbackCategorySchema,
+    questionBatchArtifactSchema,
     questionTypeSchema,
     questionVersionContentSchema,
     quizContentSchema,
@@ -14,6 +15,53 @@ import {
 test("V1 question types exclude unevaluable fuzzy questions", () => {
     assert.equal(questionTypeSchema.safeParse("fuzzy").success, false);
     assert.equal(questionTypeSchema.safeParse("multiple_choice_multi").success, true);
+});
+
+test("question batches require bounded, uniquely keyed, gradeable entries", () => {
+    const question = {
+        key: "rest-01",
+        content: {
+            prompt: "Which method retrieves a resource?",
+            questionType: "exact_text",
+            answerConfig: { questionType: "exact_text", acceptedAnswers: ["GET"] },
+            gradingConfig: {
+                questionType: "exact_text",
+                caseSensitive: false,
+                trimWhitespace: true,
+            },
+            explanation: null,
+        },
+    };
+    const batch = {
+        schemaVersion: 1,
+        batchKey: "00000000-0000-4000-8000-000000000804",
+        topic: "REST endpoints",
+        source: { kind: "external_agent", label: "Offline agent" },
+        tags: ["Backend"],
+        questions: [question],
+    };
+    assert.equal(questionBatchArtifactSchema.safeParse(batch).success, true);
+    assert.equal(questionBatchArtifactSchema.safeParse({ ...batch, questions: [] }).success, false);
+    assert.equal(
+        questionBatchArtifactSchema.safeParse({ ...batch, questions: [question, question] })
+            .success,
+        false,
+    );
+    assert.equal(
+        questionBatchArtifactSchema.safeParse({
+            ...batch,
+            questions: [
+                {
+                    ...question,
+                    content: {
+                        ...question.content,
+                        gradingConfig: { questionType: "multiple_choice_single" },
+                    },
+                },
+            ],
+        }).success,
+        false,
+    );
 });
 
 test("choice answer configuration references existing unique choices", () => {

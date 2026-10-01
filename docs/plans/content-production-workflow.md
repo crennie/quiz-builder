@@ -2,6 +2,8 @@
 
 **Status:** Phases 1–4 are implemented. Local validation is complete; full Supabase and browser gates remain pending in an environment with Docker. The [closeout and handover record](content-production-workflow-closeout.md) tracks exact checks and remaining verification. Phase 3 uses human sponsorship and a trusted backend worker as recorded in [ADR-006](../architecture/decisions/ADR-006-sponsored-agent-creation.md); Phase 4 adds configured agent roles as recorded in [ADR-007](../architecture/decisions/ADR-007-configured-agent-review-and-gate.md).
 
+The later [batch artifact ingestion extension](../architecture/decisions/ADR-008-question-batch-artifact-ingestion.md) adds a separate retained-document and materialization path for manually prepared question sets. It does not change the completed provider-worker phases or add quiz automation.
+
 This is the working revision of the proposed content-production plan. It preserves the objective: a human or agent may create, review, or revise questions through the same application-owned workflow. Drafts can remain private indefinitely; publication is deliberate; agent-created content requires review; quiz attempts remain human-only. Read [the existing architecture plan](../../architecture-plan.md) and [current architecture views](../architecture/README.md) before implementation.
 
 ## Final gap review and Phase 1 scope

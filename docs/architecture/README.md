@@ -7,14 +7,15 @@ Quiz Builder is a practice application for authoring reusable questions and vers
 ## Architecture Views
 
 - [Static structure](static/context.md): system context, runtime containers, domain, data, and API components.
-- [Runtime behavior](dynamic/save-quiz.md): significant save and attempt flows.
+- [Runtime behavior](dynamic/save-quiz.md): significant save, attempt, and question batch ingestion flows.
 - Decisions: [versioning](decisions/ADR-001-immutable-content-versions.md),
   [authorization](decisions/ADR-002-api-authorization-boundary.md),
   [attempt evaluation storage](decisions/ADR-003-jsonb-attempt-evaluation.md),
   [publication](decisions/ADR-004-question-publication-boundary.md), and
   [human review](decisions/ADR-005-human-review-and-work-queue.md), and
   [sponsored agent creation](decisions/ADR-006-sponsored-agent-creation.md), and
-  [configured agent review and gate](decisions/ADR-007-configured-agent-review-and-gate.md).
+  [configured agent review and gate](decisions/ADR-007-configured-agent-review-and-gate.md), and
+  [question batch ingestion](decisions/ADR-008-question-batch-artifact-ingestion.md).
 - [Constraints and quality](quality/constraints.md): fixed choices and quality expectations.
 
 ## Key Artifacts
@@ -22,6 +23,7 @@ Quiz Builder is a practice application for authoring reusable questions and vers
 - [Container view](static/containers.md)
 - [Domain model](static/domain.md) and [data model](static/data.md)
 - [Save quiz](dynamic/save-quiz.md) and [take quiz attempt](dynamic/take-quiz-attempt.md)
+- [Ingest a question batch](dynamic/ingest-question-batch.md)
 - [Quality requirements](quality/requirements.md)
 
 ## Current Architecture Summary

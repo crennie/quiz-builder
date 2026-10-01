@@ -13,7 +13,7 @@ import { quizRouter } from "./routes/quizzes.ts";
 export const app = express();
 
 app.use(requestLogger);
-app.use(express.json());
+app.use(express.json({ limit: "256kb" }));
 app.use(healthRouter);
 app.use("/api/v1", currentUserRouter);
 app.use("/api/v1", questionBankRouter);

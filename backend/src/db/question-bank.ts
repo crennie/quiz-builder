@@ -122,6 +122,10 @@ export async function getQuestionDetail(
     if (!version) throw new Error("Current question version was not found");
 
     const tags = (await loadTags([question.id], database)).get(question.id) ?? [];
+    const batchOrigin = await database.query<{ batch_id: string }>(
+        `SELECT batch_id FROM public.question_batch_items WHERE question_id = $1`,
+        [question.id],
+    );
     const base = {
         id: question.id,
         createdBy: question.created_by,
@@ -137,6 +141,7 @@ export async function getQuestionDetail(
         isOwner: true,
         currentVersion: mapVersion(version),
         ...(question.agent_origin_run_id ? { agentOriginRunId: question.agent_origin_run_id } : {}),
+        ...(batchOrigin.rows[0] ? { batchOriginId: batchOrigin.rows[0].batch_id } : {}),
     });
 }
 
@@ -534,6 +539,12 @@ export async function publishQuestionInTransaction(
     }
     if (question.agent_origin_run_id)
         throw new AppError(403, "AGENT_REVIEW_REQUIRED", "Agent-origin questions require review");
+    const imported = await database.query<{ batch_id: string }>(
+        `SELECT batch_id FROM public.question_batch_items WHERE question_id = $1`,
+        [questionId],
+    );
+    if (imported.rows[0])
+        throw new AppError(403, "BATCH_REVIEW_REQUIRED", "Imported questions require review");
     const submitted = await database.query<{ id: string }>(
         `SELECT id FROM public.question_review_submissions WHERE question_version_id = $1`,
         [versionId],
@@ -687,7 +698,7 @@ export function restoreQuestion(questionId: string, ownerId: string) {
     return withTransaction((client) => restoreQuestionInTransaction(questionId, ownerId, client));
 }
 
-function slugify(name: string): string {
+export function slugify(name: string): string {
     return name
         .normalize("NFKC")
         .toLocaleLowerCase("en")

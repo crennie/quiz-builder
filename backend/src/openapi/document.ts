@@ -15,6 +15,13 @@ import {
     questionVersionContentSchema,
     questionVersionsResponseSchema,
     publishQuestionBodySchema,
+    requestAgentQuestionBodySchema,
+    submitQuestionReviewBodySchema,
+    claimWorkItemBodySchema,
+    decideWorkItemBodySchema,
+    failWorkItemBodySchema,
+    workItemSchema,
+    workItemListResponseSchema,
     quizContentSchema,
     quizDetailSchema,
     quizListResponseSchema,
@@ -26,7 +33,7 @@ import {
     updateQuizMetadataBodySchema,
     updateFeedbackStatusBodySchema,
 } from "@quiz-builder/contracts";
-import type { z } from "zod";
+import { z } from "zod";
 
 import { currentUserResponseSchema } from "../api/schemas/current-user.ts";
 import {
@@ -277,6 +284,79 @@ registry.registerPath({
         ...commonErrors,
     },
 });
+
+const workItemContent = { "application/json": { schema: apiSchema(workItemSchema) } };
+const workItemParamsSchema = z.strictObject({ itemId: z.uuid() });
+registry.registerPath({
+    method: "post",
+    path: "/api/v1/agent-questions",
+    tags: ["Workflow"],
+    summary: "Queue a private agent-generated question for configured review",
+    security: [{ BearerAuth: [] }],
+    request: {
+        body: {
+            content: { "application/json": { schema: apiSchema(requestAgentQuestionBodySchema) } },
+        },
+    },
+    responses: {
+        202: { description: "Queued creation item.", content: workItemContent },
+        429: { description: "Agent request quota reached.", content: errorContent },
+        ...commonErrors,
+    },
+});
+registry.registerPath({
+    method: "post",
+    path: "/api/v1/questions/{questionId}/review-submissions",
+    tags: ["Workflow"],
+    summary: "Submit the current candidate for configured content review",
+    security: [{ BearerAuth: [] }],
+    request: {
+        params: questionParamsSchema,
+        body: {
+            content: { "application/json": { schema: apiSchema(submitQuestionReviewBodySchema) } },
+        },
+    },
+    responses: { 201: { description: "Review item.", content: workItemContent }, ...commonErrors },
+});
+registry.registerPath({
+    method: "get",
+    path: "/api/v1/work-items",
+    tags: ["Workflow"],
+    summary: "List work assigned to the authenticated human",
+    security: [{ BearerAuth: [] }],
+    responses: {
+        200: {
+            description: "Assigned work items.",
+            content: {
+                "application/json": { schema: apiSchema(workItemListResponseSchema) },
+            },
+        },
+        ...commonErrors,
+    },
+});
+for (const [action, body, summary] of [
+    ["claim", claimWorkItemBodySchema, "Claim an assigned item with a fenced lease"],
+    ["decision", decideWorkItemBodySchema, "Complete content review or publication gate"],
+    ["fail", failWorkItemBodySchema, "Retry or fail a claimed item"],
+    ["cancel", claimWorkItemBodySchema, "Cancel an assigned item"],
+    ["hand-off", claimWorkItemBodySchema, "Move failed agent work to the human queue"],
+] as const) {
+    registry.registerPath({
+        method: "post",
+        path: `/api/v1/work-items/{itemId}/${action}`,
+        tags: ["Workflow"],
+        summary,
+        security: [{ BearerAuth: [] }],
+        request: {
+            params: workItemParamsSchema,
+            body: { content: { "application/json": { schema: apiSchema(body) } } },
+        },
+        responses: {
+            200: { description: "Updated work item.", content: workItemContent },
+            ...commonErrors,
+        },
+    });
+}
 
 for (const [path, summary] of [
     ["unpublish", "Unpublish a question"],
@@ -654,6 +734,7 @@ export function createOpenApiDocument() {
             { name: "Operations", description: "Service operational endpoints." },
             { name: "Users", description: "Authenticated user endpoints." },
             { name: "Questions", description: "Question bank endpoints." },
+            { name: "Workflow", description: "Human content review and publication work." },
             { name: "Quizzes", description: "Quiz management endpoints." },
             { name: "Tags", description: "User-scoped tag endpoints." },
         ],

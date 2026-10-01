@@ -7,6 +7,7 @@ import { currentUserRouter } from "./routes/current-user.ts";
 import { feedbackRouter } from "./routes/feedback.ts";
 import { healthRouter } from "./routes/health.ts";
 import { questionBankRouter } from "./routes/question-bank.ts";
+import { contentWorkflowRouter } from "./routes/content-workflow.ts";
 import { quizRouter } from "./routes/quizzes.ts";
 
 export const app = express();
@@ -16,6 +17,7 @@ app.use(express.json());
 app.use(healthRouter);
 app.use("/api/v1", currentUserRouter);
 app.use("/api/v1", questionBankRouter);
+app.use("/api/v1", contentWorkflowRouter);
 app.use("/api/v1", quizRouter);
 app.use("/api/v1", attemptRouter);
 app.use("/api/v1", feedbackRouter);

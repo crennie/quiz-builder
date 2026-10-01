@@ -18,6 +18,7 @@ import {
 } from "../api/questions";
 import { useAuth } from "../auth/auth-state";
 import { QuestionEditor } from "../components/question-editor";
+import { submitQuestionReview } from "../api/content-workflow";
 
 export function QuestionDetailPage() {
     const { questionId } = useParams({ from: "/questions/mine/$questionId" });
@@ -58,6 +59,12 @@ export function QuestionDetailPage() {
         },
         onSuccess: () => {
             void refresh();
+        },
+    });
+    const submitReview = useMutation({
+        mutationFn: () => submitQuestionReview(questionId, question.data!.currentVersion.id),
+        onSuccess: () => {
+            void queryClient.invalidateQueries({ queryKey: ["work-items"] });
         },
     });
     const assignTag = useMutation({
@@ -110,6 +117,14 @@ export function QuestionDetailPage() {
             setActionError(error instanceof Error ? error.message : "Could not add tag.");
         }
     }
+    async function sendForReview() {
+        setActionError("");
+        try {
+            await submitReview.mutateAsync();
+        } catch (error) {
+            setActionError(error instanceof Error ? error.message : "Could not submit review.");
+        }
+    }
     async function dropTag(id: string) {
         setActionError("");
         try {
@@ -142,6 +157,12 @@ export function QuestionDetailPage() {
                     {current.currentVersion.questionType.replaceAll("_", " ")} · {current.status} ·{" "}
                     {current.visibility}
                 </p>
+                {current.agentOriginRunId ? (
+                    <p className="muted small">
+                        Agent-origin question. You own this draft; publication requires human review
+                        and a final gate decision.
+                    </p>
+                ) : null}
             </div>
             {current.isOwner ? (
                 <>
@@ -174,11 +195,21 @@ export function QuestionDetailPage() {
                                 </button>
                             ) : (
                                 <>
+                                    {!current.agentOriginRunId ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => void changeLifecycle("publish")}
+                                        >
+                                            Publish current version
+                                        </button>
+                                    ) : null}
                                     <button
                                         type="button"
-                                        onClick={() => void changeLifecycle("publish")}
+                                        className="secondary"
+                                        disabled={submitReview.isPending}
+                                        onClick={() => void sendForReview()}
                                     >
-                                        Publish current version
+                                        Submit for review
                                     </button>
                                     {current.status === "published" ? (
                                         <button
@@ -200,8 +231,9 @@ export function QuestionDetailPage() {
                             )}
                         </div>
                         <p className="muted small">
-                            Publication is an explicit action. Draft revisions do not change the
-                            published version.
+                            Direct publication is available for your own unsubmitted version.
+                            Submitting it for review sends it through content approval and a final
+                            publication gate. <Link to="/work-items">Open the work queue</Link>.
                         </p>
                     </section>
                     <section className="panel">
@@ -291,7 +323,8 @@ export function QuestionDetailPage() {
                             <ol className="version-list">
                                 {versions.data.versions.map((version) => (
                                     <li key={version.id}>
-                                        <strong>Version {version.versionNumber}</strong> ·{" "}
+                                        <strong>Version {version.versionNumber}</strong>
+                                        {version.agentRunId ? " · Agent generated" : ""} ·{" "}
                                         {version.prompt}
                                         <span className="muted small">
                                             {new Date(version.createdAt).toLocaleDateString()}

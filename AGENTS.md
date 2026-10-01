@@ -13,9 +13,10 @@ runtime scenarios, decisions, and quality expectations.
 - `frontend/` contains the React, Vite, TypeScript, TanStack Router, and TanStack Query shell.
 - `backend/` contains the Express 5, TypeScript, Zod, Pino, OpenAPI, and `pg` foundations.
 - Shared Zod contracts, Supabase-generated DB types, and the initial SQL migration are present.
-- The backend has Supabase Auth token verification, a current-user profile endpoint, and question
-  bank/tag, quiz/version, attempt, and feedback APIs. The frontend currently supports sign-in and
-  question management; quiz and attempt screens remain.
+- The backend has Supabase Auth token verification, a current-user profile endpoint, question
+  bank/tag, quiz/version, attempt, feedback, and content workflow APIs. Trusted workers execute
+  optional agent creation, review, revision, and publication gate work. The frontend supports
+  sign-in, question and quiz management, attempts, feedback submission, and the work queue.
 - Keep frontend code in `frontend/`, backend code in `backend/`, and shared contracts in `shared/`.
 
 ## Development environment

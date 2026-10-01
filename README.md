@@ -10,6 +10,9 @@ runtime flows, decisions, and quality constraints.
 The [use-case checklist](docs/use-cases.md) tracks implemented and open behaviors by epic and
 feature, with stable IDs mapped to automated tests.
 
+The [question bank seeding epic](docs/plans/question-bank-seeding.md) tracks the in-progress work to
+prime technical questions through batch import, review, and publication.
+
 ## Local database workflow
 
 Use Node.js 24 and npm. From the repository root, run `npm ci`. A Docker-compatible runtime must

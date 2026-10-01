@@ -2,6 +2,9 @@ import {
     claimWorkItemBodySchema,
     decideWorkItemBodySchema,
     failWorkItemBodySchema,
+    questionBatchArtifactSchema,
+    questionBatchListSchema,
+    questionBatchSchema,
     requestAgentQuestionBodySchema,
     submitQuestionReviewBodySchema,
     workItemListResponseSchema,
@@ -23,14 +26,66 @@ import {
 } from "../db/content-workflow.ts";
 import { requireAuthentication } from "../middleware/authentication.ts";
 import { enqueueAgentQuestion } from "../agent/creation.ts";
+import {
+    getQuestionBatch,
+    ingestQuestionBatch,
+    listQuestionBatches,
+    materializeQuestionBatch,
+} from "../db/question-batches.ts";
 
 const itemParamsSchema = z.strictObject({ itemId: z.uuid() });
+const batchParamsSchema = z.strictObject({ batchId: z.uuid() });
 function actor(request: Request): string {
     if (!request.authenticatedUser?.id) throw new Error("Authenticated user was not set");
     return request.authenticatedUser.id;
 }
 
 export const contentWorkflowRouter = Router();
+contentWorkflowRouter.post(
+    "/question-batches",
+    requireAuthentication,
+    async (request, response) => {
+        const { body } = validateRequest(request, { body: questionBatchArtifactSchema });
+        sendResponse(
+            response,
+            201,
+            questionBatchSchema,
+            await ingestQuestionBatch(actor(request), body),
+        );
+    },
+);
+contentWorkflowRouter.get("/question-batches", requireAuthentication, async (request, response) => {
+    sendResponse(response, 200, questionBatchListSchema, await listQuestionBatches(actor(request)));
+});
+contentWorkflowRouter.get(
+    "/question-batches/:batchId",
+    requireAuthentication,
+    async (request, response) => {
+        const { params } = validateRequest(request, { params: batchParamsSchema });
+        sendResponse(
+            response,
+            200,
+            questionBatchSchema,
+            await getQuestionBatch(params.batchId, actor(request)),
+        );
+    },
+);
+contentWorkflowRouter.post(
+    "/question-batches/:batchId/materialize",
+    requireAuthentication,
+    async (request, response) => {
+        const { params } = validateRequest(request, {
+            params: batchParamsSchema,
+            body: z.strictObject({}),
+        });
+        sendResponse(
+            response,
+            200,
+            questionBatchSchema,
+            await materializeQuestionBatch(params.batchId, actor(request)),
+        );
+    },
+);
 contentWorkflowRouter.post("/agent-questions", requireAuthentication, async (request, response) => {
     const { body } = validateRequest(request, { body: requestAgentQuestionBodySchema });
     sendResponse(response, 202, workItemSchema, await enqueueAgentQuestion(actor(request), body));

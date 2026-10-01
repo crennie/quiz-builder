@@ -207,6 +207,7 @@ export const questionDetailSchema = questionIdentitySchema
         isOwner: z.boolean(),
         currentVersion: questionVersionSchema,
         agentOriginRunId: z.uuid().optional(),
+        batchOriginId: z.uuid().optional(),
     })
     .meta({ id: "QuestionDetail" });
 
@@ -250,6 +251,78 @@ export const requestAgentQuestionBodySchema = z.strictObject({
     brief: z.string().trim().min(10).max(1000),
     requestKey: z.uuid(),
 });
+
+export const questionBatchArtifactSchema = z
+    .strictObject({
+        schemaVersion: z.literal(1),
+        batchKey: z.uuid(),
+        topic: z
+            .string()
+            .min(1)
+            .max(200)
+            .refine((value) => value.trim().length > 0),
+        source: z.strictObject({
+            kind: z.enum(["human", "external_agent"]),
+            label: z
+                .string()
+                .min(1)
+                .max(200)
+                .refine((value) => value.trim().length > 0),
+        }),
+        tags: z
+            .array(
+                z
+                    .string()
+                    .min(1)
+                    .max(100)
+                    .refine((value) => /[\p{L}\p{N}]/u.test(value), "Tag needs a letter or number"),
+            )
+            .max(10),
+        questions: z
+            .array(
+                z.strictObject({
+                    key: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/),
+                    content: questionVersionContentSchema,
+                }),
+            )
+            .min(1)
+            .max(20),
+    })
+    .superRefine((artifact, context) => {
+        const keys = artifact.questions.map((question) => question.key);
+        if (new Set(keys).size !== keys.length)
+            context.addIssue({ code: "custom", message: "Question keys must be unique" });
+    });
+
+export const questionBatchItemSchema = z.strictObject({
+    key: z.string(),
+    questionId: z.uuid(),
+    versionId: z.uuid(),
+    currentVersionId: z.uuid(),
+});
+export const questionBatchSchema = z.strictObject({
+    id: z.uuid(),
+    artifact: questionBatchArtifactSchema,
+    artifactSha256: z.string().regex(/^[a-f0-9]{64}$/),
+    createdAt: apiTimestampSchema,
+    items: z.array(questionBatchItemSchema),
+});
+export const questionBatchSummarySchema = questionBatchSchema
+    .pick({
+        id: true,
+        artifactSha256: true,
+        createdAt: true,
+    })
+    .extend({
+        topic: z.string(),
+        questionCount: z.number().int().positive(),
+        materializedCount: z.number().int().nonnegative(),
+    });
+export const questionBatchListSchema = z.strictObject({
+    batches: z.array(questionBatchSummarySchema),
+});
+export type QuestionBatchArtifact = z.output<typeof questionBatchArtifactSchema>;
+export type QuestionBatch = z.output<typeof questionBatchSchema>;
 
 export const workItemInputSchema = z.discriminatedUnion("type", [
     z.strictObject({

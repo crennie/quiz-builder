@@ -1,11 +1,15 @@
 # Data model
 
-**Scope:** Architecturally important persisted relationships. The [initial SQL migration](../../../supabase/migrations/20260928174208_initial_schema.sql), [publication migration](../../../supabase/migrations/20260930120000_question_publication.sql), [workflow migration](../../../supabase/migrations/20260930160000_human_review_workflow.sql), [agent creation migration](../../../supabase/migrations/20260930190000_agent_creation.sql), and [agent workflow migration](../../../supabase/migrations/20260930220000_agent_review_gate.sql) are authoritative for exact columns, constraints, indexes, and triggers.
+**Scope:** Architecturally important persisted relationships. The [initial SQL migration](../../../supabase/migrations/20260928174208_initial_schema.sql), [publication migration](../../../supabase/migrations/20260930120000_question_publication.sql), [workflow migration](../../../supabase/migrations/20260930160000_human_review_workflow.sql), [agent creation migration](../../../supabase/migrations/20260930190000_agent_creation.sql), [agent workflow migration](../../../supabase/migrations/20260930220000_agent_review_gate.sql), and [batch ingestion migration](../../../supabase/migrations/20261001010000_question_batch_ingestion.sql) are authoritative for exact columns, constraints, indexes, and triggers.
 
 ```mermaid
 erDiagram
     auth_users ||--|| profiles : "same UUID"
     profiles ||--o{ questions : owns
+    profiles ||--o{ question_batches : uploads
+    question_batches ||--o{ question_batch_items : maps
+    questions ||--o| question_batch_items : imported_as
+    question_versions ||--o| question_batch_items : imported_as
     profiles ||--o{ quizzes : owns
     profiles ||--o{ tags : owns
     profiles ||--o{ quiz_attempts : takes
@@ -48,6 +52,8 @@ The bank lists only published question identities and projects their default pub
 A review submission binds one question version to a server-chosen policy snapshot. Immutable review and gate decisions record distinct approvals. Work items hold typed inputs, assignment, status, lease generation, and claim token; append-only events record routing changes. Gate approval writes publication evidence and the default pointer in one transaction. New candidate versions cancel older open work items.
 
 Agent-created questions remain owned by a sponsoring human. An immutable agent generation run identifies the machine actor, provider, model, and work item. Generated and revised versions point to their exact run; the question keeps its agent-origin marker. Creation, provenance, and one review item commit together; agent-origin questions cannot use direct publication. Separately assigned reviewer, reviser, and gate actors operate under a submission policy snapshot. Immutable execution runs identify provider/model provenance for agent decisions. A qualifying gate decision passes through the application publication transaction.
+
+An uploaded question batch retains validated JSON and its digest before any question is created. Immutable batch-item mappings connect stable artifact keys to the private drafts and first versions created in an all-or-nothing materialization step. Imported drafts require an explicit review submission and cannot use direct publication. The artifact's source label is a declaration by the uploader; it is distinct from a trusted worker run.
 
 An attempt references one quiz version. Starting it copies quiz settings and each presented question's content, answer, grading configuration, and points into snapshot columns. Database triggers prevent snapshot changes and reject membership that does not match the quiz version. Responses, evaluation results, and score summaries are JSONB; shared Zod schemas validate their shapes in application code. A database check requires feedback to reference exactly one target. User-scoped tag slugs are unique per owner.
 

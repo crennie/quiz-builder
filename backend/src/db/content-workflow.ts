@@ -19,6 +19,7 @@ export type WorkflowPolicy = {
     mode: string;
     source: string;
     agentOriginRunId?: string;
+    batchId?: string;
     reviewerId: string;
     gateActorId: string;
     reviewerAgentId: string | null;
@@ -189,16 +190,34 @@ export async function submitQuestionReviewInTransaction(
         if (!item.rows[0]) throw new Error("Review submission has no work item");
         return mapItem(item.rows[0]);
     }
+    const imported = await database.query<{ batch_id: string; source_kind: string }>(
+        `SELECT i.batch_id, b.artifact->'source'->>'kind' AS source_kind
+         FROM public.question_batch_items i
+         JOIN public.question_batches b ON b.id = i.batch_id
+         WHERE i.question_id = $1`,
+        [questionId],
+    );
     const policy: WorkflowPolicy = policyOverride ?? {
         version: 2,
         mode: "configured_review",
-        source: question.rows[0].agent_origin_run_id ? "agent" : "human",
+        source: question.rows[0].agent_origin_run_id
+            ? "agent"
+            : imported.rows[0]
+              ? imported.rows[0].source_kind === "external_agent"
+                  ? "imported_external_agent"
+                  : "imported_human"
+              : "human",
         ...(question.rows[0].agent_origin_run_id
             ? { agentOriginRunId: question.rows[0].agent_origin_run_id }
             : {}),
+        ...(imported.rows[0] ? { batchId: imported.rows[0].batch_id } : {}),
         reviewerId: actorId,
         gateActorId: actorId,
-        reviewerAgentId: process.env.CONTENT_AGENT_REVIEW === "true" ? REVIEW_AGENT_ID : null,
+        reviewerAgentId:
+            process.env.CONTENT_AGENT_REVIEW === "true" &&
+            imported.rows[0]?.source_kind !== "external_agent"
+                ? REVIEW_AGENT_ID
+                : null,
         revisionAgentId: process.env.CONTENT_AGENT_REVISION === "true" ? REVISION_AGENT_ID : null,
         gateAgentId: process.env.CONTENT_AGENT_GATE === "true" ? GATE_AGENT_ID : null,
         selfReviewAllowed: true,

@@ -63,6 +63,7 @@ export function QuestionBankPage({ mine = false }: { mine?: boolean }) {
                     New question
                 </Link>
                 <Link to="/questions/agent">Generate with agent</Link>
+                <Link to="/questions/batches">Import question batch</Link>
                 <Link to={mine ? "/questions" : "/questions/mine"}>
                     {mine ? "Browse question bank" : "My drafts and questions"}
                 </Link>

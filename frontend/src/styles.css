@@ -393,3 +393,9 @@ h1 {
         flex-direction: column;
     }
 }
+.artifact-preview {
+    max-height: 24rem;
+    overflow: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}

@@ -1,6 +1,6 @@
 # Quiz Builder use-case checklist
 
-This is the product inventory as implemented on 2026-09-30, organized as **epic → feature → use case**. It covers user journeys, UI behavior, API operations, domain rules, and visible gaps. The [architecture plan](../architecture-plan.md) defines v1; the [current architecture](architecture/README.md) and source code determine the checked state.
+This is the product inventory as implemented on 2026-10-01, organized as **epic → feature → use case**. It covers user journeys, UI behavior, API operations, domain rules, and visible gaps. The [architecture plan](../architecture-plan.md) defines v1; the [current architecture](architecture/README.md) and source code determine the checked state.
 
 - `[x]` means the behavior has an implementation path in the repository. It does **not** mean a browser test exists or that a live deployment was verified.
 - `[ ]` means the behavior is missing or only partially implemented. Some unchecked items are candidate improvements rather than committed v1 requirements. Split rows distinguish existing partial behavior from the remaining work.
@@ -31,9 +31,9 @@ This is the product inventory as implemented on 2026-09-30, organized as **epic 
 
 ### Feature: Discovery and access
 
-- [x] **QB-01 · API** — List the viewer's questions plus published public questions, newest first, with `limit`/`offset` pagination.
+- [x] **QB-01 · API** — List published questions accessible to the viewer, newest first, with `limit`/`offset` pagination; list the owner's drafts and candidates through the separate management route.
 - [x] **QB-02 · API** — Filter the question list by tag slug.
-- [x] **QB-03 · API** — Open an owned question or a published public/unlisted question by ID; keep private, draft, and archived content owner-only.
+- [x] **QB-03 · API** — Open a published accessible question by ID with its default published version; expose drafts, newer candidates, and archived questions only through the owner-management route.
 - [x] **QB-04 · UI** — Open `/questions`, browse question cards, and use Previous/Next pagination.
 - [x] **QB-05 · UI** — Filter question cards by tag across API pages.
 - [x] **QB-06 · UI** — Search prompts and filter by visibility/status on the currently loaded page.
@@ -43,14 +43,14 @@ This is the product inventory as implemented on 2026-09-30, organized as **epic 
 
 ### Feature: Authoring and version history
 
-- [x] **QB-10 · UI/API** — Create a question with an initial immutable version, visibility, and draft/published status.
+- [x] **QB-10 · UI/API** — Create a draft question with an initial immutable version and visibility; publication requires a separate action or completed review gate.
 - [x] **QB-11 · UI** — Author exact-text questions with multiple accepted answers, case sensitivity, whitespace trimming, and an explanation.
 - [x] **QB-12 · UI** — Author single-choice questions with options and one correct choice.
 - [x] **QB-13 · UI** — Author multiple-choice questions with options and one or more correct choices.
 - [x] **QB-14 · API** — Validate question type, answer configuration, and grading configuration together; reject invalid combinations.
 - [x] **QB-15 · UI/API** — Revise a question by creating a new immutable content version, then view the owner's version history.
 - [x] **QB-16 · Rule** — Keep earlier question versions unchanged and keep existing quizzes pinned to their selected question version.
-- [x] **QB-17 · UI/API** — Change question visibility or lifecycle status without creating a content version; archive questions and prevent further revisions while archived.
+- [x] **QB-17 · UI/API** — Change visibility without a content version; use explicit publish, unpublish, archive, and restore actions for lifecycle changes, and prevent revisions while archived.
 - [x] **QB-18 · API** — Restrict question revisions, metadata changes, version history, and tag changes to the owner.
 - [ ] **QB-19 · UI** — Inspect the full content of an older question version from the history list. The list shows version number, prompt, and date only.
 - [ ] **QB-20 · UI/API** — Delete a question. V1 uses archival instead.
@@ -74,7 +74,7 @@ This is the product inventory as implemented on 2026-09-30, organized as **epic 
 
 - [x] **QUIZ-01 · UI/API** — Create a quiz with title, optional description, settings, questions, visibility, and draft/published status; allow an empty draft.
 - [x] **QUIZ-02 · UI** — Pick questions from the bank, search prompts on the loaded page, filter by tag, and page through candidates.
-- [x] **QUIZ-03 · UI/API** — Select a specific question version; owners can choose older versions, while another author's available question exposes its current version.
+- [x] **QUIZ-03 · UI/API** — Select a specific previously published question version; owners can choose older published versions, and another author's accessible question exposes its published versions.
 - [x] **QUIZ-04 · UI/API** — Add, remove, replace, and reorder included questions.
 - [x] **QUIZ-05 · UI/API** — Set fractional/nonnegative points, required/optional state, and a per-question suggested time value.
 - [x] **QUIZ-06 · UI/API** — Configure question shuffling and post-completion answer display.
@@ -190,6 +190,53 @@ This is the product inventory as implemented on 2026-09-30, organized as **epic 
 - [x] **CORE-05 · API** — Provide health checks, request IDs, structured logging, and centralized error handling.
 - [x] **CORE-06 · UI** — Parse API responses with shared contracts and show action or query errors near the relevant flow.
 
+## Epic 10 — Content production workflow
+
+### Feature: Phase 1 — publication boundary
+
+- [x] **FLOW-01 · UI/API** — Keep a new or revised candidate in owner management while bank reads show only the default published version of an accessible published question.
+- [x] **FLOW-02 · UI/API** — Let the owner explicitly publish an unsubmitted current human-authored version, recording direct approval and publication; block direct publication for agent-origin and imported questions.
+- [x] **FLOW-03 · Rule** — Require per-version publication history for new quiz memberships; preserve existing pinned quiz versions and attempt snapshots when a source changes.
+- [x] **FLOW-04 · API** — Treat unpublish, archive, and restore as explicit owner-authorized transitions with publication events, independent of content versioning.
+
+### Feature: Phase 2 — human review and final gate
+
+- [x] **FLOW-05 · UI/API** — Submit an unarchived current version under a recorded policy and queue one exact-version review item; a submitted version cannot publish directly.
+- [x] **FLOW-06 · UI/API** — Let an assigned human claim a review item and record approval, a change request, or rejection.
+- [x] **FLOW-07 · API** — Keep approved content unpublished while its separate publication-gate item waits; gate approval records its decision and publishes atomically.
+- [x] **FLOW-08 · Rule** — Fence decisions with lease tokens and generations, retry identical completion idempotently, and stop after three failed claims.
+- [x] **FLOW-09 · Rule** — Route requested changes to revision work; require a new immutable version after changes or rejection, and cancel open work for a superseded candidate.
+
+### Feature: Phase 3 — sponsored agent creation
+
+- [x] **FLOW-10 · UI/API** — Let an authenticated sponsor queue a creation brief under an idempotent request key and bounded backlog; reject client-selected machine identity.
+- [x] **FLOW-11 · Rule** — Let the trusted creation worker validate a provider result and atomically create a private sponsored draft, immutable run provenance, and one review item.
+- [x] **FLOW-12 · Rule** — Reject stale machine claims and invalid output without persisting a partial question; agent-origin questions require review even after human revision.
+
+### Feature: Phase 4 — optional agent review, revision, and gate
+
+- [x] **FLOW-13 · Rule** — Snapshot independently configured review, revision, and gate assignments when submitting a version; route a reviewer's own generated version to a human.
+- [x] **FLOW-14 · Rule** — Record machine review/gate decisions with execution provenance; only the shared final-gate service may publish an approved current version.
+- [x] **FLOW-15 · Rule** — Turn an assigned agent revision into a new immutable version and review submission under the prior policy; route revision to a human after the third submission.
+- [x] **FLOW-16 · UI/API** — Let the sponsor hand failed machine review, revision, or gate work to the human queue after retry exhaustion.
+
+## Epic 11 — Question batch ingestion
+
+### Feature: Retain a portable artifact
+
+- [x] **BATCH-01 · UI/API** — Upload and preview one versioned JSON artifact with 1–20 uniquely keyed, gradeable questions, a declared source, and tags; reject invalid or oversized input before retaining it.
+- [x] **BATCH-02 · Rule** — Keep the retained artifact and digest immutable; accept an identical retry for the same sponsor and batch key, but reject changed content for that key.
+- [x] **BATCH-03 · UI/API** — List the author's recent batches and reopen a retained artifact, including its source declaration, digest, and materialization status.
+- [x] **BATCH-04 · API** — Let only the authenticated sponsor read or materialize a batch; derive sponsorship from the verified session rather than the artifact.
+
+### Feature: Create drafts and enter review
+
+- [x] **BATCH-05 · UI/API** — Materialize all batch items in a separate explicit step as private draft questions with resolved author-owned tags; retrying returns the existing mappings.
+- [x] **BATCH-06 · Rule** — Roll back every draft, tag, and item mapping when a later item fails, leaving the retained artifact available for a retry.
+- [x] **BATCH-07 · Rule** — Preserve each artifact key's first question-version mapping after revisions, while showing the question's current version separately.
+- [x] **BATCH-08 · UI/API** — Require explicit submission of an imported current version to review; block direct publication and route a declared external-agent source to human review.
+- [ ] **BATCH-09 · API** — Have a trusted automatic producer emit this batch artifact and enter the same ingestion boundary. The configured creation worker currently uses its separate creation flow.
+
 ## Later work outside v1
 
 These are [explicit future extensions](../architecture-plan.md#13-future-core-work), not missing v1 acceptance criteria. Each would need its own use-case breakdown before implementation or automation.
@@ -201,7 +248,7 @@ These are [explicit future extensions](../architecture-plan.md#13-future-core-wo
 - [ ] **FUTURE-05** — Public creator profiles, community discovery, and social sharing.
 - [ ] **FUTURE-06** — Advanced tags, full-text search, and richer discovery.
 - [ ] **FUTURE-07** — Learning analytics, spaced repetition, and review scheduling.
-- [ ] **FUTURE-08** — Import/export and bulk question or quiz workflows.
+- [ ] **FUTURE-08** — Question export and bulk quiz workflows. Question batch import is covered by Epic 11.
 - [ ] **FUTURE-09** — Stronger RLS if clients access application tables directly.
 
 ## Using this for automation

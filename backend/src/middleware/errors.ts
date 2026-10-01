@@ -14,6 +14,16 @@ function isMalformedJsonError(error: unknown): error is Error & { status: 400 } 
     );
 }
 
+function isPayloadTooLargeError(error: unknown): error is Error & { status: 413 } {
+    return (
+        error instanceof Error &&
+        "status" in error &&
+        error.status === 413 &&
+        "type" in error &&
+        error.type === "entity.too.large"
+    );
+}
+
 export const notFoundHandler: RequestHandler = (request, _response, next) => {
     next(new AppError(404, "NOT_FOUND", `Route ${request.method} ${request.path} was not found`));
 };
@@ -30,6 +40,10 @@ export const errorHandler: ErrorRequestHandler = (error: unknown, request, respo
         appError = error;
     } else if (isMalformedJsonError(error)) {
         appError = new AppError(400, "VALIDATION_ERROR", "Request body must contain valid JSON", {
+            cause: error,
+        });
+    } else if (isPayloadTooLargeError(error)) {
+        appError = new AppError(413, "PAYLOAD_TOO_LARGE", "Request body exceeds 256 KiB", {
             cause: error,
         });
     } else {

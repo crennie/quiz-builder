@@ -78,7 +78,7 @@
         {
             "file": "frontend/src/pages/question-management.test.tsx",
             "name": "creates a question from the shared editor",
-            "ids": ["QB-10"]
+            "ids": ["QB-10", "FLOW-01"]
         },
         {
             "file": "frontend/src/pages/question-management.test.tsx",
@@ -88,7 +88,7 @@
         {
             "file": "frontend/src/pages/question-management.test.tsx",
             "name": "creates an unlisted draft, publishes it, and handles owner lifecycle and tag removal",
-            "ids": ["QB-10", "QB-15", "QB-17", "TAG-03"]
+            "ids": ["QB-10", "QB-15", "QB-17", "TAG-03", "FLOW-02"]
         },
         {
             "file": "frontend/src/pages/quiz-management.test.tsx",
@@ -306,7 +306,19 @@
         {
             "file": "backend/tests/integration/question-bank.database.test.ts",
             "name": "creates immutable versions, preserves history, and keeps metadata separate",
-            "ids": ["QB-03", "QB-10", "QB-15", "QB-16", "QB-17", "QB-18", "CORE-03"]
+            "ids": [
+                "QB-03",
+                "QB-10",
+                "QB-15",
+                "QB-16",
+                "QB-17",
+                "QB-18",
+                "CORE-03",
+                "FLOW-01",
+                "FLOW-02",
+                "FLOW-03",
+                "FLOW-04"
+            ]
         },
         {
             "file": "backend/tests/integration/question-bank.database.test.ts",
@@ -366,7 +378,7 @@
         {
             "file": "backend/tests/integration/quizzes.database.test.ts",
             "name": "checks membership identity and source availability without hiding included content",
-            "ids": ["QUIZ-07", "QUIZ-12", "QUIZ-19", "CORE-03"]
+            "ids": ["QUIZ-07", "QUIZ-12", "QUIZ-19", "CORE-03", "FLOW-03"]
         },
         {
             "file": "backend/tests/integration/quizzes.database.test.ts",
@@ -391,7 +403,8 @@
                 "RESULT-02",
                 "RESULT-03",
                 "RESULT-05",
-                "HIST-01"
+                "HIST-01",
+                "FLOW-03"
             ]
         },
         {
@@ -493,6 +506,144 @@
             "file": "shared/src/index.test.ts",
             "name": "quiz content requires explicit question versions and permits fractional points",
             "ids": ["QUIZ-05", "QUIZ-07", "CORE-01"]
+        },
+        {
+            "file": "shared/src/index.test.ts",
+            "name": "question batches require bounded, uniquely keyed, gradeable entries",
+            "ids": ["BATCH-01"]
+        },
+        {
+            "file": "backend/tests/integration/question-batches.api.test.ts",
+            "name": "requires an authenticated uploader and validates the full batch before ingest",
+            "ids": ["BATCH-01", "BATCH-04"]
+        },
+        {
+            "file": "backend/tests/integration/question-batches.api.test.ts",
+            "name": "passes the authenticated sponsor to reads and materialization",
+            "ids": ["BATCH-04"]
+        },
+        {
+            "file": "backend/tests/integration/question-batches.api.test.ts",
+            "name": "rejects an oversized batch request with a bounded error",
+            "ids": ["BATCH-01"]
+        },
+        {
+            "file": "backend/tests/integration/question-batches.database.test.ts",
+            "name": "retains one immutable batch, creates tagged drafts on a separate idempotent step, and requires review",
+            "ids": [
+                "BATCH-02",
+                "BATCH-03",
+                "BATCH-04",
+                "BATCH-05",
+                "BATCH-07",
+                "BATCH-08",
+                "FLOW-02"
+            ]
+        },
+        {
+            "file": "backend/tests/integration/question-batches.database.test.ts",
+            "name": "rolls back every draft, mapping, and tag when a later batch item fails",
+            "ids": ["BATCH-06"]
+        },
+        {
+            "file": "frontend/src/pages/question-batch-page.test.tsx",
+            "name": "uploads a batch artifact, materializes drafts, then explicitly submits one for review",
+            "ids": ["BATCH-01", "BATCH-05", "BATCH-08", "FLOW-05"]
+        },
+        {
+            "file": "frontend/e2e/question-batches.spec.ts",
+            "name": "imports a two-question artifact as private drafts and queues an explicit review",
+            "ids": ["BATCH-01", "BATCH-03", "BATCH-05", "BATCH-08"]
+        },
+        {
+            "file": "frontend/src/pages/question-management.test.tsx",
+            "name": "lists an owner's draft separately from the published bank",
+            "ids": ["FLOW-01"]
+        },
+        {
+            "file": "backend/tests/integration/content-workflow.database.test.ts",
+            "name": "keeps approved content unpublished until a fenced gate approval",
+            "ids": ["FLOW-05", "FLOW-06", "FLOW-07", "FLOW-08"]
+        },
+        {
+            "file": "backend/tests/integration/content-workflow.database.test.ts",
+            "name": "requires a new version after changes and cancels stale work",
+            "ids": ["FLOW-09"]
+        },
+        {
+            "file": "backend/tests/integration/content-workflow.database.test.ts",
+            "name": "rejects expired claims and closes rejected gates without publication",
+            "ids": ["FLOW-08", "FLOW-09"]
+        },
+        {
+            "file": "backend/tests/integration/content-workflow.database.test.ts",
+            "name": "stops retrying after three failed claims",
+            "ids": ["FLOW-08"]
+        },
+        {
+            "file": "frontend/src/pages/work-queue-page.test.tsx",
+            "name": "claims human review and records a content decision from the queue",
+            "ids": ["FLOW-06"]
+        },
+        {
+            "file": "frontend/src/pages/work-queue-page.test.tsx",
+            "name": "queues a sponsored agent question from the creation page",
+            "ids": ["FLOW-10"]
+        },
+        {
+            "file": "frontend/src/pages/work-queue-page.test.tsx",
+            "name": "offers human handoff for a failed agent review",
+            "ids": ["FLOW-16"]
+        },
+        {
+            "file": "backend/tests/integration/agent-creation.api.test.ts",
+            "name": "requires a verified sponsor and rejects client-selected actor identity",
+            "ids": ["FLOW-10"]
+        },
+        {
+            "file": "backend/tests/integration/agent-creation.database.test.ts",
+            "name": "creates one private agent draft and one human review item atomically",
+            "ids": ["FLOW-02", "FLOW-10", "FLOW-11", "FLOW-12"]
+        },
+        {
+            "file": "backend/tests/integration/agent-creation.database.test.ts",
+            "name": "fences expired claims and keeps failed attempts out of question storage",
+            "ids": ["FLOW-12"]
+        },
+        {
+            "file": "backend/tests/integration/agent-creation.database.test.ts",
+            "name": "limits each sponsor's active creation backlog",
+            "ids": ["FLOW-10"]
+        },
+        {
+            "file": "backend/tests/unit/agent-provider.test.ts",
+            "name": "sends a fixed scoped task and validates the generated question",
+            "ids": ["FLOW-11"]
+        },
+        {
+            "file": "backend/tests/unit/agent-provider.test.ts",
+            "name": "rejects malformed provider output and insecure remote configuration",
+            "ids": ["FLOW-12"]
+        },
+        {
+            "file": "backend/tests/integration/agent-workflow.database.test.ts",
+            "name": "reviews an exact agent version and publishes only through the final gate service",
+            "ids": ["FLOW-13", "FLOW-14"]
+        },
+        {
+            "file": "backend/tests/integration/agent-workflow.database.test.ts",
+            "name": "turns requested changes into an immutable agent revision and a new review",
+            "ids": ["FLOW-15"]
+        },
+        {
+            "file": "backend/tests/integration/agent-workflow.database.test.ts",
+            "name": "routes a reviewer's own generation to a human reviewer",
+            "ids": ["FLOW-13"]
+        },
+        {
+            "file": "backend/tests/integration/agent-workflow.database.test.ts",
+            "name": "lets the sponsor recover a failed agent review as human work",
+            "ids": ["FLOW-16"]
         }
     ]
 }

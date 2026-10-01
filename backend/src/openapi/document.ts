@@ -16,6 +16,9 @@ import {
     questionVersionsResponseSchema,
     publishQuestionBodySchema,
     requestAgentQuestionBodySchema,
+    questionBatchArtifactSchema,
+    questionBatchListSchema,
+    questionBatchSchema,
     submitQuestionReviewBodySchema,
     claimWorkItemBodySchema,
     decideWorkItemBodySchema,
@@ -91,6 +94,7 @@ const commonErrors = {
     401: { description: "A valid access token is required.", content: errorContent },
     404: { description: "Resource not found or not accessible.", content: errorContent },
     409: { description: "Conflicting resource state.", content: errorContent },
+    413: { description: "Request body is too large.", content: errorContent },
     503: { description: "Supabase Auth is unavailable.", content: errorContent },
     500: { description: "An unexpected server error occurred.", content: errorContent },
 };
@@ -287,6 +291,65 @@ registry.registerPath({
 
 const workItemContent = { "application/json": { schema: apiSchema(workItemSchema) } };
 const workItemParamsSchema = z.strictObject({ itemId: z.uuid() });
+const batchParamsSchema = z.strictObject({ batchId: z.uuid() });
+const batchContent = { "application/json": { schema: apiSchema(questionBatchSchema) } };
+registry.registerPath({
+    method: "post",
+    path: "/api/v1/question-batches",
+    tags: ["Workflow"],
+    summary: "Validate and retain a question batch artifact",
+    security: [{ BearerAuth: [] }],
+    request: {
+        body: {
+            content: { "application/json": { schema: apiSchema(questionBatchArtifactSchema) } },
+        },
+    },
+    responses: {
+        201: { description: "Retained batch artifact.", content: batchContent },
+        ...commonErrors,
+    },
+});
+registry.registerPath({
+    method: "get",
+    path: "/api/v1/question-batches",
+    tags: ["Workflow"],
+    summary: "List the sponsor's recent question batches",
+    security: [{ BearerAuth: [] }],
+    responses: {
+        200: {
+            description: "Recent batches.",
+            content: { "application/json": { schema: apiSchema(questionBatchListSchema) } },
+        },
+        ...commonErrors,
+    },
+});
+registry.registerPath({
+    method: "get",
+    path: "/api/v1/question-batches/{batchId}",
+    tags: ["Workflow"],
+    summary: "Get an owned batch artifact and its materialized questions",
+    security: [{ BearerAuth: [] }],
+    request: { params: batchParamsSchema },
+    responses: {
+        200: { description: "Batch and question mappings.", content: batchContent },
+        ...commonErrors,
+    },
+});
+registry.registerPath({
+    method: "post",
+    path: "/api/v1/question-batches/{batchId}/materialize",
+    tags: ["Workflow"],
+    summary: "Create private drafts from a retained batch",
+    security: [{ BearerAuth: [] }],
+    request: {
+        params: batchParamsSchema,
+        body: { content: { "application/json": { schema: z.strictObject({}) } } },
+    },
+    responses: {
+        200: { description: "Batch and created draft mappings.", content: batchContent },
+        ...commonErrors,
+    },
+});
 registry.registerPath({
     method: "post",
     path: "/api/v1/agent-questions",

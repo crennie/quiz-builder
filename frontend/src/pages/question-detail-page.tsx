@@ -163,6 +163,13 @@ export function QuestionDetailPage() {
                         and a final gate decision.
                     </p>
                 ) : null}
+                {current.batchOriginId ? (
+                    <p className="muted small">
+                        Imported from a question batch. Review and a final gate decision are
+                        required before publication.{" "}
+                        <Link to="/questions/batches">View batches</Link>.
+                    </p>
+                ) : null}
             </div>
             {current.isOwner ? (
                 <>
@@ -195,7 +202,7 @@ export function QuestionDetailPage() {
                                 </button>
                             ) : (
                                 <>
-                                    {!current.agentOriginRunId ? (
+                                    {!current.agentOriginRunId && !current.batchOriginId ? (
                                         <button
                                             type="button"
                                             onClick={() => void changeLifecycle("publish")}
@@ -231,9 +238,9 @@ export function QuestionDetailPage() {
                             )}
                         </div>
                         <p className="muted small">
-                            Direct publication is available for your own unsubmitted version.
-                            Submitting it for review sends it through content approval and a final
-                            publication gate. <Link to="/work-items">Open the work queue</Link>.
+                            Submitting a version for review sends it through content approval and a
+                            final publication gate.{" "}
+                            <Link to="/work-items">Open the work queue</Link>.
                         </p>
                     </section>
                     <section className="panel">

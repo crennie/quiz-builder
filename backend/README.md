@@ -49,6 +49,25 @@ draft plus one review item. The sponsor owns the draft; its agent-origin marker 
 direct publication even after a human revision. Review and final publication approval default to human.
 The provider receives no database credential and cannot call a machine completion endpoint.
 
+## Question batch artifacts
+
+The [REST endpoints example](../docs/examples/rest-endpoints-batch.json) is a complete uploadable
+batch. It contains a UUID `batchKey`, topic, declared source, up to 10 tag names, and 1–20 questions
+with stable keys and shared `QuestionVersionContent`. The declared source is attributed to the
+uploader; it is not a verified agent run. Change `batchKey` when creating a different batch.
+
+`POST /api/v1/question-batches` validates and retains the entire JSON artifact without creating
+questions. The `(sponsor, batchKey)` pair is idempotent; a changed artifact with the same key is a
+conflict. `GET /api/v1/question-batches` lists recent owned batches and
+`GET /api/v1/question-batches/:batchId` returns the saved document and key mappings.
+`POST /api/v1/question-batches/:batchId/materialize` with `{}` atomically creates all private
+drafts, resolves or creates the sponsor's tags, and records stable keys and first version IDs. A
+retry returns the same drafts. The materialized drafts remain unsubmitted until the sponsor sends
+each exact version through `POST /api/v1/questions/:questionId/review-submissions` or uses the
+question screen. Direct publication of imported questions is forbidden, even after revision.
+Review and publication then use the existing work queue. No provider or content worker is needed
+for this file ingestion path.
+
 ## Optional agent review, revision, and gate
 
 Set `CONTENT_AGENT_REVIEW=true`, `CONTENT_AGENT_REVISION=true`, or `CONTENT_AGENT_GATE=true` on

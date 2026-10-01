@@ -9,6 +9,7 @@
     },
     "scripts": {
         "build": "tsc --project tsconfig.build.json && node dist/openapi/write-document.js",
+        "check:batch-bank": "node --env-file-if-exists=.env.local scripts/check-batch-bank.js",
         "db:check": "node --env-file-if-exists=.env.local src/db/check-connection.ts",
         "dev": "node --env-file-if-exists=.env.local --watch src/server.ts",
         "worker:content": "node --env-file-if-exists=.env.local src/agent/worker.ts",

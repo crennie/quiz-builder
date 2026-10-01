@@ -62,6 +62,9 @@ hosted database and is a separate approved step. If the hosted project already h
 schema, reconcile it with `db pull` before pushing. Do not use `db reset --linked` for this workflow.
 When the local stack is unavailable, run `npm run db:types -- --linked` from the authenticated CLI
 environment after the hosted migration is applied. This generates types from the hosted schema.
+With a configured database URL in ignored `backend/.env.local`, use
+`node --env-file-if-exists=backend/.env.local scripts/generate-db-types.mjs --db-url` instead of a
+linked CLI project. The generator trims trailing whitespace from CLI output before writing types.
 Run `npx supabase db query --linked --file scripts/check-hosted-schema.sql` for a read-only hosted
 check of tables, key constraints, immutability triggers, and RLS. Every result column should be
 `true`.

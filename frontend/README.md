@@ -23,6 +23,12 @@ Run the backend separately from `backend/` with `npm run dev`. During frontend d
 to `/api/*` are proxied to `http://localhost:3000`. The `/api/health` client call maps to the
 unversioned backend `/health` endpoint; `/api/v1/*` paths retain their prefix.
 
+Browser tests use the local Supabase stack by default. For an isolated, disposable project already
+configured in both applications' ignored `.env.local` files, run
+`E2E_USE_APP_ENV=true npm run test:e2e`. This mode creates test users and content in that project;
+apply the current migrations there before running it. The backend reads `backend/.env.local`, and
+Vite reads `frontend/.env.local`.
+
 ## Architecture decisions
 
 The [Architecture & Implementation Plan](../architecture-plan.md) defines the target architecture.

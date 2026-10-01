@@ -1,6 +1,6 @@
 # Question bank seeding epic
 
-**Status:** In progress · **Started:** 2026-10-01 · **Current phase:** 0 — prove the import-to-publication path
+**Status:** In progress · **Started:** 2026-10-01 · **Current phase:** 2 — pilot REST endpoints
 
 ## Goal and working boundaries
 
@@ -13,22 +13,22 @@ The [batch ingestion flow](../architecture/dynamic/ingest-question-batch.md) acc
 ### Phase 0 — prove the path
 
 - [x] **SEED-00** Run the Supabase schema tests and generated database-type drift check against a migrated test database. Record the result.
-- [ ] **SEED-01** Run the live PostgreSQL backend tests and the browser batch scenario through review, final gate, and question-bank discovery. Record each result separately.
-- [ ] **SEED-02** Confirm that the phase can be repeated in the intended environment before importing real content. Do not count Docker-free tests as live-path evidence.
+- [x] **SEED-01** Run an imported test batch through review and final gate, then verify the published version through the bank list, detail, published-versions, and tag-filter API endpoints against the configured test database. Confirm an unsubmitted draft stays hidden.
+- [x] **SEED-02** Provide a repeatable read-only API check for materialized batches against that database. Keep browser and local-only PostgreSQL test results recorded separately.
 
-**Exit:** One imported test question can be traced from retained artifact to private draft, exact-version review, gate approval, and published bank entry; schema and live checks pass.
+**Exit:** One imported test question can be traced from retained artifact to private draft, exact-version review, gate approval, and public bank API entry; schema and live API checks pass. **Completed 2026-10-01.**
 
-### Phase 1 — choose coverage and a review rubric
+### Phase 1 — plan the REST endpoints pilot
 
-- [ ] **SEED-10** Define a first set of six technical topics with ten questions per topic and explicit learning objectives. Choose a mix of introductory, intermediate, and advanced questions rather than ten variants of one fact.
-- [ ] **SEED-11** Agree on a review rubric: correct answer, unambiguous wording, plausible distractors, useful explanation, stable technical claim, and no near-duplicate in the planned set or bank.
-- [ ] **SEED-12** Keep a production ledger outside the immutable artifact for learning objective, fact-checking reference, batch key, item key, question ID, version, and review outcome. The current artifact has no reference or per-question objective field.
+- [x] **SEED-10** Define ten distinct REST endpoints learning objectives across introductory, intermediate, and advanced levels for the first batch. Choose the other five technical topics after reviewing the pilot.
+- [x] **SEED-11** Agree on the [review rubric](rest-endpoints-pilot.md#agreed-review-rubric): correct answer, unambiguous wording, plausible distractors, useful explanation, stable technical claim, and no near-duplicate in the planned set or bank.
+- [x] **SEED-12** Keep a [production ledger](rest-endpoints-pilot.md#coverage-and-tracking) outside the immutable artifact for learning objective, fact-checking reference, batch key, item key, question ID, version, and review outcome. The current artifact has no reference or per-question objective field.
 
-**Exit:** Every planned question has a learning objective and a reviewer can apply the rubric consistently.
+**Exit:** Each pilot question has a learning objective and a reviewer can apply the agreed rubric consistently. **Completed 2026-10-01.**
 
 ### Phase 2 — pilot one topic
 
-- [ ] **SEED-20** Prepare one ten-question JSON batch from the [REST example](../examples/rest-endpoints-batch.json), with stable item keys and a new UUID batch key. Start with single-choice questions and meaningful explanations; check every answer against a reference.
+- [x] **SEED-20** Prepare one [ten-question JSON batch](../examples/rest-endpoints-pilot-batch.json) from the [REST example](../examples/rest-endpoints-batch.json), with stable item keys and a new UUID batch key. Use single-choice questions and meaningful explanations; check every answer against a reference.
 - [ ] **SEED-21** Validate and preview the artifact, retain it, then materialize its private drafts. Resolve any content problems through new question versions while preserving the batch's original mappings.
 - [ ] **SEED-22** Submit each current version, complete human content review and the final gate, and verify accepted versions in the bank. Record revisions, rejections, and time spent.
 
@@ -36,7 +36,7 @@ The [batch ingestion flow](../architecture/dynamic/ingest-question-batch.md) acc
 
 ### Phase 3 — expand by topic
 
-- [ ] **SEED-30** Produce the remaining five topic batches, at most 20 questions per artifact, using the pilot rubric and stable keys. Inspect each batch before materialization.
+- [ ] **SEED-30** Select the remaining five technical topics and produce one ten-question batch per topic, at most 20 questions per artifact, using the pilot rubric and stable keys. Inspect each batch before materialization.
 - [ ] **SEED-31** Track drafted, submitted, approved, and published counts by topic and difficulty; record reasons for changes requested or rejection and check duplicates across batches.
 - [ ] **SEED-32** Assemble one small topic quiz from published question versions for each completed topic. Quiz assembly is currently manual.
 
@@ -67,10 +67,12 @@ Use published questions by topic and difficulty as the coverage measure. Track a
 | Local Supabase SQL tests and generated-type drift check       | Not run: no Docker-compatible executable is installed.                                                |
 | Live PostgreSQL backend tests and Playwright browser scenario | Not run: there is no local database URL or Supabase stack.                                            |
 
-**Next gate:** In a Docker-enabled environment, run the repository's CI-equivalent local Supabase schema test, generated-type comparison, backend tests with `TEST_DATABASE_URL`, and Playwright workflow. Review any generated-type difference before accepting it. Keep Phase 0 open until the live batch scenario reaches a published bank entry.
+**Next gate at that time:** In a Docker-enabled environment, run the repository's CI-equivalent local Supabase schema test, generated-type comparison, backend tests with `TEST_DATABASE_URL`, and Playwright workflow. Review any generated-type difference before accepting it.
 
 **Follow-up after connection setup (2026-10-01):** Both ignored `.env.local` files are present. The backend's read-only `npm run db:check` connects to the configured remote database. A read-only run of `scripts/check-hosted-schema.sql` reports that the expected agent and batch tables, constraints, immutable triggers, and full RLS set are not yet present. The migration history contains only `20260928174208` and `20260930120000`; four migrations remain. The database currently contains two questions, one quiz, and one attempt. No hosted migration or browser test was run, because each would write to this remote project. Local checks passed again: six PGlite migrations, 90 backend tests with three live PostgreSQL tests skipped, 49 frontend tests, both application builds, OpenAPI check, and Playwright discovery of the batch scenario. The live PostgreSQL tests require a local `quiz_builder_test` database, and this workspace still has no Docker-compatible runtime.
 
 **Approved disposable-project run (2026-10-01):** The Supabase CLI dry run identified exactly the four pending migrations; applying them succeeded. A read-only follow-up reports all six migration versions and every flag in `scripts/check-hosted-schema.sql` as true. The original two questions, one quiz, and one attempt remained present. The eight pgTAP assertions in `supabase/tests/database/schema.test.sql` passed against this database using `pg`, because `supabase test db --db-url` still required Docker. Supabase type generation from the configured database was reviewed, saved to `shared/src/database.types.ts`, and reproduced with only trailing whitespace normalization. Shared, backend, and frontend typechecks pass.
 
-A live backend-service check retained a new two-question batch, materialized both private drafts, bound review to the first immutable version, approved human review and the final gate, and found exactly that version in the owner's bank while the second remained a draft. This test data remains in the disposable project; the final read-only audit shows one batch, two batch items, one review decision, and one gate decision. The Playwright scenario started its app servers but Chromium could not launch: the container lacks `libglib-2.0.so.0`. Hosted Auth also rejected sign-up probes using the scenario's `example.test` domain and `example.com` with `email_address_invalid`. The browser run and the three dedicated local-only PostgreSQL transaction tests therefore remain open; Phase 0 has not met its browser exit gate.
+A live backend-service check retained a new two-question batch, materialized both private drafts, bound review to the first immutable version, approved human review and the final gate, and found exactly that version in the owner's bank while the second remained a draft. This test data remains in the disposable project; the final read-only audit shows one batch, two batch items, one review decision, and one gate decision. The Playwright scenario started its app servers but Chromium could not launch: the container lacks `libglib-2.0.so.0`. Hosted Auth also rejected sign-up probes using the scenario's `example.test` domain and `example.com` with `email_address_invalid`. The browser run and three dedicated local-only PostgreSQL transaction tests remain separate infrastructure checks.
+
+**API discovery check (2026-10-01):** Set the published test question to public visibility in the disposable test project, then called the Express HTTP routes with `supertest` while the app used the configured remote PostgreSQL database. The anonymous bank list, question detail, published-versions endpoint, and tag-filtered list returned the exact published version. The second mapped question remained absent from the list and returned 404 from the detail endpoint. The read-only `npm run check:batch-bank` command in `backend/` repeated these checks successfully: two mapped questions, one public published, one hidden. It checks the latest batch by default; pass a batch UUID after `--` to check a specific batch. This exercises the backend routes and real test database without a browser or long-running server.

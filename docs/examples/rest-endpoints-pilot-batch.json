@@ -1,0 +1,241 @@
+{
+    "schemaVersion": 1,
+    "batchKey": "95b4adb5-cc82-48fd-93d6-e2ca0e251040",
+    "topic": "REST endpoints",
+    "source": {
+        "kind": "external_agent",
+        "label": "AI-assisted REST endpoints pilot draft"
+    },
+    "tags": ["Technical", "Backend", "REST APIs"],
+    "questions": [
+        {
+            "key": "rest-01",
+            "content": {
+                "prompt": "An API identifies an existing order as /orders/42. A client wants that order's current representation without changing it. Which request targets the right resource with the right method?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        { "id": "a", "text": "POST /orders/42" },
+                        { "id": "b", "text": "GET /orders/42" },
+                        { "id": "c", "text": "PUT /orders/42" },
+                        { "id": "d", "text": "GET /orders" }
+                    ],
+                    "correctOptionId": "b"
+                },
+                "gradingConfig": { "questionType": "multiple_choice_single" },
+                "explanation": "GET requests a representation of its target resource, and /orders/42 identifies the individual order. GET /orders targets the collection; POST and PUT have different method semantics."
+            }
+        },
+        {
+            "key": "rest-02",
+            "content": {
+                "prompt": "POST /orders has finished creating a new order at /orders/42. Which response most directly tells the client that creation succeeded and where the new resource is?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        { "id": "a", "text": "201 Created with Location: /orders/42" },
+                        { "id": "b", "text": "202 Accepted with Retry-After: 10" },
+                        { "id": "c", "text": "204 No Content without a Location field" },
+                        { "id": "d", "text": "200 OK without a Location field" }
+                    ],
+                    "correctOptionId": "a"
+                },
+                "gradingConfig": { "questionType": "multiple_choice_single" },
+                "explanation": "201 Created reports completed creation, and Location identifies the primary new resource. 202 means processing has been accepted but might not be complete; 204 does not identify the resource."
+            }
+        },
+        {
+            "key": "rest-03",
+            "content": {
+                "prompt": "A client sends the same PUT /profiles/7 request twice because the connection closes before it receives the first response. Which statement matches HTTP method semantics?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "PUT stops being idempotent if the server logs both requests."
+                        },
+                        { "id": "b", "text": "PUT is safe, so it cannot change the profile." },
+                        {
+                            "id": "c",
+                            "text": "PUT is idempotent in its intended effect, even if the server records each request in a log."
+                        },
+                        {
+                            "id": "d",
+                            "text": "POST and PUT are both guaranteed idempotent by their method definitions."
+                        }
+                    ],
+                    "correctOptionId": "c"
+                },
+                "gradingConfig": { "questionType": "multiple_choice_single" },
+                "explanation": "Idempotency concerns the intended effect of repeated identical requests. PUT is idempotent but not safe because it can change the target resource. Separate logging does not change that method property; POST is not defined as idempotent."
+            }
+        },
+        {
+            "key": "rest-04",
+            "content": {
+                "prompt": "An origin server understands DELETE, but /orders/42 allows only GET and HEAD. Which response meets HTTP requirements for this request?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        { "id": "a", "text": "404 Not Found with Allow: GET, HEAD" },
+                        { "id": "b", "text": "405 Method Not Allowed without an Allow field" },
+                        { "id": "c", "text": "501 Not Implemented with Allow: GET, HEAD" },
+                        { "id": "d", "text": "405 Method Not Allowed with Allow: GET, HEAD" }
+                    ],
+                    "correctOptionId": "d"
+                },
+                "gradingConfig": { "questionType": "multiple_choice_single" },
+                "explanation": "405 applies when the method is understood but is not allowed for the target resource. An origin server must include Allow in a 405 response to list the resource's supported methods; 501 concerns an unrecognized or unimplemented method."
+            }
+        },
+        {
+            "key": "rest-05",
+            "content": {
+                "prompt": "An API requires authentication to read /orders/42. Which design follows REST's stateless interaction constraint?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "The server identifies the client solely from an earlier request, with no relevant context in the current request."
+                        },
+                        {
+                            "id": "b",
+                            "text": "Each request carries the information needed to understand and authorize it; the server may still store order resources."
+                        },
+                        {
+                            "id": "c",
+                            "text": "The server must discard the order resource after every request."
+                        },
+                        { "id": "d", "text": "Every request must create a new order resource." }
+                    ],
+                    "correctOptionId": "b"
+                },
+                "gradingConfig": { "questionType": "multiple_choice_single" },
+                "explanation": "REST statelessness means each interaction carries the context needed to understand it without relying on a previous interaction. It does not prohibit the server from storing resource state such as orders."
+            }
+        },
+        {
+            "key": "rest-06",
+            "content": {
+                "prompt": "A client wants to change only displayName on /profiles/7 while keeping its other fields. The API supports a partial-change document. Which request best expresses that intent?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "PATCH /profiles/7 with a document describing the displayName change"
+                        },
+                        {
+                            "id": "b",
+                            "text": "PUT /profiles/7 with only displayName as a replacement representation"
+                        },
+                        {
+                            "id": "c",
+                            "text": "GET /profiles/7 with a body describing the displayName change"
+                        },
+                        { "id": "d", "text": "DELETE /profiles/7 followed by GET /profiles/7" }
+                    ],
+                    "correctOptionId": "a"
+                },
+                "gradingConfig": { "questionType": "multiple_choice_single" },
+                "explanation": "PATCH applies a set of changes described by a patch document. PUT asks to replace the target resource's state with the supplied representation, so a partial body does not express the stated intent."
+            }
+        },
+        {
+            "key": "rest-07",
+            "content": {
+                "prompt": "A client sends a JSON request body to POST /orders and can accept a JSON response. Which request fields communicate those two facts?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        { "id": "a", "text": "Content-Type: application/json only" },
+                        { "id": "b", "text": "Accept: application/json only" },
+                        {
+                            "id": "c",
+                            "text": "Content-Type: application/json and Accept: application/json"
+                        },
+                        {
+                            "id": "d",
+                            "text": "Content-Type: text/plain and Accept: application/json"
+                        }
+                    ],
+                    "correctOptionId": "c"
+                },
+                "gradingConfig": { "questionType": "multiple_choice_single" },
+                "explanation": "Content-Type identifies the media type of the request content, while Accept states which response media types the client can accept. Either field alone leaves one of those facts unspecified; text/plain would misdescribe the JSON request body."
+            }
+        },
+        {
+            "key": "rest-08",
+            "content": {
+                "prompt": "GET /orders/42 previously returned ETag: \"v7\". The client sends another GET with If-None-Match: \"v7\", and that tag still matches the selected representation. What response indicates that the cached representation can be reused?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        { "id": "a", "text": "200 OK with the full representation" },
+                        { "id": "b", "text": "412 Precondition Failed" },
+                        { "id": "c", "text": "204 No Content" },
+                        { "id": "d", "text": "304 Not Modified" }
+                    ],
+                    "correctOptionId": "d"
+                },
+                "gradingConfig": { "questionType": "multiple_choice_single" },
+                "explanation": "For GET, a matching If-None-Match condition leads to 304 Not Modified, allowing the client to reuse its stored representation. 412 is the failed-condition response for methods other than GET or HEAD."
+            }
+        },
+        {
+            "key": "rest-09",
+            "content": {
+                "prompt": "A client read /orders/42 with ETag: \"v7\". The server now has a different representation with ETag: \"v8\". The client sends PUT /orders/42 with If-Match: \"v7\"; this update has not already succeeded. What should the origin server do?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        { "id": "a", "text": "Return 409 Conflict without applying the update." },
+                        {
+                            "id": "b",
+                            "text": "Return 412 Precondition Failed without applying the update."
+                        },
+                        {
+                            "id": "c",
+                            "text": "Return 200 OK and overwrite the newer representation."
+                        },
+                        { "id": "d", "text": "Return 201 Created and create a second order." }
+                    ],
+                    "correctOptionId": "b"
+                },
+                "gradingConfig": { "questionType": "multiple_choice_single" },
+                "explanation": "If-Match protects an update from using a stale representation. Because \"v7\" no longer matches the current tag and the update has not already succeeded, the precondition fails with 412; the server must not apply this PUT. 304 is for cache validation of GET or HEAD."
+            }
+        },
+        {
+            "key": "rest-10",
+            "content": {
+                "prompt": "A GET response contains sensitive account data that the origin server does not want any cache to store. Which response Cache-Control directive expresses that requirement?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        { "id": "a", "text": "no-cache" },
+                        { "id": "b", "text": "max-age=600" },
+                        { "id": "c", "text": "no-store" },
+                        { "id": "d", "text": "private" }
+                    ],
+                    "correctOptionId": "c"
+                },
+                "gradingConfig": { "questionType": "multiple_choice_single" },
+                "explanation": "Response no-store tells caches not to store this response. max-age=600 gives a freshness lifetime; no-cache permits storage but requires validation before reuse, and private can still be stored by a private cache."
+            }
+        }
+    ]
+}

@@ -16,7 +16,13 @@ USER root
 # /usr/local. Merge that runtime into the existing Codex agent image.
 COPY --from=node-runtime /usr/local/ /usr/local/
 
-RUN node --version \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        git \
+    && rm -rf /var/lib/apt/lists/* \
+    && node --version \
     && npm --version
 
 USER vscode

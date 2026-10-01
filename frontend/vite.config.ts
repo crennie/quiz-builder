@@ -4,6 +4,7 @@ import { configDefaults, defineConfig } from "vitest/config";
 export default defineConfig({
     plugins: [react()],
     server: {
+        host: "0.0.0.0", // needed for devcontainer port forwarding
         port: 5173,
         proxy: {
             "/api": {

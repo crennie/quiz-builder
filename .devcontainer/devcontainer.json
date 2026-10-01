@@ -9,5 +9,16 @@
     }
   },
 
+  "containerEnv": {
+    "SUPABASE_SERVICES_HOSTNAME": "host.docker.internal"
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+      "moby": false
+    }
+  },
+
+  "forwardPorts": [3000, 5173],
+
   "remoteUser": "vscode"
 }

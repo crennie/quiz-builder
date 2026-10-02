@@ -1,0 +1,342 @@
+{
+    "schemaVersion": 1,
+    "batchKey": "0dc768bd-e845-456b-81d1-d8d77f9fe392",
+    "topic": "Modern JavaScript",
+    "source": {
+        "kind": "external_agent",
+        "label": "AI-assisted Modern JavaScript draft"
+    },
+    "tags": ["Technical", "Frontend", "JavaScript"],
+    "questions": [
+        {
+            "key": "js-01",
+            "content": {
+                "prompt": "After const settings = {theme: 'light'}, which operation is allowed in ordinary JavaScript?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "Reassign settings to a different object"
+                        },
+                        {
+                            "id": "b",
+                            "text": "Change settings.theme to 'dark'"
+                        },
+                        {
+                            "id": "c",
+                            "text": "Redeclare const settings in the same scope"
+                        },
+                        {
+                            "id": "d",
+                            "text": "Assign settings = null"
+                        }
+                    ],
+                    "correctOptionId": "b"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "const prevents reassignment of the binding, but it does not freeze the object. Changing a property of that object is allowed."
+            }
+        },
+        {
+            "key": "js-02",
+            "content": {
+                "prompt": "What is the value of user?.profile?.name when user is null?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "null"
+                        },
+                        {
+                            "id": "b",
+                            "text": "An exception"
+                        },
+                        {
+                            "id": "c",
+                            "text": "undefined"
+                        },
+                        {
+                            "id": "d",
+                            "text": "The string 'name'"
+                        }
+                    ],
+                    "correctOptionId": "c"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "Optional chaining stops when its base is null or undefined and evaluates to undefined instead of attempting the property access."
+            }
+        },
+        {
+            "key": "js-03",
+            "content": {
+                "prompt": "If count is 0, what are count ?? 10 and count || 10, respectively?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "10 and 10"
+                        },
+                        {
+                            "id": "b",
+                            "text": "0 and 0"
+                        },
+                        {
+                            "id": "c",
+                            "text": "10 and 0"
+                        },
+                        {
+                            "id": "d",
+                            "text": "0 and 10"
+                        }
+                    ],
+                    "correctOptionId": "d"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "The ?? operator substitutes only for null or undefined, so 0 remains 0. Logical OR uses truthiness, so 0 selects the fallback 10."
+            }
+        },
+        {
+            "key": "js-04",
+            "content": {
+                "prompt": "What is x after const {x = 5} = {x: null}?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "null"
+                        },
+                        {
+                            "id": "b",
+                            "text": "5"
+                        },
+                        {
+                            "id": "c",
+                            "text": "undefined"
+                        },
+                        {
+                            "id": "d",
+                            "text": "A TypeError"
+                        }
+                    ],
+                    "correctOptionId": "a"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "A destructuring default is used when the property value is undefined. The explicit null value is retained."
+            }
+        },
+        {
+            "key": "js-05",
+            "content": {
+                "prompt": "One input promise rejects while another is still pending. What happens to the promise returned by Promise.all?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "It waits for every input to fulfill"
+                        },
+                        {
+                            "id": "b",
+                            "text": "It fulfills with the successful values only"
+                        },
+                        {
+                            "id": "c",
+                            "text": "It rejects with the rejection reason, without automatically canceling the other input"
+                        },
+                        {
+                            "id": "d",
+                            "text": "It turns the rejection into undefined"
+                        }
+                    ],
+                    "correctOptionId": "c"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "Promise.all rejects when an input rejects. This does not itself cancel other promises that were already started."
+            }
+        },
+        {
+            "key": "js-06",
+            "content": {
+                "prompt": "What does calling async function answer() { return 7; } produce?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "The number 7 directly"
+                        },
+                        {
+                            "id": "b",
+                            "text": "A promise fulfilled with 7"
+                        },
+                        {
+                            "id": "c",
+                            "text": "A generator iterator"
+                        },
+                        {
+                            "id": "d",
+                            "text": "A pending promise that can never settle"
+                        }
+                    ],
+                    "correctOptionId": "b"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "An async function call returns a promise; returning 7 fulfills that promise with 7."
+            }
+        },
+        {
+            "key": "js-07",
+            "content": {
+                "prompt": "Given const a = [3, 1]; const b = a.toSorted((x, y) => x - y), what are a and b?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "a is [1, 3]; b is [1, 3]"
+                        },
+                        {
+                            "id": "b",
+                            "text": "a is [3, 1]; b is [3, 1]"
+                        },
+                        {
+                            "id": "c",
+                            "text": "a is [1, 3]; b is [3, 1]"
+                        },
+                        {
+                            "id": "d",
+                            "text": "a is [3, 1]; b is [1, 3]"
+                        }
+                    ],
+                    "correctOptionId": "d"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "toSorted returns a sorted copy rather than sorting the original array in place. The numeric comparator puts 1 before 3 in b."
+            }
+        },
+        {
+            "key": "js-08",
+            "content": {
+                "prompt": "const child = Object.create({role: 'reader'}). Which expression reports false for the inherited role property?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "Object.hasOwn(child, 'role')"
+                        },
+                        {
+                            "id": "b",
+                            "text": "'role' in child"
+                        },
+                        {
+                            "id": "c",
+                            "text": "child.role === 'reader'"
+                        },
+                        {
+                            "id": "d",
+                            "text": "Reflect.has(child, 'role')"
+                        }
+                    ],
+                    "correctOptionId": "a"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "Object.hasOwn checks only the object's own properties. The in operator, property access, and Reflect.has can see the inherited role."
+            }
+        },
+        {
+            "key": "js-09",
+            "content": {
+                "prompt": "A Map receives set({}, 'first') and then set({}, 'second'). What is its size?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "0"
+                        },
+                        {
+                            "id": "b",
+                            "text": "1"
+                        },
+                        {
+                            "id": "c",
+                            "text": "2"
+                        },
+                        {
+                            "id": "d",
+                            "text": "It throws because objects cannot be keys"
+                        }
+                    ],
+                    "correctOptionId": "c"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "Each object literal creates a distinct object identity. Map treats those two objects as different keys, so it has two entries."
+            }
+        },
+        {
+            "key": "js-10",
+            "content": {
+                "prompt": "A module exports let count = 0 and a function increment() that runs count++. Another module imports both and calls increment(). What value does it read from the imported count binding afterward?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "0, because imports copy primitive values"
+                        },
+                        {
+                            "id": "b",
+                            "text": "1, because the imported binding reflects the exporter's update"
+                        },
+                        {
+                            "id": "c",
+                            "text": "undefined, because let cannot be exported"
+                        },
+                        {
+                            "id": "d",
+                            "text": "A promise fulfilled with 1"
+                        }
+                    ],
+                    "correctOptionId": "b"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "ECMAScript imports are live bindings to exported values. After increment updates the exporter's count, reading the imported binding gives 1."
+            }
+        }
+    ]
+}

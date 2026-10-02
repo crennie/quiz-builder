@@ -1,0 +1,342 @@
+{
+    "schemaVersion": 1,
+    "batchKey": "17b3c600-8d6c-4610-b771-26aecb746403",
+    "topic": "Music theory: diatonic",
+    "source": {
+        "kind": "external_agent",
+        "label": "AI-assisted Music theory: diatonic draft"
+    },
+    "tags": ["Music Theory", "Diatonic Harmony"],
+    "questions": [
+        {
+            "key": "music-01",
+            "content": {
+                "prompt": "Which sequence of whole steps (W) and half steps (H) builds a major scale from its tonic?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "W-H-W-W-H-W-W"
+                        },
+                        {
+                            "id": "b",
+                            "text": "W-W-H-W-W-W-H"
+                        },
+                        {
+                            "id": "c",
+                            "text": "H-W-W-H-W-W-W"
+                        },
+                        {
+                            "id": "d",
+                            "text": "W-W-W-H-W-H-W"
+                        }
+                    ],
+                    "correctOptionId": "b"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "A major scale follows W-W-H-W-W-W-H. For C major, that produces C-D-E-F-G-A-B-C."
+            }
+        },
+        {
+            "key": "music-02",
+            "content": {
+                "prompt": "Which two sharps are in the key signature of D major?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "F-sharp and G-sharp"
+                        },
+                        {
+                            "id": "b",
+                            "text": "B-flat and E-flat"
+                        },
+                        {
+                            "id": "c",
+                            "text": "C-sharp and G-sharp"
+                        },
+                        {
+                            "id": "d",
+                            "text": "F-sharp and C-sharp"
+                        }
+                    ],
+                    "correctOptionId": "d"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "D major has F-sharp and C-sharp, yielding D-E-F-sharp-G-A-B-C-sharp-D."
+            }
+        },
+        {
+            "key": "music-03",
+            "content": {
+                "prompt": "Which natural minor key shares C major's key signature of no sharps or flats?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "A minor"
+                        },
+                        {
+                            "id": "b",
+                            "text": "C minor"
+                        },
+                        {
+                            "id": "c",
+                            "text": "E minor"
+                        },
+                        {
+                            "id": "d",
+                            "text": "G minor"
+                        }
+                    ],
+                    "correctOptionId": "a"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "A natural minor uses the same notes and key signature as C major, starting on A. It is C major's relative minor."
+            }
+        },
+        {
+            "key": "music-04",
+            "content": {
+                "prompt": "In C major, which note is scale degree 7, a half step below tonic C?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "A"
+                        },
+                        {
+                            "id": "b",
+                            "text": "F"
+                        },
+                        {
+                            "id": "c",
+                            "text": "B"
+                        },
+                        {
+                            "id": "d",
+                            "text": "D"
+                        }
+                    ],
+                    "correctOptionId": "c"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "B is the seventh scale degree of C major and lies a half step below C, making it the leading tone."
+            }
+        },
+        {
+            "key": "music-05",
+            "content": {
+                "prompt": "Stack diatonic thirds above D in C major. Which notes and Roman numeral describe the resulting triad?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "D-F-sharp-A, II"
+                        },
+                        {
+                            "id": "b",
+                            "text": "D-F-A, ii"
+                        },
+                        {
+                            "id": "c",
+                            "text": "D-G-B, IV"
+                        },
+                        {
+                            "id": "d",
+                            "text": "D-F-A-flat, ii diminished"
+                        }
+                    ],
+                    "correctOptionId": "b"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "The notes D-F-A form a minor triad on scale degree 2 in C major, labeled ii. F-sharp and A-flat are outside C major's diatonic collection."
+            }
+        },
+        {
+            "key": "music-06",
+            "content": {
+                "prompt": "In C major, which diatonic triad is labeled V?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "F-A-C"
+                        },
+                        {
+                            "id": "b",
+                            "text": "E-G-B"
+                        },
+                        {
+                            "id": "c",
+                            "text": "G-B-D"
+                        },
+                        {
+                            "id": "d",
+                            "text": "A-C-E"
+                        }
+                    ],
+                    "correctOptionId": "c"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "Scale degree 5 is G; stacking thirds within C major gives G-B-D, a major dominant triad labeled V."
+            }
+        },
+        {
+            "key": "music-07",
+            "content": {
+                "prompt": "Using only notes of A natural minor, what is the triad on scale degree 5?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "E-G-B, a minor v chord"
+                        },
+                        {
+                            "id": "b",
+                            "text": "E-G-sharp-B, a major V chord"
+                        },
+                        {
+                            "id": "c",
+                            "text": "E-A-C, a minor iv chord"
+                        },
+                        {
+                            "id": "d",
+                            "text": "G-B-D, a major VII chord"
+                        }
+                    ],
+                    "correctOptionId": "a"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "A natural minor contains G natural, so E-G-B is a minor v triad. Raising G to G-sharp makes a major V but introduces a chromatic alteration."
+            }
+        },
+        {
+            "key": "music-08",
+            "content": {
+                "prompt": "Which notes form V7 in C major?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "G-B-D-F-sharp"
+                        },
+                        {
+                            "id": "b",
+                            "text": "G-B-flat-D-F"
+                        },
+                        {
+                            "id": "c",
+                            "text": "C-E-G-B"
+                        },
+                        {
+                            "id": "d",
+                            "text": "G-B-D-F"
+                        }
+                    ],
+                    "correctOptionId": "d"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "Stacking diatonic thirds on G in C major gives G-B-D-F, the dominant seventh chord V7. F-sharp and B-flat are outside the key."
+            }
+        },
+        {
+            "key": "music-09",
+            "content": {
+                "prompt": "In C major, B-D-F-A forms which diatonic seventh chord?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "V7, dominant seventh"
+                        },
+                        {
+                            "id": "b",
+                            "text": "vii half-diminished seventh"
+                        },
+                        {
+                            "id": "c",
+                            "text": "I major seventh"
+                        },
+                        {
+                            "id": "d",
+                            "text": "ii minor seventh"
+                        }
+                    ],
+                    "correctOptionId": "b"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "B-D-F is a diminished triad, and adding A makes a half-diminished seventh chord on scale degree 7, conventionally viiø7."
+            }
+        },
+        {
+            "key": "music-10",
+            "content": {
+                "prompt": "At the end of a phrase in C major, which root-position chord progression can form an authentic cadence?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "F major to G major (IV-V)"
+                        },
+                        {
+                            "id": "b",
+                            "text": "C major to A minor (I-vi)"
+                        },
+                        {
+                            "id": "c",
+                            "text": "G major to C major (V-I)"
+                        },
+                        {
+                            "id": "d",
+                            "text": "D minor to G major (ii-V)"
+                        }
+                    ],
+                    "correctOptionId": "c"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "An authentic cadence ends with dominant harmony resolving to tonic. In C major, root-position G major to C major is V-I; the exact cadence subtype also depends on voicing and melody."
+            }
+        }
+    ]
+}

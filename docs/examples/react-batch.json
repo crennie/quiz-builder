@@ -1,0 +1,342 @@
+{
+    "schemaVersion": 1,
+    "batchKey": "a5c2e768-cbea-4fc1-8d1b-1c6fbdc9eee8",
+    "topic": "React",
+    "source": {
+        "kind": "external_agent",
+        "label": "AI-assisted React draft"
+    },
+    "tags": ["Technical", "Frontend", "React"],
+    "questions": [
+        {
+            "key": "react-01",
+            "content": {
+                "prompt": "A React list can be reordered. Each item has a persistent database ID. Which key best preserves each item's identity across reordering?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "Its current array index"
+                        },
+                        {
+                            "id": "b",
+                            "text": "A new random value on each render"
+                        },
+                        {
+                            "id": "c",
+                            "text": "Its persistent database ID"
+                        },
+                        {
+                            "id": "d",
+                            "text": "The same fixed string for every item"
+                        }
+                    ],
+                    "correctOptionId": "c"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "A stable ID lets React match the same item between renders. Index keys can attach state to the wrong item after reordering, while changing or duplicate keys do not provide stable identity."
+            }
+        },
+        {
+            "key": "react-02",
+            "content": {
+                "prompt": "A counter starts at 0. In one click handler, which pair of calls requests a final count of 2?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "setCount(count + 1); setCount(count + 1);"
+                        },
+                        {
+                            "id": "b",
+                            "text": "setCount(c => c + 1); setCount(c => c + 1);"
+                        },
+                        {
+                            "id": "c",
+                            "text": "setCount(1); setCount(1);"
+                        },
+                        {
+                            "id": "d",
+                            "text": "count += 1; count += 1;"
+                        }
+                    ],
+                    "correctOptionId": "b"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "Each updater receives the queued result of the previous updater, so two increments produce 2. Both direct count + 1 calls read the same render snapshot and request 1."
+            }
+        },
+        {
+            "key": "react-03",
+            "content": {
+                "prompt": "A text input receives value={name} from React state and should remain editable. What must its onChange handler do?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "Update name synchronously from the input's new value"
+                        },
+                        {
+                            "id": "b",
+                            "text": "Change only defaultValue"
+                        },
+                        {
+                            "id": "c",
+                            "text": "Mutate the DOM value without changing state"
+                        },
+                        {
+                            "id": "d",
+                            "text": "Wait for an Effect before updating name"
+                        }
+                    ],
+                    "correctOptionId": "a"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "A controlled input's value is driven by state. Its onChange handler must update that state to the new input value; otherwise React restores the old value."
+            }
+        },
+        {
+            "key": "react-04",
+            "content": {
+                "prompt": "Two sibling components must display and edit the same selected tab. Where should the selected-tab state normally live?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "In both siblings as independent state"
+                        },
+                        {
+                            "id": "b",
+                            "text": "In a module variable outside React"
+                        },
+                        {
+                            "id": "c",
+                            "text": "In the closest common parent, passed down through props"
+                        },
+                        {
+                            "id": "d",
+                            "text": "In a random DOM attribute read during render"
+                        }
+                    ],
+                    "correctOptionId": "c"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "Lifting the state to the closest common parent gives both siblings one source of truth. Separate sibling state can diverge."
+            }
+        },
+        {
+            "key": "react-05",
+            "content": {
+                "prompt": "A component receives isPlaying and must call play() or pause() on an external video player whenever that prop changes. Where should that synchronization occur?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "Directly while calculating JSX during render"
+                        },
+                        {
+                            "id": "b",
+                            "text": "In an Effect that depends on isPlaying"
+                        },
+                        {
+                            "id": "c",
+                            "text": "Only in the component's module top level"
+                        },
+                        {
+                            "id": "d",
+                            "text": "By mutating isPlaying inside render"
+                        }
+                    ],
+                    "correctOptionId": "b"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "An Effect synchronizes the rendered component with an external system after rendering. Calling player methods during render would make rendering impure."
+            }
+        },
+        {
+            "key": "react-06",
+            "content": {
+                "prompt": "An Effect subscribes to messages for roomId. The component later receives a different roomId. What should the Effect's cleanup do?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "Leave the old subscription active"
+                        },
+                        {
+                            "id": "b",
+                            "text": "Delete the component's props"
+                        },
+                        {
+                            "id": "c",
+                            "text": "Unsubscribe from the previous room before the new subscription is established"
+                        },
+                        {
+                            "id": "d",
+                            "text": "Call setState during every render"
+                        }
+                    ],
+                    "correctOptionId": "c"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "React runs cleanup for the previous Effect before applying the Effect for the changed dependency. Unsubscribing prevents duplicate or stale room listeners."
+            }
+        },
+        {
+            "key": "react-07",
+            "content": {
+                "prompt": "A Chat component keeps an unsent draft in local state. When recipientId changes, the draft should reset. Which rendering choice expresses a new component identity?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "Keep the same key for every recipient"
+                        },
+                        {
+                            "id": "b",
+                            "text": "Mutate the draft variable during render"
+                        },
+                        {
+                            "id": "c",
+                            "text": "Use the array index as a key even though there is one Chat"
+                        },
+                        {
+                            "id": "d",
+                            "text": "Render <Chat key={recipientId} recipientId={recipientId} />"
+                        }
+                    ],
+                    "correctOptionId": "d"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "Changing the key tells React to treat Chat as a different component, resetting its local state. A stable key would preserve the old draft."
+            }
+        },
+        {
+            "key": "react-08",
+            "content": {
+                "prompt": "A component is wrapped in memo and receives unchanged props, but it reads a context value that changes. What can happen?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "It can re-render because the context it uses changed"
+                        },
+                        {
+                            "id": "b",
+                            "text": "It can never re-render again"
+                        },
+                        {
+                            "id": "c",
+                            "text": "Its context read is frozen at the first render"
+                        },
+                        {
+                            "id": "d",
+                            "text": "memo automatically removes the context provider"
+                        }
+                    ],
+                    "correctOptionId": "a"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "memo can skip a re-render caused by unchanged props, but a component still re-renders when context it consumes changes."
+            }
+        },
+        {
+            "key": "react-09",
+            "content": {
+                "prompt": "A component increments counterRef.current in an event handler. What does that change do by itself?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "Trigger a render immediately"
+                        },
+                        {
+                            "id": "b",
+                            "text": "Change the ref value without triggering a render"
+                        },
+                        {
+                            "id": "c",
+                            "text": "Reset all component state"
+                        },
+                        {
+                            "id": "d",
+                            "text": "Update the DOM text automatically"
+                        }
+                    ],
+                    "correctOptionId": "b"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "Changing a ref's current value does not request a React render. Use state when a changed value must update the displayed UI."
+            }
+        },
+        {
+            "key": "react-10",
+            "content": {
+                "prompt": "A component calls useState only inside if (enabled). Why is this invalid?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "useState may only be called in Effects"
+                        },
+                        {
+                            "id": "b",
+                            "text": "Hooks cannot be used with boolean props"
+                        },
+                        {
+                            "id": "c",
+                            "text": "The conditional must use a ternary expression instead"
+                        },
+                        {
+                            "id": "d",
+                            "text": "Hooks must be called at the top level in the same order on every render"
+                        }
+                    ],
+                    "correctOptionId": "d"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "Conditional Hook calls can change call order between renders. Call the Hook at the component's top level, then branch on its value or behavior."
+            }
+        }
+    ]
+}

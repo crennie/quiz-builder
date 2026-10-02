@@ -1,0 +1,342 @@
+{
+    "schemaVersion": 1,
+    "batchKey": "87363545-1b5a-408c-9f7a-a07e3fc7d2d9",
+    "topic": "Modern CSS",
+    "source": {
+        "kind": "external_agent",
+        "label": "AI-assisted Modern CSS draft"
+    },
+    "tags": ["Technical", "Frontend", "CSS"],
+    "questions": [
+        {
+            "key": "css-01",
+            "content": {
+                "prompt": "A dashboard needs cards aligned into explicit rows and columns. Which CSS layout model is designed for this two-dimensional arrangement?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "Grid"
+                        },
+                        {
+                            "id": "b",
+                            "text": "Flexbox only"
+                        },
+                        {
+                            "id": "c",
+                            "text": "Floats"
+                        },
+                        {
+                            "id": "d",
+                            "text": "Inline formatting"
+                        }
+                    ],
+                    "correctOptionId": "a"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "CSS Grid controls placement in rows and columns. Flexbox primarily lays items out along one axis at a time."
+            }
+        },
+        {
+            "key": "css-02",
+            "content": {
+                "prompt": "An element has color: var(--accent, blue), and --accent is not defined for it. What color value is used?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "transparent"
+                        },
+                        {
+                            "id": "b",
+                            "text": "The text '--accent'"
+                        },
+                        {
+                            "id": "c",
+                            "text": "blue"
+                        },
+                        {
+                            "id": "d",
+                            "text": "The declaration is always discarded"
+                        }
+                    ],
+                    "correctOptionId": "c"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "The second argument to var() is a fallback used when the custom property has no usable value. Here that fallback is blue."
+            }
+        },
+        {
+            "key": "css-03",
+            "content": {
+                "prompt": "For font-size: clamp(1rem, 4vw, 2rem), suppose 4vw computes to 3rem. Which value wins?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "1rem"
+                        },
+                        {
+                            "id": "b",
+                            "text": "2rem"
+                        },
+                        {
+                            "id": "c",
+                            "text": "3rem"
+                        },
+                        {
+                            "id": "d",
+                            "text": "4rem"
+                        }
+                    ],
+                    "correctOptionId": "b"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "clamp() selects the preferred value within the minimum and maximum bounds. Because 3rem exceeds the 2rem maximum, the result is 2rem."
+            }
+        },
+        {
+            "key": "css-04",
+            "content": {
+                "prompt": "For normal author declarations, @layer base, theme; puts base before theme. An element matches #card {color: red} in base and p {color: blue} in theme. Which color wins?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "red, because an ID selector is always stronger"
+                        },
+                        {
+                            "id": "b",
+                            "text": "red, because base was declared first"
+                        },
+                        {
+                            "id": "c",
+                            "text": "neither declaration applies"
+                        },
+                        {
+                            "id": "d",
+                            "text": "blue, because the later normal layer outranks specificity in the earlier layer"
+                        }
+                    ],
+                    "correctOptionId": "d"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "For normal declarations, later cascade layers outrank earlier ones before specificity is compared. The theme rule wins even though its selector is less specific."
+            }
+        },
+        {
+            "key": "css-05",
+            "content": {
+                "prompt": "What specificity does :where(#hero) contribute to a selector?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "The specificity of an ID"
+                        },
+                        {
+                            "id": "b",
+                            "text": "The specificity of a class"
+                        },
+                        {
+                            "id": "c",
+                            "text": "Zero"
+                        },
+                        {
+                            "id": "d",
+                            "text": "The specificity of an element"
+                        }
+                    ],
+                    "correctOptionId": "c"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": ":where() and its arguments contribute zero specificity, even when an ID selector appears inside it."
+            }
+        },
+        {
+            "key": "css-06",
+            "content": {
+                "prompt": "A card should change layout when its eligible size-query container becomes narrow, even on a wide viewport. Which conditional rule addresses that?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "@media (max-width: 400px)"
+                        },
+                        {
+                            "id": "b",
+                            "text": "@container (max-width: 400px)"
+                        },
+                        {
+                            "id": "c",
+                            "text": "@supports (display: grid)"
+                        },
+                        {
+                            "id": "d",
+                            "text": "@layer card"
+                        }
+                    ],
+                    "correctOptionId": "b"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "A size @container query tests the eligible ancestor container, while a width @media query tests the viewport. The ancestor must be established as a size-query container."
+            }
+        },
+        {
+            "key": "css-07",
+            "content": {
+                "prompt": "In horizontal writing, what does margin-inline-start map to when direction changes from ltr to rtl?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "It stays the physical left margin"
+                        },
+                        {
+                            "id": "b",
+                            "text": "It becomes the top margin"
+                        },
+                        {
+                            "id": "c",
+                            "text": "It becomes the bottom margin"
+                        },
+                        {
+                            "id": "d",
+                            "text": "It maps from left to right"
+                        }
+                    ],
+                    "correctOptionId": "d"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "The inline start edge is left in horizontal left-to-right text and right in horizontal right-to-left text. Logical properties adapt to writing direction."
+            }
+        },
+        {
+            "key": "css-08",
+            "content": {
+                "prompt": "What does @supports (display: grid) test before applying its nested rules?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "Whether the user agent supports the declaration display: grid"
+                        },
+                        {
+                            "id": "b",
+                            "text": "Whether the viewport is wider than the grid"
+                        },
+                        {
+                            "id": "c",
+                            "text": "Whether the document contains a grid element"
+                        },
+                        {
+                            "id": "d",
+                            "text": "Whether every child has a grid-area"
+                        }
+                    ],
+                    "correctOptionId": "a"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "@supports evaluates a CSS feature query. This condition checks support for the display: grid declaration, not the document's current layout."
+            }
+        },
+        {
+            "key": "css-09",
+            "content": {
+                "prompt": "Which media query targets users who request reduced motion so nonessential animation can be reduced?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "@media (hover: none)"
+                        },
+                        {
+                            "id": "b",
+                            "text": "@media (orientation: portrait)"
+                        },
+                        {
+                            "id": "c",
+                            "text": "@media (prefers-reduced-motion: reduce)"
+                        },
+                        {
+                            "id": "d",
+                            "text": "@media (color-gamut: p3)"
+                        }
+                    ],
+                    "correctOptionId": "c"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "prefers-reduced-motion: reduce matches a user preference for less nonessential motion. Hover, orientation, and color gamut describe different capabilities or settings."
+            }
+        },
+        {
+            "key": "css-10",
+            "content": {
+                "prompt": "Inside .button { &:hover { color: red; } }, which element state does the nested selector target?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "Any hovered descendant of .button"
+                        },
+                        {
+                            "id": "b",
+                            "text": "A hovered .button element"
+                        },
+                        {
+                            "id": "c",
+                            "text": "Only the parent of .button"
+                        },
+                        {
+                            "id": "d",
+                            "text": "Every .button whether hovered or not"
+                        }
+                    ],
+                    "correctOptionId": "b"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "The nesting selector & represents the parent selector. &:hover therefore matches .button itself when it is hovered."
+            }
+        }
+    ]
+}

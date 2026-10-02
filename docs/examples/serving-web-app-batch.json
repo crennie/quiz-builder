@@ -1,0 +1,342 @@
+{
+    "schemaVersion": 1,
+    "batchKey": "a7303503-13f7-47a4-8b5e-ee69e07d05f7",
+    "topic": "Serving a modern web application",
+    "source": {
+        "kind": "external_agent",
+        "label": "AI-assisted Serving a modern web application draft"
+    },
+    "tags": ["Technical", "Web Operations", "Deployment"],
+    "questions": [
+        {
+            "key": "serve-01",
+            "content": {
+                "prompt": "A Vite application is ready for production hosting. Which output should a static host serve?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "The source files in src/ without a build"
+                        },
+                        {
+                            "id": "b",
+                            "text": "The development server's hot-update endpoint"
+                        },
+                        {
+                            "id": "c",
+                            "text": "The files produced by vite build, normally in dist/"
+                        },
+                        {
+                            "id": "d",
+                            "text": "The node_modules/ directory"
+                        }
+                    ],
+                    "correctOptionId": "c"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "vite build produces the deployable application bundle, normally in dist/. The development server and source tree are development inputs, not the static production output."
+            }
+        },
+        {
+            "key": "serve-02",
+            "content": {
+                "prompt": "A single-page app has a client route /dashboard. A user opens that URL directly, but the static host finds no /dashboard file. What serving rule lets the client router handle the page without hiding missing asset errors?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "Return the app's index.html for navigation requests to client routes, while missing asset URLs still return 404"
+                        },
+                        {
+                            "id": "b",
+                            "text": "Return 404 for every URL except /"
+                        },
+                        {
+                            "id": "c",
+                            "text": "Return the JavaScript bundle as the response body for /dashboard"
+                        },
+                        {
+                            "id": "d",
+                            "text": "Rewrite every missing asset URL to index.html"
+                        }
+                    ],
+                    "correctOptionId": "a"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "A direct navigation to a client route needs the app shell so the client router can render it. Missing JavaScript, CSS, or image assets should still fail as assets rather than receive HTML."
+            }
+        },
+        {
+            "key": "serve-03",
+            "content": {
+                "prompt": "An asset URL contains a content hash and changes whenever its bytes change. Which response policy is suited to that asset?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "Cache-Control: no-store"
+                        },
+                        {
+                            "id": "b",
+                            "text": "Cache-Control: max-age=31536000, immutable"
+                        },
+                        {
+                            "id": "c",
+                            "text": "Cache-Control: no-cache with no storage"
+                        },
+                        {
+                            "id": "d",
+                            "text": "A changing body at the same hashed URL"
+                        }
+                    ],
+                    "correctOptionId": "b"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "A content-hashed URL can represent immutable bytes. A long max-age and immutable let caches reuse the fresh asset; changing bytes at the same URL would break that promise."
+            }
+        },
+        {
+            "key": "serve-04",
+            "content": {
+                "prompt": "An app's index.html points to newly hashed assets after each release. Which Cache-Control response directive allows storage but requires validation before reuse?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "immutable"
+                        },
+                        {
+                            "id": "b",
+                            "text": "max-age=31536000"
+                        },
+                        {
+                            "id": "c",
+                            "text": "no-store"
+                        },
+                        {
+                            "id": "d",
+                            "text": "no-cache"
+                        }
+                    ],
+                    "correctOptionId": "d"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "The no-cache response directive allows a cache to store the HTML but requires successful validation before using it again. This helps clients discover updated asset URLs."
+            }
+        },
+        {
+            "key": "serve-05",
+            "content": {
+                "prompt": "A browser sends Accept-Encoding: br, gzip. The server chooses Brotli for a JavaScript response. Which response field identifies the encoding actually applied?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "Content-Type: br"
+                        },
+                        {
+                            "id": "b",
+                            "text": "Vary: br"
+                        },
+                        {
+                            "id": "c",
+                            "text": "Content-Encoding: br"
+                        },
+                        {
+                            "id": "d",
+                            "text": "Accept-Encoding: br"
+                        }
+                    ],
+                    "correctOptionId": "c"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "Accept-Encoding lists encodings the client can accept. Content-Encoding: br on the response identifies the Brotli encoding applied to its content."
+            }
+        },
+        {
+            "key": "serve-06",
+            "content": {
+                "prompt": "A server returns Brotli or gzip bytes for the same URL based on request Accept-Encoding. Which response field tells caches that request header affects selection?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "Vary: Accept-Encoding"
+                        },
+                        {
+                            "id": "b",
+                            "text": "Location: Accept-Encoding"
+                        },
+                        {
+                            "id": "c",
+                            "text": "Allow: br, gzip"
+                        },
+                        {
+                            "id": "d",
+                            "text": "ETag: Accept-Encoding"
+                        }
+                    ],
+                    "correctOptionId": "a"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "Vary: Accept-Encoding makes the request's encoding preference part of cache variant selection, preventing a cached Brotli response from being reused for an incompatible request."
+            }
+        },
+        {
+            "key": "serve-07",
+            "content": {
+                "prompt": "A browser connects to a site's TLS endpoint over HTTPS. Which property does TLS provide for that connection?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "Automatic encryption of all database backups"
+                        },
+                        {
+                            "id": "b",
+                            "text": "Confidentiality and integrity in transit between the browser and that TLS endpoint"
+                        },
+                        {
+                            "id": "c",
+                            "text": "Proof that every application response is factually correct"
+                        },
+                        {
+                            "id": "d",
+                            "text": "Permanent storage of the browser's session"
+                        }
+                    ],
+                    "correctOptionId": "b"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "TLS protects the network connection to its endpoint against passive reading and undetected tampering. It does not encrypt unrelated storage such as database backups."
+            }
+        },
+        {
+            "key": "serve-08",
+            "content": {
+                "prompt": "A browser page sends a cross-origin POST with Content-Type: application/json using fetch. What request can the browser send first to check whether the method and headers are allowed?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "A same-origin GET to the API root"
+                        },
+                        {
+                            "id": "b",
+                            "text": "A TRACE request"
+                        },
+                        {
+                            "id": "c",
+                            "text": "An OPTIONS CORS preflight"
+                        },
+                        {
+                            "id": "d",
+                            "text": "A WebSocket upgrade"
+                        }
+                    ],
+                    "correctOptionId": "c"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "application/json is not a CORS-safelisted request Content-Type, so the browser performs an OPTIONS preflight to check the cross-origin method and headers before the POST."
+            }
+        },
+        {
+            "key": "serve-09",
+            "content": {
+                "prompt": "A new application instance is running but has not connected to its database yet. In Kubernetes, which probe result should keep regular traffic away without treating the process as dead?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "A failed readiness probe"
+                        },
+                        {
+                            "id": "b",
+                            "text": "A failed liveness probe to force a restart"
+                        },
+                        {
+                            "id": "c",
+                            "text": "A successful readiness probe"
+                        },
+                        {
+                            "id": "d",
+                            "text": "No probe; traffic must always start immediately"
+                        }
+                    ],
+                    "correctOptionId": "a"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "Readiness controls whether a running instance receives service traffic. Liveness is for deciding when to restart an unhealthy process."
+            }
+        },
+        {
+            "key": "serve-10",
+            "content": {
+                "prompt": "An API is temporarily unavailable during maintenance and expects to recover in about 120 seconds. Which response best communicates that state and retry guidance?",
+                "questionType": "multiple_choice_single",
+                "answerConfig": {
+                    "questionType": "multiple_choice_single",
+                    "options": [
+                        {
+                            "id": "a",
+                            "text": "404 Not Found with Location: /"
+                        },
+                        {
+                            "id": "b",
+                            "text": "200 OK with an error string"
+                        },
+                        {
+                            "id": "c",
+                            "text": "301 Moved Permanently with Retry-After: 120"
+                        },
+                        {
+                            "id": "d",
+                            "text": "503 Service Unavailable with Retry-After: 120"
+                        }
+                    ],
+                    "correctOptionId": "d"
+                },
+                "gradingConfig": {
+                    "questionType": "multiple_choice_single"
+                },
+                "explanation": "503 reports temporary service unavailability. Retry-After can tell clients how long the service expects to be unavailable; 404 and 301 describe different conditions."
+            }
+        }
+    ]
+}

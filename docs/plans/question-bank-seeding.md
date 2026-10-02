@@ -2,6 +2,8 @@
 
 **Status:** In progress · **Started:** 2026-10-01 · **Current phase:** 2 — pilot REST endpoints
 
+**Checkpoint (2026-10-02):** Phase 1 is complete. The REST pilot is a local JSON draft at SEED-21; it has not been previewed in the application, retained, or materialized. No REST pilot questions have been submitted for human review yet. The five follow-on batches are also local drafts for Phase 3. Human review and the final publication gate follow materialization and submission.
+
 ## Goal and working boundaries
 
 Seed a useful, reviewed bank of technical practice questions using the retained batch artifact and existing content workflow. A published question, rather than a generated draft, counts toward the goal. This is a content-production plan; implementation features continue to be tracked in the [use-case checklist](../use-cases.md).
@@ -20,7 +22,7 @@ The [batch ingestion flow](../architecture/dynamic/ingest-question-batch.md) acc
 
 ### Phase 1 — plan the REST endpoints pilot
 
-- [x] **SEED-10** Define ten distinct REST endpoints learning objectives across introductory, intermediate, and advanced levels for the first batch. Choose the other five technical topics after reviewing the pilot.
+- [x] **SEED-10** Define ten distinct REST endpoints learning objectives across introductory, intermediate, and advanced levels for the first batch. Track the five follow-on topics separately.
 - [x] **SEED-11** Agree on the [review rubric](rest-endpoints-pilot.md#agreed-review-rubric): correct answer, unambiguous wording, plausible distractors, useful explanation, stable technical claim, and no near-duplicate in the planned set or bank.
 - [x] **SEED-12** Keep a [production ledger](rest-endpoints-pilot.md#coverage-and-tracking) outside the immutable artifact for learning objective, fact-checking reference, batch key, item key, question ID, version, and review outcome. The current artifact has no reference or per-question objective field.
 
@@ -36,7 +38,7 @@ The [batch ingestion flow](../architecture/dynamic/ingest-question-batch.md) acc
 
 ### Phase 3 — expand by topic
 
-- [ ] **SEED-30** Select the remaining five technical topics and produce one ten-question batch per topic, at most 20 questions per artifact, using the pilot rubric and stable keys. Inspect each batch before materialization.
+- [ ] **SEED-30** Prepare and inspect one ten-question batch per remaining topic, at most 20 questions per artifact, using the pilot rubric and stable keys. Five local drafts are in the [follow-on batch ledger](five-follow-on-batches.md); preview each before materialization.
 - [ ] **SEED-31** Track drafted, submitted, approved, and published counts by topic and difficulty; record reasons for changes requested or rejection and check duplicates across batches.
 - [ ] **SEED-32** Assemble one small topic quiz from published question versions for each completed topic. Quiz assembly is currently manual.
 
@@ -51,7 +53,7 @@ The [batch ingestion flow](../architecture/dynamic/ingest-question-batch.md) acc
 
 ## Measures and decisions
 
-Use published questions by topic and difficulty as the coverage measure. Track attrition at each workflow step and classify revision or rejection reasons so generation briefs and the rubric can improve. Review the pilot results before committing to the remaining five topics. Keep automatic batch production ([BATCH-09](../use-cases.md#epic-11--question-batch-ingestion)) as a separate implementation decision after the manual artifact path proves useful.
+Use published questions by topic and difficulty as the coverage measure. Track attrition at each workflow step and classify revision or rejection reasons so generation briefs and the rubric can improve. Review the REST pilot results before retaining or materializing the five follow-on batches. Keep automatic batch production ([BATCH-09](../use-cases.md#epic-11--question-batch-ingestion)) as a separate implementation decision after the manual artifact path proves useful.
 
 ## Phase 0 run log
 

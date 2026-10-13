@@ -17,10 +17,10 @@ const categories = [
 
 export function FeedbackForm({
     target,
-    label,
+    label = "Send feedback",
 }: {
-    target: { quizId: string } | { quizAttemptQuestionId: string };
-    label: string;
+    target: { questionId: string } | { quizId: string } | { quizAttemptQuestionId: string };
+    label?: string;
 }) {
     const [category, setCategory] = useState<CreateFeedbackBody["category"]>("other");
     const [comment, setComment] = useState("");

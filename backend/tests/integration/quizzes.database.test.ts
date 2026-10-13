@@ -1,495 +1,161 @@
-import { applyMigrations } from "./apply-migrations.ts";
-import { PGlite } from "@electric-sql/pglite";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
-
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
-    createQuestionInTransaction,
-    createQuestionVersionInTransaction,
-    createTag,
-    archiveQuestionInTransaction,
-    publishQuestionInTransaction,
-    updateQuestionMetadataInTransaction,
-    type QueryExecutor,
-} from "../../src/db/question-bank.ts";
+    testDatabase,
+    transaction,
+    fixture,
+    owner,
+    other,
+    content,
+    quizContent,
+} from "./v1-fixtures.ts";
+import { createQuestionInTransaction } from "../../src/db/question-bank.ts";
 import {
-    assignQuizTagInTransaction,
     createQuizInTransaction,
-    getQuizDetail,
-    getQuizVersions,
-    listQuizzes,
-    removeQuizTagInTransaction,
     saveQuizContentInTransaction,
-    updateQuizMetadataInTransaction,
+    getQuizDetail,
+    listQuizzes,
+    assignQuizTagInTransaction,
+    removeQuizTagInTransaction,
 } from "../../src/db/quizzes.ts";
-
-const ownerId = "00000000-0000-4000-8000-000000000201";
-const otherId = "00000000-0000-4000-8000-000000000202";
-const questionContent = {
-    prompt: "What is two plus two?",
-    questionType: "exact_text" as const,
-    answerConfig: { questionType: "exact_text" as const, acceptedAnswers: ["4"] },
-    gradingConfig: {
-        questionType: "exact_text" as const,
-        caseSensitive: false,
-        trimWhitespace: true,
-    },
-    explanation: "Four.",
-};
-const settings = { shuffleQuestions: false, showAnswersAfterCompletion: true };
-
-describe("quiz persistence", () => {
-    let database: PGlite;
-    let sql: QueryExecutor;
-
+import { createTag } from "../../src/db/question-bank.ts";
+import { startAttemptInTransaction } from "../../src/db/attempts.ts";
+describe("direct quizzes", () => {
+    let s: Awaited<ReturnType<typeof testDatabase>>;
     beforeAll(async () => {
-        database = new PGlite();
-        sql = database as unknown as QueryExecutor;
-        await database.exec("CREATE SCHEMA auth; CREATE TABLE auth.users (id uuid PRIMARY KEY)");
-        await applyMigrations((sql) => database.exec(sql));
-        for (const id of [ownerId, otherId]) {
-            await database.query("INSERT INTO auth.users (id) VALUES ($1)", [id]);
-            await database.query(
-                "INSERT INTO public.profiles (id, display_name) VALUES ($1, 'Test User')",
-                [id],
-            );
-        }
+        s = await testDatabase();
     });
-    afterAll(async () => database.close());
-    beforeEach(async () => database.exec("BEGIN"));
-    afterEach(async () => database.exec("ROLLBACK"));
-
-    async function makeQuestion(
-        userId = ownerId,
-        visibility: "private" | "public" | "unlisted" = "private",
-    ) {
-        const question = await createQuestionInTransaction(
-            userId,
-            { content: questionContent, visibility },
-            sql,
+    afterAll(async () => s.db.close());
+    it("allows direct composition editing, repetition, no-op saves, and owner-scoped tags", async () => {
+        const { db, sql } = s;
+        const { quiz, input } = await transaction(db, () => fixture(sql));
+        const noop = await transaction(db, () =>
+            saveQuizContentInTransaction(quiz.id, owner, input, sql),
         );
-        return publishQuestionInTransaction(question.id, userId, question.currentVersion.id, sql);
-    }
-
-    it("paginates owned quizzes before mixing in newer public quizzes", async () => {
-        const ownedQuestion = await makeQuestion();
-        const publicQuestion = await makeQuestion(otherId, "public");
-        const quizContent = (title: string, question: typeof ownedQuestion) => ({
-            title,
-            description: null,
-            settings,
-            questions: [
-                {
-                    questionId: question.id,
-                    questionVersionId: question.currentVersion.id,
-                    points: 1,
-                    required: true,
-                    timeLimitSeconds: null,
-                },
-            ],
-        });
-        const ownedIds: string[] = [];
-        for (const title of ["Owned first", "Owned second"]) {
-            const quiz = await createQuizInTransaction(
-                ownerId,
-                {
-                    content: quizContent(title, ownedQuestion),
-                    visibility: "private",
-                    status: "draft",
-                },
-                sql,
-            );
-            ownedIds.push(quiz.id);
-        }
-        for (const title of ["Public first", "Public second"]) {
-            await createQuizInTransaction(
-                otherId,
-                {
-                    content: quizContent(title, publicQuestion),
-                    visibility: "public",
-                    status: "published",
-                },
-                sql,
-            );
-        }
-
-        const first = await listQuizzes(
-            { viewerId: ownerId, scope: "mine", limit: 1, offset: 0 },
-            sql,
-        );
-        const second = await listQuizzes(
-            { viewerId: ownerId, scope: "mine", limit: 1, offset: 1 },
-            sql,
-        );
-        expect(first.items).toHaveLength(1);
-        expect(first.nextOffset).toBe(1);
-        expect(second.items).toHaveLength(1);
-        expect(second.nextOffset).toBeNull();
-        expect([...first.items, ...second.items].map((item) => item.id).sort()).toEqual(
-            ownedIds.sort(),
-        );
-    });
-
-    it("creates versions only for changed attempt content and preserves explicit source versions", async () => {
-        const first = await makeQuestion();
-        const second = await makeQuestion();
-        const firstMember = {
-            questionId: first.id,
-            questionVersionId: first.currentVersion.id,
-            points: 2.5,
-            required: true,
-            timeLimitSeconds: null,
-        };
-        const secondMember = {
-            questionId: second.id,
-            questionVersionId: second.currentVersion.id,
-            points: 0.25,
-            required: false,
-            timeLimitSeconds: 30,
-        };
-        const base = { title: "Math", description: null, settings, questions: [firstMember] };
-        const created = await createQuizInTransaction(
-            ownerId,
-            {
-                content: base,
-                visibility: "private",
-                status: "draft",
-            },
-            sql,
-        );
-        expect(created.currentVersion.versionNumber).toBe(1);
-        expect(created.currentVersion.questions[0]).toMatchObject({ ...firstMember, position: 0 });
-        expect(await getQuizDetail(created.id, otherId, sql)).toBeNull();
-
-        const same = await saveQuizContentInTransaction(
-            created.id,
-            ownerId,
-            {
-                ...base,
-                title: " Math ",
-                settings: { ...settings },
-            },
-            sql,
-        );
-        expect(same.currentVersion.id).toBe(created.currentVersion.id);
-        expect(await getQuizVersions(created.id, ownerId, sql)).toHaveLength(1);
-
-        const added = await saveQuizContentInTransaction(
-            created.id,
-            ownerId,
-            {
-                ...base,
-                questions: [firstMember, secondMember],
-            },
-            sql,
-        );
-        expect(added.currentVersion.versionNumber).toBe(2);
-        expect(added.currentVersion.questions.map((question) => question.position)).toEqual([0, 1]);
-
-        const reordered = await saveQuizContentInTransaction(
-            created.id,
-            ownerId,
-            {
-                ...base,
-                questions: [secondMember, firstMember],
-            },
-            sql,
-        );
-        expect(reordered.currentVersion.versionNumber).toBe(3);
-
-        const reweighted = await saveQuizContentInTransaction(
-            created.id,
-            ownerId,
-            {
-                ...base,
-                questions: [
-                    { ...secondMember, points: 1, required: true, timeLimitSeconds: 60 },
-                    firstMember,
-                ],
-            },
-            sql,
-        );
-        expect(reweighted.currentVersion.versionNumber).toBe(4);
-
-        const changedSettings = await saveQuizContentInTransaction(
-            created.id,
-            ownerId,
-            {
-                ...base,
-                settings: { ...settings, shuffleQuestions: true },
-                questions: [
-                    { ...secondMember, points: 1, required: true, timeLimitSeconds: 60 },
-                    firstMember,
-                ],
-            },
-            sql,
-        );
-        expect(changedSettings.currentVersion.versionNumber).toBe(5);
-
-        const revisedQuestion = await createQuestionVersionInTransaction(
-            first.id,
-            ownerId,
-            {
-                ...questionContent,
-                prompt: "What is 2 + 2?",
-            },
-            sql,
-        );
-        await publishQuestionInTransaction(
-            first.id,
-            ownerId,
-            revisedQuestion.currentVersion.id,
-            sql,
-        );
-        const olderVersionQuiz = await createQuizInTransaction(
-            ownerId,
-            {
-                content: { ...base, questions: [firstMember] },
-                visibility: "private",
-                status: "draft",
-            },
-            sql,
-        );
-        expect(olderVersionQuiz.currentVersion.questions[0]?.questionVersionId).toBe(
-            first.currentVersion.id,
-        );
-        expect((await getQuizDetail(created.id, ownerId, sql))?.currentVersion.id).toBe(
-            changedSettings.currentVersion.id,
-        );
-        expect(
-            (await getQuizDetail(created.id, ownerId, sql))?.currentVersion.questions[1]?.question
-                .prompt,
-        ).toBe(questionContent.prompt);
-
-        const upgraded = await saveQuizContentInTransaction(
-            created.id,
-            ownerId,
-            {
-                ...base,
-                settings: { ...settings, shuffleQuestions: true },
-                questions: [
-                    { ...secondMember, points: 1, required: true, timeLimitSeconds: 60 },
-                    { ...firstMember, questionVersionId: revisedQuestion.currentVersion.id },
-                ],
-            },
-            sql,
-        );
-        expect(upgraded.currentVersion.versionNumber).toBe(6);
-        expect(upgraded.currentVersion.questions[1]?.question.prompt).toBe("What is 2 + 2?");
-
-        const removed = await saveQuizContentInTransaction(
-            created.id,
-            ownerId,
-            {
-                ...base,
-                questions: [firstMember],
-            },
-            sql,
-        );
-        expect(removed.currentVersion.versionNumber).toBe(7);
-        expect(removed.currentVersion.questions).toHaveLength(1);
-        const history = await getQuizVersions(created.id, ownerId, sql);
-        expect(history).toHaveLength(7);
-        expect(history.at(-1)?.questions[0]?.questionVersionId).toBe(first.currentVersion.id);
-        await expect(
-            database.query("UPDATE public.quiz_versions SET title = 'changed' WHERE id = $1", [
-                created.currentVersion.id,
-            ]),
-        ).rejects.toThrow();
-        await expect(
-            database.query(
-                "UPDATE public.quiz_version_questions SET points = 100 WHERE quiz_version_id = $1",
-                [created.currentVersion.id],
-            ),
-        ).rejects.toThrow();
-    });
-
-    it("enforces quiz visibility and keeps metadata and tags out of content versions", async () => {
-        const question = await makeQuestion();
-        const content = {
-            title: "Study",
-            description: "Practice",
-            settings,
-            questions: [
-                {
-                    questionId: question.id,
-                    questionVersionId: question.currentVersion.id,
-                    points: 1,
-                    required: true,
-                    timeLimitSeconds: null,
-                },
-            ],
-        };
-        const quiz = await createQuizInTransaction(
-            ownerId,
-            {
-                content,
-                visibility: "private",
-                status: "draft",
-            },
-            sql,
-        );
-        expect(await getQuizDetail(quiz.id, null, sql)).toBeNull();
-        await expect(getQuizVersions(quiz.id, otherId, sql)).rejects.toMatchObject({
-            code: "QUIZ_NOT_FOUND",
-        });
-        await expect(
-            saveQuizContentInTransaction(quiz.id, otherId, content, sql),
-        ).rejects.toMatchObject({ code: "QUIZ_NOT_FOUND" });
-        await expect(
-            updateQuizMetadataInTransaction(quiz.id, otherId, { status: "published" }, sql),
-        ).rejects.toMatchObject({ code: "QUIZ_NOT_FOUND" });
-
-        const tag = await createTag(ownerId, "Algebra", sql);
-        const otherTag = await createTag(otherId, "Other", sql);
-        await expect(
-            assignQuizTagInTransaction(quiz.id, otherTag.id, ownerId, sql),
-        ).rejects.toMatchObject({ code: "TAG_NOT_FOUND" });
-        const tagged = await assignQuizTagInTransaction(quiz.id, tag.id, ownerId, sql);
-        expect(tagged.tags.map((item) => item.id)).toEqual([tag.id]);
-        expect(tagged.currentVersion.id).toBe(quiz.currentVersion.id);
-        const published = await updateQuizMetadataInTransaction(
-            quiz.id,
-            ownerId,
-            {
-                visibility: "public",
-                status: "published",
-            },
-            sql,
-        );
-        expect(published.currentVersion.id).toBe(quiz.currentVersion.id);
-        expect(
-            (await getQuizDetail(quiz.id, null, sql))?.currentVersion.questions[0]?.question
-                .answerConfig,
-        ).toEqual(questionContent.answerConfig);
-        expect(
-            (await listQuizzes({ viewerId: null, tagSlug: tag.slug, limit: 20, offset: 0 }, sql))
-                .items,
-        ).toHaveLength(1);
-        await updateQuizMetadataInTransaction(quiz.id, ownerId, { visibility: "unlisted" }, sql);
-        expect(await getQuizDetail(quiz.id, null, sql)).not.toBeNull();
-        expect(
-            (await listQuizzes({ viewerId: null, limit: 20, offset: 0 }, sql)).items,
-        ).toHaveLength(0);
-        await removeQuizTagInTransaction(quiz.id, tag.id, ownerId, sql);
-        expect((await getQuizDetail(quiz.id, ownerId, sql))?.tags).toEqual([]);
-        await updateQuizMetadataInTransaction(quiz.id, ownerId, { status: "archived" }, sql);
-        expect(await getQuizDetail(quiz.id, null, sql)).toBeNull();
-        expect(await getQuizVersions(quiz.id, ownerId, sql)).toHaveLength(1);
-        await expect(
-            saveQuizContentInTransaction(quiz.id, ownerId, content, sql),
-        ).rejects.toMatchObject({ code: "QUIZ_ARCHIVED" });
-    });
-
-    it("checks membership identity and source availability without hiding included content", async () => {
-        const privateQuestion = await makeQuestion(otherId);
-        const publicQuestion = await makeQuestion(otherId, "public");
-        const unlistedQuestion = await makeQuestion(otherId, "unlisted");
-        const member = (question: typeof privateQuestion) => ({
-            questionId: question.id,
-            questionVersionId: question.currentVersion.id,
-            points: 1,
-            required: true,
-            timeLimitSeconds: null,
-        });
-        const content = {
-            title: "Shared",
-            description: null,
-            settings,
-            questions: [member(publicQuestion), member(unlistedQuestion)],
-        };
-        const quiz = await createQuizInTransaction(
-            ownerId,
-            {
-                content,
-                visibility: "public",
-                status: "published",
-            },
-            sql,
-        );
-        expect((await getQuizDetail(quiz.id, null, sql))?.currentVersion.questions).toHaveLength(2);
-        await expect(
-            createQuizInTransaction(
-                ownerId,
-                {
-                    content: { ...content, questions: [member(privateQuestion)] },
-                    visibility: "private",
-                    status: "draft",
-                },
-                sql,
-            ),
-        ).rejects.toMatchObject({ code: "QUESTION_VERSION_NOT_FOUND" });
-        await expect(
+        expect(noop.questions).toEqual(quiz.questions);
+        expect(noop.updatedAt).toBe(quiz.updatedAt);
+        const repeat = await transaction(db, () =>
             saveQuizContentInTransaction(
                 quiz.id,
-                ownerId,
+                owner,
                 {
-                    ...content,
-                    questions: [{ ...member(publicQuestion), questionId: privateQuestion.id }],
+                    ...input,
+                    title: "Repeated",
+                    questions: [...input.questions, ...input.questions],
                 },
                 sql,
             ),
-        ).rejects.toMatchObject({ code: "QUESTION_VERSION_NOT_FOUND" });
-
-        await updateQuestionMetadataInTransaction(
-            publicQuestion.id,
-            otherId,
-            { visibility: "private" },
-            sql,
         );
-        expect(
-            (await getQuizDetail(quiz.id, null, sql))?.currentVersion.questions[0]?.question.prompt,
-        ).toBe(questionContent.prompt);
-        const reordered = await saveQuizContentInTransaction(
-            quiz.id,
-            ownerId,
-            {
-                ...content,
-                questions: [member(unlistedQuestion), member(publicQuestion)],
-            },
-            sql,
-        );
-        expect(reordered.currentVersion.versionNumber).toBe(2);
-        await archiveQuestionInTransaction(publicQuestion.id, otherId, sql);
-        const renamed = await saveQuizContentInTransaction(
-            quiz.id,
-            ownerId,
-            {
-                ...content,
-                title: "Shared study",
-                questions: [member(unlistedQuestion), member(publicQuestion)],
-            },
-            sql,
-        );
-        expect(renamed.currentVersion.versionNumber).toBe(3);
-        expect(
-            (await getQuizDetail(quiz.id, null, sql))?.currentVersion.questions[1]?.question.prompt,
-        ).toBe(questionContent.prompt);
+        expect(repeat.questions).toHaveLength(2);
+        expect(repeat.questions.map((q) => q.position)).toEqual([0, 1]);
+        const tag = await createTag(owner, "Quiz tag", sql);
+        expect((await assignQuizTagInTransaction(quiz.id, tag.id, owner, sql)).tags).toEqual([tag]);
+        await removeQuizTagInTransaction(quiz.id, tag.id, owner, sql);
+        expect(await getQuizDetail(quiz.id, other, sql)).toBeNull();
+        await expect(
+            saveQuizContentInTransaction(quiz.id, other, input, sql),
+        ).rejects.toMatchObject({ code: "QUIZ_NOT_FOUND" });
     });
-
-    it("allows empty drafts but refuses to publish an empty quiz", async () => {
-        const content = { title: "Later", description: null, settings, questions: [] };
-        const quiz = await createQuizInTransaction(
-            ownerId,
-            {
-                content,
-                visibility: "private",
-                status: "draft",
-            },
-            sql,
+    it("rejects foreign private questions, permits public IDs, and enforces public composition in SQL", async () => {
+        const { db, sql } = s;
+        const q = await createQuestionInTransaction(other, { content }, sql);
+        const input = quizContent(q.id);
+        await expect(
+            transaction(db, () => createQuizInTransaction(owner, { content: input }, sql)),
+        ).rejects.toMatchObject({ code: "QUESTION_NOT_FOUND" });
+        await sql.query("UPDATE public.questions SET visibility='public' WHERE id=$1", [q.id]);
+        const quiz = await transaction(db, () =>
+            createQuizInTransaction(owner, { content: input }, sql),
         );
+        await sql.query("UPDATE public.quizzes SET visibility='public' WHERE id=$1", [quiz.id]);
+        expect(await getQuizDetail(quiz.id, null, sql)).toMatchObject({
+            visibility: "public",
+            isOwner: false,
+            canEditContent: false,
+        });
         await expect(
-            updateQuizMetadataInTransaction(quiz.id, ownerId, { status: "published" }, sql),
-        ).rejects.toMatchObject({ code: "EMPTY_QUIZ" });
+            sql.query("UPDATE public.questions SET visibility='private' WHERE id=$1", [q.id]),
+        ).rejects.toMatchObject({ code: "23514" });
+        const own = await transaction(db, () => fixture(sql));
         await expect(
-            createQuizInTransaction(
-                ownerId,
-                {
-                    content,
-                    visibility: "public",
-                    status: "published",
-                },
-                sql,
+            sql.query("UPDATE public.quizzes SET visibility='public' WHERE id=$1", [own.quiz.id]),
+        ).rejects.toMatchObject({ code: "23514" });
+        expect(
+            (await listQuizzes({ viewerId: null, limit: 50, offset: 0 }, sql)).items.map(
+                (q) => q.id,
             ),
-        ).rejects.toMatchObject({ code: "EMPTY_QUIZ" });
+        ).toContain(quiz.id);
+        expect(
+            (
+                await listQuizzes({ viewerId: owner, scope: "mine", limit: 50, offset: 0 }, sql)
+            ).items.every((q) => q.createdBy === owner),
+        ).toBe(true);
+        await expect(
+            saveQuizContentInTransaction(quiz.id, owner, input, sql),
+        ).rejects.toMatchObject({ code: "PUBLIC_CONTENT_READ_ONLY" });
+    });
+    for (const status of ["in_progress", "completed", "abandoned", "expired"] as const)
+        it(`locks all content and composition after a ${status} attempt`, async () => {
+            const { db, sql } = s;
+            const { quiz, input } = await transaction(db, () => fixture(sql));
+            const a = await transaction(db, () => startAttemptInTransaction(quiz.id, owner, sql));
+            await sql.query("UPDATE public.quiz_attempts SET status=$2 WHERE id=$1", [
+                a.id,
+                status,
+            ]);
+            expect(await getQuizDetail(quiz.id, owner, sql)).toMatchObject({
+                canEditContent: false,
+            });
+            expect(
+                (
+                    await transaction(db, () =>
+                        saveQuizContentInTransaction(quiz.id, owner, input, sql),
+                    )
+                ).questions,
+            ).toEqual(quiz.questions);
+            for (const changed of [
+                { ...input, title: "Changed" },
+                { ...input, description: "Changed" },
+                { ...input, settings: { ...input.settings, shuffleQuestions: true } },
+                { ...input, questions: [] },
+                { ...input, questions: input.questions.map((q) => ({ ...q, points: 3 })) },
+            ])
+                await expect(
+                    transaction(db, () =>
+                        saveQuizContentInTransaction(quiz.id, owner, changed, sql),
+                    ),
+                ).rejects.toMatchObject({ code: "QUIZ_CONTENT_LOCKED" });
+            for (const query of [
+                "UPDATE public.quizzes SET title='Bypass' WHERE id=$1",
+                "UPDATE public.quizzes SET description='Bypass' WHERE id=$1",
+                "UPDATE public.quizzes SET settings='{}' WHERE id=$1",
+                "DELETE FROM public.quiz_questions WHERE quiz_id=$1",
+                "UPDATE public.quiz_questions SET points=3 WHERE quiz_id=$1",
+            ])
+                await expect(sql.query(query, [quiz.id])).rejects.toMatchObject({ code: "23514" });
+            await expect(
+                sql.query("DELETE FROM public.quiz_attempts WHERE id=$1", [a.id]),
+            ).rejects.toMatchObject({ code: "23514" });
+        });
+    it("rolls back changed quiz content and composition on a later membership failure", async () => {
+        const { db, sql } = s;
+        const { quiz, input } = await transaction(db, () => fixture(sql));
+        const failing = {
+            query: (text: string, values?: unknown[]) => {
+                if (text.includes("INSERT INTO public.quiz_questions"))
+                    throw new Error("Injected failure");
+                return sql.query(text, values);
+            },
+        } as typeof sql;
+        await expect(
+            transaction(db, () =>
+                saveQuizContentInTransaction(
+                    quiz.id,
+                    owner,
+                    { ...input, title: "Discarded" },
+                    failing,
+                ),
+            ),
+        ).rejects.toThrow("Injected failure");
+        expect(await getQuizDetail(quiz.id, owner, sql)).toEqual(quiz);
     });
 });

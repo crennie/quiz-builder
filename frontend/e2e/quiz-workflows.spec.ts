@@ -8,7 +8,7 @@ async function signUp(page: Page) {
     await page.getByLabel("Email").fill(`phase10-${randomUUID()}@example.test`);
     await page.getByLabel("Password").fill("LocalTestPassword123!");
     await page.getByRole("button", { name: "Create account" }).click();
-    await expect(page.getByRole("heading", { name: "Your questions" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "My questions" })).toBeVisible();
 }
 
 async function createQuestion(page: Page, prompt: string, answer: string) {
@@ -16,9 +16,7 @@ async function createQuestion(page: Page, prompt: string, answer: string) {
     await page.getByLabel("Question prompt").fill(prompt);
     await page.getByLabel("One answer per line").fill(answer);
     await page.getByRole("button", { name: "Create question" }).click();
-    await expect(page).toHaveURL(/\/questions\/mine\/[0-9a-f-]{36}$/);
-    await page.getByRole("button", { name: "Publish current version" }).click();
-    await expect(page.getByText("published", { exact: false }).first()).toBeVisible();
+    await expect(page).toHaveURL(/\/questions\/[0-9a-f-]{36}$/);
     return page.url();
 }
 
@@ -27,11 +25,8 @@ async function createQuiz(page: Page, title: string, prompt: string) {
     await page.getByLabel("Quiz title").fill(title);
     await page.getByRole("button", { name: "Add question" }).click();
     await page.getByRole("button", { name: prompt, exact: true }).click();
-    await page.getByRole("button", { name: `Select version 1: ${prompt}` }).click();
     await page.getByRole("button", { name: "Create quiz" }).click();
     await expect(page).toHaveURL(/\/quizzes\/[0-9a-f-]{36}$/);
-    await page.getByLabel("Status", { exact: true }).selectOption("published");
-    await expect(page.getByLabel("Status", { exact: true })).toHaveValue("published");
     return page.url();
 }
 
@@ -46,7 +41,7 @@ async function completeQuiz(page: Page, answer: string) {
     return page.url();
 }
 
-test("creates and publishes a quiz, then completes and reviews an attempt", async ({ page }) => {
+test("creates a private quiz, then completes and reviews an attempt", async ({ page }) => {
     await signUp(page);
     const prompt = `Capital of France ${randomUUID()}?`;
     await createQuestion(page, prompt, "Paris");
@@ -59,37 +54,28 @@ test("creates and publishes a quiz, then completes and reviews an attempt", asyn
     await expect(page.getByRole("link", { name: "View results" })).toBeVisible();
 });
 
-test("keeps an old attempt on version 1 after an explicit quiz question update", async ({
+test("locks used content and preserves an old attempt after independent replacements", async ({
     page,
 }) => {
     await signUp(page);
-    const originalPrompt = `Capital of France ${randomUUID()}?`;
-    const revisedPrompt = `Capital of the UK ${randomUUID()}?`;
-    const questionUrl = await createQuestion(page, originalPrompt, "Paris");
-    const quizUrl = await createQuiz(page, "Versioned geography", originalPrompt);
-    const oldAttemptUrl = await completeQuiz(page, "Paris");
-
+    const original = `Capital of France ${randomUUID()}?`;
+    const replacement = `Capital of the UK ${randomUUID()}?`;
+    const questionUrl = await createQuestion(page, original, "Paris");
+    const quizUrl = await createQuiz(page, "Original geography", original);
+    const oldAttempt = await completeQuiz(page, "Paris");
     await page.goto(questionUrl);
-    await page.getByLabel("Question prompt").fill(revisedPrompt);
-    await page.getByLabel("One answer per line").fill("London");
-    await page.getByRole("button", { name: "Save new version" }).click();
-    await expect(page.getByText("Version 2", { exact: false }).first()).toBeVisible();
-    await page.getByRole("button", { name: "Publish current version" }).click();
-
+    await expect(page.getByText(/permanently locked/)).toBeVisible();
+    await expect(page.getByLabel("Question prompt")).toHaveCount(0);
     await page.goto(quizUrl);
-    await expect(page.getByText(originalPrompt, { exact: true }).first()).toBeVisible();
-    await page.getByRole("button", { name: "Change question or version" }).click();
-    await page.getByRole("button", { name: revisedPrompt, exact: true }).click();
-    await page.getByRole("button", { name: `Select version 2: ${revisedPrompt}` }).click();
-    await page.getByRole("button", { name: "Save quiz", exact: true }).click();
-    await expect(page.getByText("Quiz · Version 2")).toBeVisible();
-
-    await page.goto(oldAttemptUrl);
-    await expect(page.getByLabel("Question review")).toContainText(originalPrompt);
-    await expect(page.getByLabel("Question review")).not.toContainText(revisedPrompt);
+    await expect(
+        page.getByText(/After an attempt, changes require a new quiz record/),
+    ).toBeVisible();
+    await expect(page.getByLabel("Quiz title")).toHaveCount(0);
+    await createQuestion(page, replacement, "London");
+    await createQuiz(page, "Replacement geography", replacement);
+    await completeQuiz(page, "London");
+    await page.goto(oldAttempt);
+    await expect(page.getByLabel("Question review")).toContainText(original);
+    await expect(page.getByLabel("Question review")).not.toContainText(replacement);
     await expect(page.getByLabel("Result summary")).toContainText("1 / 1 points");
-
-    await page.goto(quizUrl);
-    await page.getByRole("button", { name: "Start new attempt" }).click();
-    await expect(page.getByRole("heading", { name: revisedPrompt })).toBeVisible();
 });

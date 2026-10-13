@@ -7,7 +7,8 @@ import { currentUserRouter } from "./routes/current-user.ts";
 import { feedbackRouter } from "./routes/feedback.ts";
 import { healthRouter } from "./routes/health.ts";
 import { questionBankRouter } from "./routes/question-bank.ts";
-import { contentWorkflowRouter } from "./routes/content-workflow.ts";
+import { questionBatchRouter } from "./routes/question-batches.ts";
+import { courseRouter } from "./routes/courses.ts";
 import { quizRouter } from "./routes/quizzes.ts";
 
 export const app = express();
@@ -17,8 +18,9 @@ app.use(express.json({ limit: "256kb" }));
 app.use(healthRouter);
 app.use("/api/v1", currentUserRouter);
 app.use("/api/v1", questionBankRouter);
-app.use("/api/v1", contentWorkflowRouter);
+app.use("/api/v1", questionBatchRouter);
 app.use("/api/v1", quizRouter);
+app.use("/api/v1", courseRouter);
 app.use("/api/v1", attemptRouter);
 app.use("/api/v1", feedbackRouter);
 

@@ -1,5 +1,7 @@
 # Content production workflow and automation foundation
 
+> Superseded by [the V1 domain restructure](v1-domain-restructure.md) and [ADR-009](../architecture/decisions/ADR-009-direct-v1-domain.md). Version, review, publication and worker procedures below are historical and must not be executed. Private batch artifact import remains available.
+
 **Status:** Phases 1–4 are implemented. Local validation is complete; full Supabase and browser gates remain pending in an environment with Docker. The [closeout and handover record](content-production-workflow-closeout.md) tracks exact checks and remaining verification. The [architecture phase index](../architecture/README.md#content-workflow-phase-coverage) links current runtime views and decisions. Phase 3 uses human sponsorship and a trusted backend worker as recorded in [ADR-006](../architecture/decisions/ADR-006-sponsored-agent-creation.md); Phase 4 adds configured agent roles as recorded in [ADR-007](../architecture/decisions/ADR-007-configured-agent-review-and-gate.md).
 
 The later [batch artifact ingestion extension](../architecture/decisions/ADR-008-question-batch-artifact-ingestion.md) adds a separate retained-document and materialization path for manually prepared question sets. It does not change the completed provider-worker phases or add quiz automation.

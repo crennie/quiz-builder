@@ -7,12 +7,8 @@ import {
     listQuestionBatches,
     materializeQuestionBatchInTransaction,
 } from "../../src/db/question-batches.ts";
-import {
-    createQuestionVersionInTransaction,
-    publishQuestionInTransaction,
-    type QueryExecutor,
-} from "../../src/db/question-bank.ts";
-import { submitQuestionReviewInTransaction } from "../../src/db/content-workflow.ts";
+import type { QueryExecutor } from "../../src/db/question-bank.ts";
+import { createQuizInTransaction } from "../../src/db/quizzes.ts";
 
 const sponsor = "00000000-0000-4000-8000-000000000801";
 const other = "00000000-0000-4000-8000-000000000802";
@@ -78,7 +74,7 @@ describe("question batch artifact ingestion", () => {
     });
     afterAll(async () => database.close());
 
-    it("retains one immutable batch, creates tagged drafts on a separate idempotent step, and requires review", async () => {
+    it("retains immutable artifacts and materializes immediately usable tagged private questions", async () => {
         const imported = await ingestQuestionBatchInTransaction(sponsor, artifact, sql);
         expect(imported.items).toEqual([]);
         expect(imported.artifactSha256).toMatch(/^[a-f0-9]{64}$/);
@@ -108,11 +104,10 @@ describe("question batch artifact ingestion", () => {
             code: "QUESTION_BATCH_NOT_FOUND",
         });
         const details = await database.query<{
-            status: string;
             visibility: string;
             tag_count: number;
         }>(
-            `SELECT q.status, q.visibility, count(t.tag_id)::int AS tag_count
+            `SELECT q.visibility, count(t.tag_id)::int AS tag_count
              FROM public.questions q JOIN public.question_batch_items i ON i.question_id = q.id
              LEFT JOIN public.question_tags t ON t.question_id = q.id
              WHERE i.batch_id = $1 GROUP BY q.id ORDER BY q.created_at`,
@@ -120,59 +115,35 @@ describe("question batch artifact ingestion", () => {
         );
         expect(details.rows).toHaveLength(2);
         expect(
-            details.rows.every(
-                (row) =>
-                    row.status === "draft" && row.visibility === "private" && row.tag_count === 3,
-            ),
+            details.rows.every((row) => row.visibility === "private" && row.tag_count === 3),
         ).toBe(true);
 
         const first = materialized.items[0];
-        await expect(
-            publishQuestionInTransaction(first.questionId, sponsor, first.versionId, sql),
-        ).rejects.toMatchObject({ code: "BATCH_REVIEW_REQUIRED" });
-        const previousReviewSetting = process.env.CONTENT_AGENT_REVIEW;
-        process.env.CONTENT_AGENT_REVIEW = "true";
-        let review;
-        try {
-            review = await submitQuestionReviewInTransaction(
-                first.questionId,
-                first.versionId,
-                sponsor,
-                sql,
-            );
-        } finally {
-            if (previousReviewSetting === undefined) delete process.env.CONTENT_AGENT_REVIEW;
-            else process.env.CONTENT_AGENT_REVIEW = previousReviewSetting;
-        }
-        expect(review.itemType).toBe("REVIEW_QUESTION");
-        expect(review.assignedAgentActorId).toBeNull();
-        const policy = await database.query<{
-            policy_snapshot: { source: string; batchId: string };
-        }>(
-            `SELECT policy_snapshot FROM public.question_review_submissions
-             WHERE question_version_id = $1`,
-            [first.versionId],
-        );
-        expect(policy.rows[0].policy_snapshot).toMatchObject({
-            source: "imported_external_agent",
-            batchId: imported.id,
-            reviewerAgentId: null,
-        });
         await database.exec("BEGIN");
-        const revised = await createQuestionVersionInTransaction(
-            first.questionId,
+        const quiz = await createQuizInTransaction(
             sponsor,
-            { ...artifact.questions[0].content, prompt: "Which method reads an order?" },
+            {
+                content: {
+                    title: "Imported",
+                    description: null,
+                    settings: { shuffleQuestions: false, showAnswersAfterCompletion: true },
+                    questions: [
+                        {
+                            questionId: first.questionId,
+                            points: 1,
+                            required: true,
+                            timeLimitSeconds: null,
+                        },
+                    ],
+                },
+            },
             sql,
         );
         await database.exec("COMMIT");
-        const mapping = (await materializeQuestionBatchInTransaction(imported.id, sponsor, sql))
-            .items[0];
-        expect(mapping.versionId).toBe(first.versionId);
-        expect(mapping.currentVersionId).toBe(revised.currentVersion.id);
-        await expect(
-            publishQuestionInTransaction(first.questionId, sponsor, revised.currentVersion.id, sql),
-        ).rejects.toMatchObject({ code: "BATCH_REVIEW_REQUIRED" });
+        expect(quiz.questions[0].question.prompt).toBe(artifact.questions[0].content.prompt);
+        expect(
+            (await materializeQuestionBatchInTransaction(imported.id, sponsor, sql)).items[0],
+        ).toEqual(first);
         await expect(
             database.query(
                 "UPDATE public.question_batches SET artifact_sha256 = $2 WHERE id = $1",
@@ -181,7 +152,7 @@ describe("question batch artifact ingestion", () => {
         ).rejects.toThrow();
     });
 
-    it("rolls back every draft, mapping, and tag when a later batch item fails", async () => {
+    it("rolls back every question, mapping, and tag when a later batch item fails", async () => {
         const retained = await ingestQuestionBatchInTransaction(
             sponsor,
             { ...artifact, batchKey: "00000000-0000-4000-8000-000000000805" },

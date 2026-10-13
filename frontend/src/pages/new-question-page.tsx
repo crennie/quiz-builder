@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import type { QuestionVersionContent, Visibility } from "@quiz-builder/contracts";
+import type { QuestionContent } from "@quiz-builder/contracts";
 
 import { createQuestion } from "../api/questions";
 import { QuestionEditor } from "../components/question-editor";
@@ -9,13 +8,12 @@ import { QuestionEditor } from "../components/question-editor";
 export function NewQuestionPage() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const [visibility, setVisibility] = useState<Visibility>("private");
     const mutation = useMutation({ mutationFn: createQuestion });
 
-    async function save(content: QuestionVersionContent) {
-        const question = await mutation.mutateAsync({ content, visibility });
+    async function save(content: QuestionContent) {
+        const question = await mutation.mutateAsync({ content });
         await queryClient.invalidateQueries({ queryKey: ["questions"] });
-        void navigate({ to: "/questions/mine/$questionId", params: { questionId: question.id } });
+        void navigate({ to: "/questions/$questionId", params: { questionId: question.id } });
     }
 
     return (
@@ -24,7 +22,7 @@ export function NewQuestionPage() {
             <div>
                 <p className="eyebrow">Create</p>
                 <h1>New question</h1>
-                <p className="muted">Choose an answer format and save the first version.</p>
+                <p className="muted">Choose an answer format and save a private question.</p>
             </div>
             <section className="panel">
                 <QuestionEditor
@@ -32,23 +30,6 @@ export function NewQuestionPage() {
                     busy={mutation.isPending}
                     onSave={save}
                 />
-            </section>
-            <section className="panel form-grid">
-                <h2>Visibility after publication</h2>
-                <label>
-                    Visibility
-                    <select
-                        value={visibility}
-                        onChange={(event) => setVisibility(event.target.value as Visibility)}
-                    >
-                        <option value="private">Private</option>
-                        <option value="unlisted">Unlisted</option>
-                        <option value="public">Public</option>
-                    </select>
-                </label>
-                <p className="muted small">
-                    New questions are saved as drafts until you publish them.
-                </p>
             </section>
         </div>
     );

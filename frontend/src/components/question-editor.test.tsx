@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { QuestionVersionContent } from "@quiz-builder/contracts";
+import type { QuestionContent } from "@quiz-builder/contracts";
 
 import { QuestionEditor } from "./question-editor";
 
@@ -8,7 +8,7 @@ describe("QuestionEditor", () => {
     it("builds exact-text content with compatible grading settings", async () => {
         const user = userEvent.setup();
         const onSave = vi
-            .fn<(content: QuestionVersionContent) => Promise<void>>()
+            .fn<(content: QuestionContent) => Promise<void>>()
             .mockResolvedValue(undefined);
         render(<QuestionEditor submitLabel="Save" busy={false} onSave={onSave} />);
         await user.type(
@@ -37,7 +37,7 @@ describe("QuestionEditor", () => {
     it("creates a single-choice answer and validates a missing correct choice", async () => {
         const user = userEvent.setup();
         const onSave = vi
-            .fn<(content: QuestionVersionContent) => Promise<void>>()
+            .fn<(content: QuestionContent) => Promise<void>>()
             .mockResolvedValue(undefined);
         render(<QuestionEditor submitLabel="Save" busy={false} onSave={onSave} />);
         await user.type(screen.getByRole("textbox", { name: "Question prompt" }), "Choose one");
@@ -61,7 +61,7 @@ describe("QuestionEditor", () => {
     it("allows several correct choices for multi-choice questions", async () => {
         const user = userEvent.setup();
         const onSave = vi
-            .fn<(content: QuestionVersionContent) => Promise<void>>()
+            .fn<(content: QuestionContent) => Promise<void>>()
             .mockResolvedValue(undefined);
         render(<QuestionEditor submitLabel="Save" busy={false} onSave={onSave} />);
         await user.type(screen.getByRole("textbox", { name: "Question prompt" }), "Choose both");

@@ -1,6 +1,8 @@
 # ADR-004: Separate question candidates from publication
 
-Status: Accepted
+> Superseded by [ADR-009](ADR-009-direct-v1-domain.md). This historical record describes the removed version/review/workflow design. Batch artifact integrity remains in V1.
+
+Status: Superseded by ADR-009
 Date: 2026-09-30
 
 ## Context

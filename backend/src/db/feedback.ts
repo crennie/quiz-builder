@@ -35,10 +35,9 @@ const reviewable = `
                WHERE q.id = f.quiz_id AND q.created_by = $1)
     OR EXISTS (
         SELECT 1 FROM public.quiz_attempt_questions aq
-        JOIN public.quiz_version_questions m ON m.id = aq.quiz_version_question_id
-        JOIN public.quiz_versions v ON v.id = m.quiz_version_id
-        JOIN public.quizzes q ON q.id = v.quiz_id
-        JOIN public.questions source ON source.id = m.question_id
+        JOIN public.quiz_attempts a ON a.id = aq.quiz_attempt_id
+        JOIN public.quizzes q ON q.id = a.quiz_id
+        JOIN public.questions source ON source.id = aq.question_id
         WHERE aq.id = f.quiz_attempt_question_id
           AND (q.created_by = $1 OR source.created_by = $1)
     )`;
@@ -54,9 +53,7 @@ export async function createFeedback(
               id: valid.questionId,
               condition: `EXISTS (
               SELECT 1 FROM public.questions q WHERE q.id = $1
-                AND (q.created_by = $2 OR (q.status = 'published'
-                  AND q.default_published_version_id IS NOT NULL
-                  AND q.visibility IN ('public', 'unlisted')))
+                AND (q.created_by = $2 OR q.visibility = 'public')
           )`,
           }
         : valid.quizId
@@ -64,7 +61,7 @@ export async function createFeedback(
                 id: valid.quizId,
                 condition: `EXISTS (
                 SELECT 1 FROM public.quizzes q WHERE q.id = $1
-                  AND (q.created_by = $2 OR (q.status = 'published' AND q.visibility IN ('public', 'unlisted')))
+                  AND (q.created_by = $2 OR q.visibility = 'public')
             )`,
             }
           : {

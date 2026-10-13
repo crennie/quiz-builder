@@ -24,7 +24,7 @@ export function QuizListPage() {
     const tags = useQuery({ queryKey: ["tags", session?.user.id], queryFn: listTags });
     const filtered =
         quizzes.data?.items.filter((quiz) =>
-            quiz.currentVersion.title.toLowerCase().includes(search.toLowerCase()),
+            quiz.title.toLowerCase().includes(search.toLowerCase()),
         ) ?? [];
 
     return (
@@ -33,9 +33,7 @@ export function QuizListPage() {
                 <div>
                     <p className="eyebrow">Quiz builder</p>
                     <h1>Quizzes</h1>
-                    <p className="muted">
-                        Create and revise quizzes while keeping earlier attempts intact.
-                    </p>
+                    <p className="muted">Create personal quizzes and practice your questions.</p>
                 </div>
                 <Link className="button" to="/quizzes/new">
                     New quiz
@@ -109,14 +107,10 @@ export function QuizListPage() {
                                         to="/quizzes/$quizId"
                                         params={{ quizId: quiz.id }}
                                     >
-                                        {quiz.currentVersion.title}
+                                        {quiz.title}
                                     </Link>
-                                    <p className="muted small">
-                                        {quiz.currentVersion.questions.length} questions · Quiz
-                                        version {quiz.currentVersion.versionNumber}
-                                    </p>
+                                    <p className="muted small">{quiz.questions.length} questions</p>
                                     <div className="tag-row">
-                                        <span className="tag">{quiz.status}</span>
                                         <span className="tag">{quiz.visibility}</span>
                                         {quiz.tags.map((item) => (
                                             <span className="tag" key={item.id}>

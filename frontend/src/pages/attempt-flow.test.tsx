@@ -35,7 +35,6 @@ vi.mock("../api/quizzes", () => ({
 const ownerId = "123e4567-e89b-42d3-a456-426614174030";
 const learnerId = "223e4567-e89b-42d3-a456-426614174030";
 const quizId = "323e4567-e89b-42d3-a456-426614174030";
-const quizVersionId = "423e4567-e89b-42d3-a456-426614174030";
 const attemptId = "523e4567-e89b-42d3-a456-426614174030";
 const timestamp = "2026-09-28T00:00:00.000Z";
 const ids = [
@@ -56,89 +55,79 @@ const quiz: QuizDetail = {
     id: quizId,
     createdBy: ownerId,
     visibility: "public",
-    status: "published",
+    canEditContent: false,
     createdAt: timestamp,
     updatedAt: timestamp,
     tags: [],
     isOwner: false,
-    currentVersion: {
-        id: quizVersionId,
-        versionNumber: 1,
-        title: "World capitals",
-        description: "Practice geography",
-        settings: { shuffleQuestions: false, showAnswersAfterCompletion: true },
-        questions: [
-            {
-                id: ids[0]!,
-                position: 0,
-                questionId: ids[0]!,
-                questionVersionId: ids[0]!,
-                points: 1,
-                required: true,
-                timeLimitSeconds: null,
-                question: {
-                    prompt: "Capital of France?",
+    title: "World capitals",
+    description: "Practice geography",
+    settings: { shuffleQuestions: false, showAnswersAfterCompletion: true },
+    questions: [
+        {
+            id: ids[0]!,
+            position: 0,
+            questionId: ids[0]!,
+            points: 1,
+            required: true,
+            timeLimitSeconds: null,
+            question: {
+                prompt: "Capital of France?",
+                questionType: "exact_text",
+                answerConfig: { questionType: "exact_text", acceptedAnswers: ["Paris"] },
+                gradingConfig: {
                     questionType: "exact_text",
-                    answerConfig: { questionType: "exact_text", acceptedAnswers: ["Paris"] },
-                    gradingConfig: {
-                        questionType: "exact_text",
-                        caseSensitive: false,
-                        trimWhitespace: true,
-                    },
-                    explanation: null,
+                    caseSensitive: false,
+                    trimWhitespace: true,
                 },
+                explanation: null,
             },
-            {
-                id: ids[1]!,
-                position: 1,
-                questionId: ids[1]!,
-                questionVersionId: ids[1]!,
-                points: 1,
-                required: true,
-                timeLimitSeconds: null,
-                question: {
-                    prompt: "Capital of England?",
+        },
+        {
+            id: ids[1]!,
+            position: 1,
+            questionId: ids[1]!,
+            points: 1,
+            required: true,
+            timeLimitSeconds: null,
+            question: {
+                prompt: "Capital of England?",
+                questionType: "multiple_choice_single",
+                answerConfig: {
                     questionType: "multiple_choice_single",
-                    answerConfig: {
-                        questionType: "multiple_choice_single",
-                        options,
-                        correctOptionId: "london",
-                    },
-                    gradingConfig: { questionType: "multiple_choice_single" },
-                    explanation: null,
+                    options,
+                    correctOptionId: "london",
                 },
+                gradingConfig: { questionType: "multiple_choice_single" },
+                explanation: null,
             },
-            {
-                id: ids[2]!,
-                position: 2,
-                questionId: ids[2]!,
-                questionVersionId: ids[2]!,
-                points: 1,
-                required: true,
-                timeLimitSeconds: null,
-                question: {
-                    prompt: "Primary colors?",
+        },
+        {
+            id: ids[2]!,
+            position: 2,
+            questionId: ids[2]!,
+            points: 1,
+            required: true,
+            timeLimitSeconds: null,
+            question: {
+                prompt: "Primary colors?",
+                questionType: "multiple_choice_multi",
+                answerConfig: {
                     questionType: "multiple_choice_multi",
-                    answerConfig: {
-                        questionType: "multiple_choice_multi",
-                        options: multiOptions,
-                        correctOptionIds: ["red", "blue"],
-                    },
-                    gradingConfig: { questionType: "multiple_choice_multi" },
-                    explanation: null,
+                    options: multiOptions,
+                    correctOptionIds: ["red", "blue"],
                 },
+                gradingConfig: { questionType: "multiple_choice_multi" },
+                explanation: null,
             },
-        ],
-        createdBy: ownerId,
-        createdAt: timestamp,
-    },
+        },
+    ],
 };
 
 function initialAttempt(): AttemptDetail {
     return {
         id: attemptId,
         quizId,
-        quizVersionId,
         quizTitle: "World capitals",
         status: "in_progress",
         startedAt: timestamp,
@@ -504,9 +493,7 @@ it("retries failed history loading and shows its empty state", async () => {
         "Could not load attempts. History unavailable",
     );
     await user.click(screen.getByRole("button", { name: "Try again" }));
-    expect(
-        await screen.findByText("No attempts yet. Choose a published quiz to begin."),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("No attempts yet. Choose a quiz to begin.")).toBeInTheDocument();
 });
 
 it("shows a loading state while attempt history is pending", async () => {

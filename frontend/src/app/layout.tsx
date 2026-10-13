@@ -15,10 +15,9 @@ export function AppLayout() {
                 </Link>
                 <nav aria-label="Primary navigation">
                     <Link to="/">Home</Link>
-                    <Link to="/questions">Questions</Link>
+                    <Link to="/questions/mine">My questions</Link>
                     <Link to="/quizzes">Quizzes</Link>
                     <Link to="/attempts">Attempts</Link>
-                    {session ? <Link to="/work-items">Work queue</Link> : null}
                     {session ? (
                         <button
                             className="text-button"

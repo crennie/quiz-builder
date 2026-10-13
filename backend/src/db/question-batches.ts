@@ -21,8 +21,6 @@ type BatchRow = {
 type ItemRow = {
     item_key: string;
     question_id: string;
-    question_version_id: string;
-    current_version_id: string;
 };
 
 function canonicalJson(value: unknown): string {
@@ -48,7 +46,7 @@ async function loadBatch(
     const row = result.rows[0];
     if (!row) throw new AppError(404, "QUESTION_BATCH_NOT_FOUND", "Question batch not found");
     const items = await database.query<ItemRow>(
-        `SELECT i.item_key, i.question_id, i.question_version_id, q.current_version_id
+        `SELECT i.item_key, i.question_id
          FROM public.question_batch_items i
          JOIN public.questions q ON q.id = i.question_id
          WHERE i.batch_id = $1 ORDER BY i.position`,
@@ -62,8 +60,6 @@ async function loadBatch(
         items: items.rows.map((item) => ({
             key: item.item_key,
             questionId: item.question_id,
-            versionId: item.question_version_id,
-            currentVersionId: item.current_version_id,
         })),
     });
 }
@@ -193,14 +189,14 @@ export async function materializeQuestionBatchInTransaction(
     for (const [position, entry] of batch.artifact.questions.entries()) {
         const question = await createQuestionInTransaction(
             sponsorId,
-            { content: entry.content, visibility: "private" },
+            { content: entry.content },
             database,
         );
         await database.query(
             `INSERT INTO public.question_batch_items
-             (batch_id, item_key, position, question_id, question_version_id)
-             VALUES ($1, $2, $3, $4, $5)`,
-            [batchId, entry.key, position, question.id, question.currentVersion.id],
+             (batch_id, item_key, position, question_id)
+             VALUES ($1, $2, $3, $4)`,
+            [batchId, entry.key, position, question.id],
         );
         for (const tagId of tagIds)
             await database.query(

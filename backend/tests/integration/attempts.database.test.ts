@@ -1,335 +1,241 @@
-import { applyMigrations } from "./apply-migrations.ts";
-import { PGlite } from "@electric-sql/pglite";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-
-vi.mock("node:crypto", async (importOriginal) => ({
-    ...(await importOriginal<Record<string, unknown>>()),
-    randomInt: vi.fn(() => 0),
-}));
-
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+    testDatabase,
+    transaction,
+    fixture,
+    owner,
+    other,
+    content,
+    quizContent,
+} from "./v1-fixtures.ts";
+import { createQuestionInTransaction } from "../../src/db/question-bank.ts";
+import { createQuizInTransaction } from "../../src/db/quizzes.ts";
+import {
+    startAttemptInTransaction,
+    submitAnswerInTransaction,
     completeAttemptInTransaction,
     getAttempt,
     listAttempts,
-    startAttemptInTransaction,
-    submitAnswerInTransaction,
 } from "../../src/db/attempts.ts";
-import {
-    createQuestionInTransaction,
-    createQuestionVersionInTransaction,
-    publishQuestionInTransaction,
-    type QueryExecutor,
-} from "../../src/db/question-bank.ts";
-import {
-    createQuizInTransaction,
-    saveQuizContentInTransaction,
-    updateQuizMetadataInTransaction,
-} from "../../src/db/quizzes.ts";
-
-const ownerId = "00000000-0000-4000-8000-000000000301";
-const takerId = "00000000-0000-4000-8000-000000000302";
-const otherId = "00000000-0000-4000-8000-000000000303";
-const settings = { shuffleQuestions: false, showAnswersAfterCompletion: true };
-
-describe("quiz attempts", () => {
-    let database: PGlite;
-    let sql: QueryExecutor;
-
+describe("snapshot attempts", () => {
+    let s: Awaited<ReturnType<typeof testDatabase>>;
     beforeAll(async () => {
-        database = new PGlite();
-        sql = database as unknown as QueryExecutor;
-        await database.exec("CREATE SCHEMA auth; CREATE TABLE auth.users (id uuid PRIMARY KEY)");
-        await applyMigrations((sql) => database.exec(sql));
-        for (const id of [ownerId, takerId, otherId]) {
-            await database.query("INSERT INTO auth.users (id) VALUES ($1)", [id]);
-            await database.query(
-                "INSERT INTO public.profiles (id, display_name) VALUES ($1, 'User')",
-                [id],
-            );
-        }
+        s = await testDatabase();
     });
-    afterAll(async () => database.close());
-    beforeEach(async () => database.exec("BEGIN"));
-    afterEach(async () => database.exec("ROLLBACK"));
-
-    async function fixture(visibility: "public" | "unlisted" | "private" = "public") {
-        const contents = [
-            {
-                prompt: "Capital of France?",
-                questionType: "exact_text" as const,
-                answerConfig: { questionType: "exact_text" as const, acceptedAnswers: ["Paris"] },
-                gradingConfig: {
-                    questionType: "exact_text" as const,
-                    caseSensitive: false,
-                    trimWhitespace: true,
-                },
-                explanation: "Paris is the capital.",
-            },
-            {
-                prompt: "Choose one",
-                questionType: "multiple_choice_single" as const,
-                answerConfig: {
-                    questionType: "multiple_choice_single" as const,
-                    options: [
-                        { id: "a", text: "A" },
-                        { id: "b", text: "B" },
-                    ],
-                    correctOptionId: "b",
-                },
-                gradingConfig: { questionType: "multiple_choice_single" as const },
-                explanation: null,
-            },
-            {
-                prompt: "Choose both",
-                questionType: "multiple_choice_multi" as const,
-                answerConfig: {
-                    questionType: "multiple_choice_multi" as const,
-                    options: [
-                        { id: "a", text: "A" },
-                        { id: "b", text: "B" },
-                        { id: "c", text: "C" },
-                    ],
-                    correctOptionIds: ["a", "c"],
-                },
-                gradingConfig: { questionType: "multiple_choice_multi" as const },
-                explanation: null,
-            },
-        ];
-        const questions = [];
-        for (const content of contents) {
-            const question = await createQuestionInTransaction(
-                ownerId,
-                { content, visibility: "private" },
+    afterAll(async () => s.db.close());
+    it("takes a private quiz, grades fractional points, and preserves history after independent replacements", async () => {
+        const { db, sql } = s;
+        const { quiz } = await transaction(db, () => fixture(sql));
+        await expect(startAttemptInTransaction(quiz.id, other, sql)).rejects.toMatchObject({
+            code: "QUIZ_NOT_FOUND",
+        });
+        const a = await transaction(db, () => startAttemptInTransaction(quiz.id, owner, sql));
+        expect(a).toMatchObject({
+            quizTitle: "Geography",
+            status: "in_progress",
+            settings: { showAnswersAfterCompletion: true },
+        });
+        expect(a.questions[0]).toMatchObject({
+            prompt: content.prompt,
+            required: true,
+            timeLimitSeconds: 30,
+            pointsPossible: 2.5,
+            correctAnswer: null,
+        });
+        await expect(getAttempt(a.id, other, sql)).rejects.toMatchObject({
+            code: "ATTEMPT_NOT_FOUND",
+        });
+        await expect(completeAttemptInTransaction(a.id, owner, sql)).rejects.toMatchObject({
+            code: "REQUIRED_ANSWERS_MISSING",
+        });
+        await expect(
+            submitAnswerInTransaction(
+                a.id,
+                a.questions[0].id,
+                owner,
+                { questionType: "multiple_choice_single", optionId: "a" },
                 sql,
-            );
-            questions.push(
-                await publishQuestionInTransaction(
-                    question.id,
-                    ownerId,
-                    question.currentVersion.id,
-                    sql,
-                ),
-            );
-        }
-        const content = {
-            title: "Original title",
-            description: null,
-            settings,
-            questions: questions.map((question, index) => ({
-                questionId: question.id,
-                questionVersionId: question.currentVersion.id,
-                points: [2.5, 0.25, 1][index],
-                required: index !== 2,
-                timeLimitSeconds: null,
-            })),
-        };
-        const quiz = await createQuizInTransaction(
-            ownerId,
+            ),
+        ).rejects.toMatchObject({ code: "RESPONSE_TYPE_MISMATCH" });
+        const answered = await transaction(db, () =>
+            submitAnswerInTransaction(
+                a.id,
+                a.questions[0].id,
+                owner,
+                { questionType: "exact_text", text: " Paris " },
+                sql,
+            ),
+        );
+        expect(answered.questions[0].pointsAwarded).toBeNull();
+        await expect(
+            submitAnswerInTransaction(
+                a.id,
+                a.questions[0].id,
+                owner,
+                { questionType: "exact_text", text: "Again" },
+                sql,
+            ),
+        ).rejects.toMatchObject({ code: "QUESTION_ALREADY_ANSWERED" });
+        const completed = await transaction(db, () =>
+            completeAttemptInTransaction(a.id, owner, sql),
+        );
+        expect(completed.scoreSummary).toEqual({ pointsPossible: 2.5, pointsAwarded: 2.5 });
+        expect(completed.questions[0].correctAnswer).toEqual(content.answerConfig);
+        const replacement = await createQuestionInTransaction(
+            owner,
             {
-                content,
-                visibility,
-                status: "published",
+                content: {
+                    ...content,
+                    prompt: "Replacement",
+                    answerConfig: { questionType: "exact_text", acceptedAnswers: ["London"] },
+                },
             },
             sql,
         );
-        return { quiz, questions, content, contents };
-    }
-
-    it("evaluates snapshots, completes, and preserves results after source versions change", async () => {
-        const { quiz, questions, content, contents } = await fixture();
-        const started = await startAttemptInTransaction(quiz.id, takerId, sql);
-        expect(started.quizVersionId).toBe(quiz.currentVersion.id);
-        expect(started.questions.map((question) => question.prompt)).toEqual(
-            contents.map((item) => item.prompt),
+        await transaction(db, () =>
+            createQuizInTransaction(owner, { content: quizContent(replacement.id) }, sql),
         );
-        expect(started.questions[1]?.options).toEqual(contents[1]?.answerConfig.options);
-        expect(JSON.stringify(started)).not.toContain("correctOptionId");
-        expect(JSON.stringify(started)).not.toContain("acceptedAnswers");
-        await expect(completeAttemptInTransaction(started.id, takerId, sql)).rejects.toMatchObject({
-            code: "REQUIRED_ANSWERS_MISSING",
+        expect(await getAttempt(a.id, owner, sql)).toEqual(completed);
+        expect((await listAttempts(owner, { limit: 50, offset: 0 }, sql)).items).toContainEqual(
+            completed,
+        );
+        for (const set of [
+            "question_snapshot='{}'",
+            "answer_snapshot='{}'",
+            "grading_snapshot='{}'",
+            "required=false",
+            "time_limit_seconds=99",
+            "points_possible=99",
+            "position=99",
+            "user_response='{}'",
+        ])
+            await expect(
+                sql.query(`UPDATE public.quiz_attempt_questions SET ${set} WHERE id=$1`, [
+                    a.questions[0].id,
+                ]),
+            ).rejects.toMatchObject({ code: "23514" });
+        for (const set of ["quiz_title_snapshot='Bypass'", "settings_snapshot='{}'"])
+            await expect(
+                sql.query(`UPDATE public.quiz_attempts SET ${set} WHERE id=$1`, [a.id]),
+            ).rejects.toMatchObject({ code: "23514" });
+    });
+    it("rejects empty quizzes and hides answers using snapshotted settings", async () => {
+        const { db, sql } = s;
+        const empty = await transaction(db, () =>
+            createQuizInTransaction(
+                owner,
+                { content: { ...quizContent(owner), questions: [] } },
+                sql,
+            ),
+        );
+        await expect(startAttemptInTransaction(empty.id, owner, sql)).rejects.toMatchObject({
+            code: "EMPTY_QUIZ",
         });
-        await expect(getAttempt(started.id, otherId, sql)).rejects.toMatchObject({
-            code: "ATTEMPT_NOT_FOUND",
-        });
-        await expect(
+        const q = await createQuestionInTransaction(owner, { content }, sql);
+        const input = quizContent(q.id);
+        input.settings.showAnswersAfterCompletion = false;
+        input.questions[0].required = false;
+        const quiz = await transaction(db, () =>
+            createQuizInTransaction(owner, { content: input }, sql),
+        );
+        const a = await transaction(db, () => startAttemptInTransaction(quiz.id, owner, sql));
+        await transaction(db, () =>
             submitAnswerInTransaction(
-                started.id,
-                started.questions[0].id,
-                otherId,
+                a.id,
+                a.questions[0].id,
+                owner,
                 { questionType: "exact_text", text: "Paris" },
                 sql,
             ),
-        ).rejects.toMatchObject({ code: "ATTEMPT_NOT_FOUND" });
+        );
+        const end = await transaction(db, () => completeAttemptInTransaction(a.id, owner, sql));
+        expect(end.questions[0]).toMatchObject({
+            correctAnswer: null,
+            explanation: null,
+            evaluationResult: { explanation: null },
+        });
+    });
+    it("validates choices and preserves optional unanswered questions and shuffled repetition", async () => {
+        const { db, sql } = s;
+        const q = await createQuestionInTransaction(
+            owner,
+            {
+                content: {
+                    prompt: "Choose A",
+                    questionType: "multiple_choice_single",
+                    answerConfig: {
+                        questionType: "multiple_choice_single",
+                        options: [
+                            { id: "a", text: "A" },
+                            { id: "b", text: "B" },
+                        ],
+                        correctOptionId: "a",
+                    },
+                    gradingConfig: { questionType: "multiple_choice_single" },
+                    explanation: null,
+                },
+            },
+            sql,
+        );
+        const input = quizContent(q.id);
+        input.settings.shuffleQuestions = true;
+        input.questions = [
+            { ...input.questions[0], required: false },
+            { ...input.questions[0], required: false },
+        ];
+        const quiz = await transaction(db, () =>
+            createQuizInTransaction(owner, { content: input }, sql),
+        );
+        const a = await transaction(db, () => startAttemptInTransaction(quiz.id, owner, sql));
+        expect(a.questions).toHaveLength(2);
         await expect(
             submitAnswerInTransaction(
-                started.id,
-                started.questions[1].id,
-                takerId,
+                a.id,
+                a.questions[0].id,
+                owner,
                 { questionType: "multiple_choice_single", optionId: "missing" },
                 sql,
             ),
         ).rejects.toMatchObject({ code: "INVALID_CHOICE" });
+        const completed = await transaction(db, () =>
+            completeAttemptInTransaction(a.id, owner, sql),
+        );
+        expect(completed.scoreSummary).toEqual({ pointsPossible: 5, pointsAwarded: 0 });
+    });
+    it("rejects partial snapshots, later snapshot additions, and reopening completed results", async () => {
+        const { db, sql } = s;
+        const { quiz } = await transaction(db, () => fixture(sql));
         await expect(
+            transaction(db, async () => {
+                await sql.query(
+                    `INSERT INTO public.quiz_attempts(quiz_id,user_id,quiz_title_snapshot,settings_snapshot)
+             SELECT id,$2,title,settings FROM public.quizzes WHERE id=$1`,
+                    [quiz.id, owner],
+                );
+            }),
+        ).rejects.toMatchObject({ code: "23514" });
+        const a = await transaction(db, () => startAttemptInTransaction(quiz.id, owner, sql));
+        await expect(
+            sql.query(
+                `INSERT INTO public.quiz_attempt_questions(quiz_attempt_id,question_id,position,question_snapshot,answer_snapshot,grading_snapshot,required,time_limit_seconds,points_possible)
+         SELECT quiz_attempt_id,question_id,99,question_snapshot,answer_snapshot,grading_snapshot,required,time_limit_seconds,points_possible
+         FROM public.quiz_attempt_questions WHERE id=$1`,
+                [a.questions[0].id],
+            ),
+        ).rejects.toMatchObject({ code: "23514" });
+        await transaction(db, () =>
             submitAnswerInTransaction(
-                started.id,
-                started.questions[2].id,
-                takerId,
-                { questionType: "multiple_choice_multi", optionIds: ["missing"] },
+                a.id,
+                a.questions[0].id,
+                owner,
+                { questionType: "exact_text", text: "Paris" },
                 sql,
             ),
-        ).rejects.toMatchObject({ code: "INVALID_CHOICE" });
-
-        const afterText = await submitAnswerInTransaction(
-            started.id,
-            started.questions[0].id,
-            takerId,
-            { questionType: "exact_text", text: " paris " },
-            sql,
         );
-        expect(afterText.questions[0]?.evaluationResult).toBeNull();
-        await expect(
-            submitAnswerInTransaction(
-                started.id,
-                started.questions[0].id,
-                takerId,
-                { questionType: "exact_text", text: "wrong" },
-                sql,
-            ),
-        ).rejects.toMatchObject({
-            code: "QUESTION_ALREADY_ANSWERED",
-        });
-        await submitAnswerInTransaction(
-            started.id,
-            started.questions[1].id,
-            takerId,
-            { questionType: "multiple_choice_single", optionId: "a" },
-            sql,
-        );
-        await submitAnswerInTransaction(
-            started.id,
-            started.questions[2].id,
-            takerId,
-            { questionType: "multiple_choice_multi", optionIds: ["c", "a"] },
-            sql,
-        );
-        const completed = await completeAttemptInTransaction(started.id, takerId, sql);
-        expect(completed.scoreSummary).toEqual({ pointsPossible: 3.75, pointsAwarded: 3.5 });
-        expect(completed.questions.map((question) => question.evaluationResult?.isCorrect)).toEqual(
-            [true, false, true],
-        );
-        expect(completed.questions[0]?.explanation).toBe("Paris is the capital.");
-        expect(completed.questions[0]?.correctAnswer).toEqual(contents[0]?.answerConfig);
-        await expect(
-            submitAnswerInTransaction(
-                started.id,
-                started.questions[1].id,
-                takerId,
-                { questionType: "multiple_choice_single", optionId: "b" },
-                sql,
-            ),
-        ).rejects.toMatchObject({ code: "ATTEMPT_CLOSED" });
-        await expect(completeAttemptInTransaction(started.id, takerId, sql)).rejects.toMatchObject({
-            code: "ATTEMPT_CLOSED",
-        });
-
-        await createQuestionVersionInTransaction(
-            questions[0].id,
-            ownerId,
-            {
-                ...contents[0],
-                prompt: "New prompt",
-                answerConfig: {
-                    questionType: "exact_text",
-                    acceptedAnswers: ["London"],
-                },
-            },
-            sql,
-        );
-        await saveQuizContentInTransaction(
-            quiz.id,
-            ownerId,
-            { ...content, title: "New title" },
-            sql,
-        );
-        const history = await getAttempt(started.id, takerId, sql);
-        expect(history.quizTitle).toBe("Original title");
-        expect(history.questions[0]?.prompt).toBe("Capital of France?");
-        expect(history.scoreSummary).toEqual(completed.scoreSummary);
-        expect((await listAttempts(takerId, { limit: 20, offset: 0 }, sql)).items[0]?.id).toBe(
-            started.id,
-        );
-        expect((await listAttempts(otherId, { limit: 20, offset: 0 }, sql)).items).toEqual([]);
-    });
-
-    it("enforces quiz visibility and lifecycle at start", async () => {
-        const { quiz } = await fixture("private");
-        await expect(startAttemptInTransaction(quiz.id, takerId, sql)).rejects.toMatchObject({
-            code: "QUIZ_NOT_FOUND",
-        });
-        expect((await startAttemptInTransaction(quiz.id, ownerId, sql)).status).toBe("in_progress");
-        await updateQuizMetadataInTransaction(quiz.id, ownerId, { visibility: "unlisted" }, sql);
-        expect((await startAttemptInTransaction(quiz.id, takerId, sql)).status).toBe("in_progress");
-        await updateQuizMetadataInTransaction(quiz.id, ownerId, { status: "archived" }, sql);
-        await expect(startAttemptInTransaction(quiz.id, takerId, sql)).rejects.toMatchObject({
-            code: "QUIZ_NOT_FOUND",
-        });
-    });
-
-    it("allows unanswered optional questions and hides explanations when configured", async () => {
-        const { quiz, content } = await fixture();
-        await saveQuizContentInTransaction(
-            quiz.id,
-            ownerId,
-            {
-                ...content,
-                settings: { ...settings, showAnswersAfterCompletion: false },
-            },
-            sql,
-        );
-        const started = await startAttemptInTransaction(quiz.id, takerId, sql);
-        await submitAnswerInTransaction(
-            started.id,
-            started.questions[0].id,
-            takerId,
-            { questionType: "exact_text", text: "Paris" },
-            sql,
-        );
-        await submitAnswerInTransaction(
-            started.id,
-            started.questions[1].id,
-            takerId,
-            { questionType: "multiple_choice_single", optionId: "b" },
-            sql,
-        );
-        const completed = await completeAttemptInTransaction(started.id, takerId, sql);
-        expect(completed.scoreSummary).toEqual({ pointsPossible: 3.75, pointsAwarded: 2.75 });
-        expect(completed.questions[0]?.explanation).toBeNull();
-        expect(completed.questions[0]?.correctAnswer).toBeNull();
-        expect(completed.questions[0]?.evaluationResult?.explanation).toBeNull();
-        expect(completed.questions[2]?.pointsAwarded).toBeNull();
-    });
-
-    it("shuffles presentation order while retaining each question snapshot", async () => {
-        const { quiz, content, contents } = await fixture();
-        await saveQuizContentInTransaction(
-            quiz.id,
-            ownerId,
-            { ...content, settings: { ...settings, shuffleQuestions: true } },
-            sql,
-        );
-        const started = await startAttemptInTransaction(quiz.id, takerId, sql);
-        expect(started.questions.map((question) => question.position)).toEqual([0, 1, 2]);
-        expect(started.questions.map((question) => question.prompt)).toEqual([
-            contents[1]?.prompt,
-            contents[2]?.prompt,
-            contents[0]?.prompt,
-        ]);
-        expect(started.questions.map((question) => question.questionType)).toEqual([
-            "multiple_choice_single",
-            "multiple_choice_multi",
-            "exact_text",
-        ]);
-        expect(started.questions[0]?.options).toEqual(contents[1]?.answerConfig.options);
-        expect(started.questions[1]?.options).toEqual(contents[2]?.answerConfig.options);
+        await transaction(db, () => completeAttemptInTransaction(a.id, owner, sql));
+        for (const set of ["status='in_progress'", "score_summary='{}'"])
+            await expect(
+                sql.query(`UPDATE public.quiz_attempts SET ${set} WHERE id=$1`, [a.id]),
+            ).rejects.toMatchObject({ code: "23514" });
     });
 });

@@ -4,66 +4,58 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { verifyAccessToken } from "../../src/auth/supabase.ts";
 import {
     createQuestion,
-    getBankQuestionDetail,
-    listQuestions,
+    getQuestionDetail,
+    listManagedQuestions,
 } from "../../src/db/question-bank.ts";
 import { getOrCreateProfile } from "../../src/db/profiles.ts";
 
 vi.mock("../../src/auth/supabase.ts", () => ({ verifyAccessToken: vi.fn() }));
 vi.mock("../../src/db/profiles.ts", () => ({ getOrCreateProfile: vi.fn() }));
 vi.mock("../../src/db/question-bank.ts", () => ({
-    assignQuestionTag: vi.fn(),
     createQuestion: vi.fn(),
-    createQuestionVersion: vi.fn(),
-    createTag: vi.fn(),
-    getBankQuestionDetail: vi.fn(),
     getQuestionDetail: vi.fn(),
-    getQuestionVersions: vi.fn(),
-    getPublishedQuestionVersions: vi.fn(),
-    listQuestions: vi.fn(),
     listManagedQuestions: vi.fn(),
+    saveQuestionContent: vi.fn(),
+    createTag: vi.fn(),
     listTags: vi.fn(),
-    publishQuestion: vi.fn(),
-    unpublishQuestion: vi.fn(),
-    archiveQuestion: vi.fn(),
-    restoreQuestion: vi.fn(),
+    assignQuestionTag: vi.fn(),
     removeQuestionTag: vi.fn(),
-    updateQuestionMetadata: vi.fn(),
 }));
 
 import { app } from "../../src/app.ts";
 
 const userId = "123e4567-e89b-42d3-a456-426614174000";
 const questionId = "223e4567-e89b-42d3-a456-426614174000";
-const versionId = "323e4567-e89b-42d3-a456-426614174000";
 const timestamp = "2026-09-28T00:00:00.000Z";
+const content = {
+    prompt: "What is two plus two?",
+    questionType: "exact_text" as const,
+    answerConfig: { questionType: "exact_text" as const, acceptedAnswers: ["4"] },
+    gradingConfig: {
+        questionType: "exact_text" as const,
+        caseSensitive: false,
+        trimWhitespace: true,
+    },
+    explanation: null,
+};
 const detail = {
+    ...content,
     id: questionId,
     createdBy: userId,
-    visibility: "public" as const,
-    status: "published" as const,
+    visibility: "private" as const,
     createdAt: timestamp,
     updatedAt: timestamp,
     tags: [],
-    isOwner: false,
-    currentVersion: {
-        id: versionId,
-        versionNumber: 1,
-        prompt: "What is two plus two?",
-        questionType: "exact_text" as const,
-        answerConfig: { questionType: "exact_text" as const, acceptedAnswers: ["4"] },
-        gradingConfig: {
-            questionType: "exact_text" as const,
-            caseSensitive: false,
-            trimWhitespace: true,
-        },
-        explanation: "Two and two make four.",
-        createdBy: userId,
-        createdAt: timestamp,
-    },
+    isOwner: true,
+    canEditContent: true,
+    contentLockedAt: null,
 };
-const { currentVersion: publishedVersion, ...identity } = detail;
-const bankDetail = { ...identity, publishedVersion };
+const bankDetail = {
+    ...detail,
+    visibility: "public" as const,
+    isOwner: false,
+    canEditContent: false,
+};
 
 describe("question bank API", () => {
     beforeEach(() => {
@@ -78,14 +70,14 @@ describe("question bank API", () => {
         });
     });
 
-    it("returns full published question content to an anonymous reader", async () => {
-        vi.mocked(getBankQuestionDetail).mockResolvedValueOnce(bankDetail);
+    it("returns public direct question content to an anonymous reader", async () => {
+        vi.mocked(getQuestionDetail).mockResolvedValueOnce(bankDetail);
 
         const response = await request(app).get(`/api/v1/questions/${questionId}`);
 
         expect(response.status).toBe(200);
         expect(response.body).toEqual(bankDetail);
-        expect(getBankQuestionDetail).toHaveBeenCalledWith(questionId, null);
+        expect(getQuestionDetail).toHaveBeenCalledWith(questionId, null);
         expect(verifyAccessToken).not.toHaveBeenCalled();
     });
 
@@ -95,7 +87,7 @@ describe("question bank API", () => {
             .set("Authorization", "Bearer token with spaces");
 
         expect(response.status).toBe(401);
-        expect(getBankQuestionDetail).not.toHaveBeenCalled();
+        expect(getQuestionDetail).not.toHaveBeenCalled();
     });
 
     it("requires a user access token to create a question", async () => {
@@ -105,11 +97,9 @@ describe("question bank API", () => {
         expect(createQuestion).not.toHaveBeenCalled();
     });
 
-    it("creates a question with private draft defaults", async () => {
+    it("creates a private direct question", async () => {
         vi.mocked(createQuestion).mockResolvedValueOnce({
             ...detail,
-            visibility: "private",
-            status: "draft",
             isOwner: true,
         });
 
@@ -118,24 +108,23 @@ describe("question bank API", () => {
             .set("Authorization", "Bearer verified-token")
             .send({
                 content: {
-                    prompt: detail.currentVersion.prompt,
-                    questionType: detail.currentVersion.questionType,
-                    answerConfig: detail.currentVersion.answerConfig,
-                    gradingConfig: detail.currentVersion.gradingConfig,
-                    explanation: detail.currentVersion.explanation,
+                    prompt: content.prompt,
+                    questionType: content.questionType,
+                    answerConfig: content.answerConfig,
+                    gradingConfig: content.gradingConfig,
+                    explanation: content.explanation,
                 },
             });
 
         expect(response.status).toBe(201);
         expect(createQuestion).toHaveBeenCalledWith(userId, {
             content: {
-                prompt: detail.currentVersion.prompt,
-                questionType: detail.currentVersion.questionType,
-                answerConfig: detail.currentVersion.answerConfig,
-                gradingConfig: detail.currentVersion.gradingConfig,
-                explanation: detail.currentVersion.explanation,
+                prompt: content.prompt,
+                questionType: content.questionType,
+                answerConfig: content.answerConfig,
+                gradingConfig: content.gradingConfig,
+                explanation: content.explanation,
             },
-            visibility: "private",
         });
     });
 
@@ -175,11 +164,11 @@ describe("question bank API", () => {
             .set("Authorization", "Bearer verified-token")
             .send({
                 content: {
-                    prompt: detail.currentVersion.prompt,
-                    questionType: detail.currentVersion.questionType,
-                    answerConfig: detail.currentVersion.answerConfig,
-                    gradingConfig: detail.currentVersion.gradingConfig,
-                    explanation: detail.currentVersion.explanation,
+                    prompt: content.prompt,
+                    questionType: content.questionType,
+                    answerConfig: content.answerConfig,
+                    gradingConfig: content.gradingConfig,
+                    explanation: content.explanation,
                 },
                 status: "published",
             });
@@ -189,9 +178,11 @@ describe("question bank API", () => {
     });
 
     it("validates list pagination", async () => {
-        const response = await request(app).get("/api/v1/questions?limit=1000");
+        const response = await request(app)
+            .get("/api/v1/questions/mine?limit=1000")
+            .set("Authorization", "Bearer verified-token");
 
         expect(response.status).toBe(400);
-        expect(listQuestions).not.toHaveBeenCalled();
+        expect(listManagedQuestions).not.toHaveBeenCalled();
     });
 });

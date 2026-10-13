@@ -3,14 +3,12 @@ import { describe, expect, it } from "vitest";
 import { evaluateAnswer } from "../../src/evaluation/deterministic.ts";
 
 const questionId = "123e4567-e89b-42d3-a456-426614174010";
-const questionVersionId = "223e4567-e89b-42d3-a456-426614174010";
 
 describe("deterministic evaluation", () => {
     it("honors text case and whitespace settings", () => {
         const snapshots = {
             question: {
                 questionId,
-                questionVersionId,
                 prompt: "Answer",
                 questionType: "exact_text",
                 explanation: null,
@@ -41,7 +39,6 @@ describe("deterministic evaluation", () => {
         const snapshots = {
             question: {
                 questionId,
-                questionVersionId,
                 prompt: "Choose",
                 questionType: "multiple_choice_multi",
                 explanation: null,
@@ -77,7 +74,6 @@ describe("deterministic evaluation", () => {
         const snapshots = {
             question: {
                 questionId,
-                questionVersionId,
                 prompt: "Choose one",
                 questionType: "multiple_choice_single",
                 explanation: null,

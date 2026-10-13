@@ -1,5 +1,7 @@
 # REST endpoints pilot
 
+> Superseded by [the V1 domain restructure](v1-domain-restructure.md) and [ADR-009](../architecture/decisions/ADR-009-direct-v1-domain.md). Version, review, publication and worker procedures below are historical and must not be executed. Private batch artifact import remains available.
+
 **Status:** Batch drafted · **Target:** one ten-question batch · **Topic:** REST endpoints
 
 This is the production ledger for the first topic in the [question bank seeding plan](question-bank-seeding.md). Each row is one distinct learning objective and one single-choice question in the [ten-question pilot artifact](../examples/rest-endpoints-pilot-batch.json). The earlier [five-question example](../examples/rest-endpoints-batch.json) was the starting point. Keep fact-checking references and review decisions here because the retained batch artifact has no fields for them.

@@ -1,11 +1,8 @@
 import {
     quizDetailSchema,
     quizListResponseSchema,
-    quizVersionsResponseSchema,
-    type ContentStatus,
     type QuizContent,
     type QuizDetail,
-    type Visibility,
 } from "@quiz-builder/contracts";
 
 import { authenticatedRequest } from "./client";
@@ -25,17 +22,7 @@ export async function getQuiz(id: string): Promise<QuizDetail> {
     return quizDetailSchema.parse(await authenticatedRequest<unknown>(`/v1/quizzes/${id}`));
 }
 
-export async function getQuizVersions(id: string) {
-    return quizVersionsResponseSchema.parse(
-        await authenticatedRequest<unknown>(`/v1/quizzes/${id}/versions`),
-    );
-}
-
-export async function createQuiz(input: {
-    content: QuizContent;
-    visibility: Visibility;
-    status: "draft" | "published";
-}): Promise<QuizDetail> {
+export async function createQuiz(input: { content: QuizContent }): Promise<QuizDetail> {
     return quizDetailSchema.parse(
         await authenticatedRequest<unknown>("/v1/quizzes", {
             method: "POST",
@@ -49,18 +36,6 @@ export async function saveQuizContent(id: string, content: QuizContent): Promise
         await authenticatedRequest<unknown>(`/v1/quizzes/${id}/content`, {
             method: "PUT",
             body: body(content),
-        }),
-    );
-}
-
-export async function updateQuizMetadata(
-    id: string,
-    value: { visibility?: Visibility; status?: ContentStatus },
-): Promise<QuizDetail> {
-    return quizDetailSchema.parse(
-        await authenticatedRequest<unknown>(`/v1/quizzes/${id}`, {
-            method: "PATCH",
-            body: body(value),
         }),
     );
 }

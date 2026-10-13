@@ -12,13 +12,19 @@ describe("OpenAPI document", () => {
         expect(document.paths?.["/health"]?.get?.responses?.["200"]).toBeDefined();
         expect(document.paths?.["/api/v1/me"]?.get?.security).toEqual([{ BearerAuth: [] }]);
         expect(document.paths?.["/api/v1/questions"]?.post?.security).toEqual([{ BearerAuth: [] }]);
-        expect(document.paths?.["/api/v1/questions/{questionId}/versions"]?.post).toBeDefined();
+        expect(document.paths?.["/api/v1/questions/{questionId}/content"]?.put).toBeDefined();
         expect(document.paths?.["/api/v1/questions/{questionId}/tags/{tagId}"]?.put).toBeDefined();
         expect(document.paths?.["/api/v1/tags"]?.post).toBeDefined();
         expect(document.paths?.["/api/v1/quizzes"]?.post?.security).toEqual([{ BearerAuth: [] }]);
         expect(document.paths?.["/api/v1/quizzes/{quizId}/content"]?.put).toBeDefined();
-        expect(document.paths?.["/api/v1/quizzes/{quizId}/versions"]?.get).toBeDefined();
+        expect(document.paths?.["/api/v1/courses"]?.get).toBeDefined();
         expect(document.paths?.["/api/v1/quizzes/{quizId}/tags/{tagId}"]?.put).toBeDefined();
+        expect(document.paths?.["/api/v1/questions"]?.get).toBeUndefined();
+        expect(
+            Object.keys(document.paths ?? {}).some((path) =>
+                /versions|work-items|agent-questions|publish|review-submissions/.test(path),
+            ),
+        ).toBe(false);
         expect(document.components?.securitySchemes?.BearerAuth).toBeDefined();
         expect(document.components?.schemas?.ErrorResponse).toBeDefined();
     });

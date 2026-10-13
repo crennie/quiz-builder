@@ -1,5 +1,7 @@
 # Content workflow closeout and agent handover
 
+> Superseded by [the V1 domain restructure](v1-domain-restructure.md) and [ADR-009](../architecture/decisions/ADR-009-direct-v1-domain.md). Version, review, publication and worker procedures below are historical and must not be executed. Private batch artifact import remains available.
+
 **Phase 4 closeout snapshot (2026-10-01):** Phases 1–4 are implemented in the repository. Docker-free validation passed at closeout. Full release validation remained pending because this container had no Docker executable, so it could not run the local Supabase stack, generated-type drift check, browser tests, or a live PostgreSQL service. No migration was applied to a hosted project and no branch was pushed. The later question-batch extension is covered by [ADR-008](../architecture/decisions/ADR-008-question-batch-artifact-ingestion.md) and the [current phase index](../architecture/README.md#content-workflow-phase-coverage).
 
 ## Completed in this closeout

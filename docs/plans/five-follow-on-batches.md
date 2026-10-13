@@ -1,5 +1,7 @@
 # Five follow-on question batches
 
+> Superseded by [the V1 domain restructure](v1-domain-restructure.md) and [ADR-009](../architecture/decisions/ADR-009-direct-v1-domain.md). Version, review, publication and worker procedures below are historical and must not be executed. Private batch artifact import remains available.
+
 **Status:** Drafted locally. These artifacts have not been retained or materialized.
 
 Each batch uses the [agreed review rubric](rest-endpoints-pilot.md#agreed-review-rubric). References and learning objectives stay in this ledger because the immutable batch schema has no fields for them. `Question ID` and `Published version` remain pending until the workflow produces them. A row counts toward coverage only after publication.

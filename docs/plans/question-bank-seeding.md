@@ -1,5 +1,7 @@
 # Question bank seeding epic
 
+> Superseded by [the V1 domain restructure](v1-domain-restructure.md) and [ADR-009](../architecture/decisions/ADR-009-direct-v1-domain.md). Version, review, publication and worker procedures below are historical and must not be executed. Private batch artifact import remains available.
+
 **Status:** In progress · **Started:** 2026-10-01 · **Current phase:** 2 — pilot REST endpoints
 
 **Checkpoint (2026-10-02):** Phase 1 is complete. The REST pilot is a local JSON draft at SEED-21; it has not been previewed in the application, retained, or materialized. No REST pilot questions have been submitted for human review yet. The five follow-on batches are also local drafts for Phase 3. Human review and the final publication gate follow materialization and submission.

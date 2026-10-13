@@ -25,14 +25,12 @@ import { app } from "../../src/app.ts";
 
 const userId = "123e4567-e89b-42d3-a456-426614174001";
 const quizId = "223e4567-e89b-42d3-a456-426614174001";
-const versionId = "323e4567-e89b-42d3-a456-426614174001";
 const attemptId = "423e4567-e89b-42d3-a456-426614174001";
 const questionId = "523e4567-e89b-42d3-a456-426614174001";
 const timestamp = "2026-09-28T00:00:00.000Z";
 const attempt = {
     id: attemptId,
     quizId,
-    quizVersionId: versionId,
     quizTitle: "Quiz",
     status: "in_progress" as const,
     startedAt: timestamp,

@@ -7,8 +7,7 @@ import {
     ingestQuestionBatch,
     listQuestionBatches,
     materializeQuestionBatch,
-    submitQuestionReview,
-} from "../api/content-workflow";
+} from "../api/question-batches";
 import { useAuth } from "../auth/auth-state";
 
 export function QuestionBatchPage() {
@@ -48,13 +47,6 @@ export function QuestionBatchPage() {
             await client.invalidateQueries({ queryKey: ["tags"] });
         },
     });
-    const review = useMutation({
-        mutationFn: ({ questionId, versionId }: { questionId: string; versionId: string }) =>
-            submitQuestionReview(questionId, versionId),
-        onSuccess: async () => {
-            await client.invalidateQueries({ queryKey: ["work-items"] });
-        },
-    });
 
     async function readFile(file: File | undefined) {
         setArtifact(null);
@@ -80,8 +72,7 @@ export function QuestionBatchPage() {
                 <p className="eyebrow">Batch ingestion</p>
                 <h1>Import questions</h1>
                 <p className="muted">
-                    Upload one versioned JSON batch. Import retains the artifact; materialization
-                    creates private drafts. Submit each draft for review when ready.
+                    Upload a JSON batch, then create private questions that you can use immediately.
                 </p>
             </div>
             <section className="panel form-grid">
@@ -141,7 +132,7 @@ export function QuestionBatchPage() {
                         <li key={batch.id}>
                             <button type="button" onClick={() => setSelectedId(batch.id)}>
                                 {batch.topic} · {batch.materializedCount}/{batch.questionCount}{" "}
-                                drafts
+                                questions
                             </button>
                         </li>
                     ))}
@@ -168,14 +159,14 @@ export function QuestionBatchPage() {
                             disabled={materialize.isPending}
                             onClick={() => materialize.mutate(current.id)}
                         >
-                            Create private drafts
+                            Create private questions
                         </button>
                     ) : (
                         <ol>
                             {current.items.map((item) => (
                                 <li key={item.key}>
                                     <Link
-                                        to="/questions/mine/$questionId"
+                                        to="/questions/$questionId"
                                         params={{ questionId: item.questionId }}
                                     >
                                         {item.key}:{" "}
@@ -185,27 +176,11 @@ export function QuestionBatchPage() {
                                             )?.content.prompt
                                         }
                                     </Link>{" "}
-                                    <button
-                                        type="button"
-                                        disabled={review.isPending}
-                                        onClick={() =>
-                                            review.mutate({
-                                                questionId: item.questionId,
-                                                versionId: item.currentVersionId,
-                                            })
-                                        }
-                                    >
-                                        Submit for review
-                                    </button>
                                 </li>
                             ))}
                         </ol>
                     )}
                     {materialize.isError ? <p role="alert">{materialize.error.message}</p> : null}
-                    {review.isError ? <p role="alert">{review.error.message}</p> : null}
-                    {review.isSuccess ? (
-                        <p role="status">Review item queued. Open the work queue to act on it.</p>
-                    ) : null}
                 </section>
             ) : null}
         </div>

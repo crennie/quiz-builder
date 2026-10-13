@@ -7,7 +7,7 @@ import {
     feedbackCategorySchema,
     questionBatchArtifactSchema,
     questionTypeSchema,
-    questionVersionContentSchema,
+    questionContentSchema,
     quizContentSchema,
     userResponseSchema,
 } from "./index.ts";
@@ -84,9 +84,9 @@ test("choice answer configuration references existing unique choices", () => {
     );
 });
 
-test("a question version cannot mix answer and grading types", () => {
+test("question content cannot mix answer and grading types", () => {
     assert.equal(
-        questionVersionContentSchema.safeParse({
+        questionContentSchema.safeParse({
             prompt: "Prompt",
             questionType: "exact_text",
             answerConfig: { questionType: "exact_text", acceptedAnswers: ["yes"] },
@@ -118,7 +118,7 @@ test("feedback categories match the V1 set", () => {
     assert.equal(feedbackCategorySchema.safeParse("general_chat").success, false);
 });
 
-test("quiz content requires explicit question versions and permits fractional points", () => {
+test("quiz content uses direct question IDs and permits fractional points", () => {
     const content = {
         title: " Study ",
         description: null,
@@ -126,7 +126,6 @@ test("quiz content requires explicit question versions and permits fractional po
         questions: [
             {
                 questionId: "00000000-0000-4000-8000-000000000001",
-                questionVersionId: "00000000-0000-4000-8000-000000000002",
                 points: 0.25,
                 required: false,
                 timeLimitSeconds: null,
@@ -140,6 +139,7 @@ test("quiz content requires explicit question versions and permits fractional po
             questions: [
                 {
                     questionId: content.questions[0]?.questionId,
+                    questionVersionId: "00000000-0000-4000-8000-000000000002",
                     points: 1,
                     required: true,
                     timeLimitSeconds: null,

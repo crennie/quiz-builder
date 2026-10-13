@@ -4,24 +4,20 @@ import { questionBatchArtifactSchema, type QuestionBatch } from "@quiz-builder/c
 import type { Session } from "@supabase/supabase-js";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import * as workflow from "../api/content-workflow";
+import * as workflow from "../api/question-batches";
 import { router } from "../app/router";
 import { createQueryClient } from "../app/query-client";
 import { AuthContext } from "../auth/auth-state";
 
-vi.mock("../api/content-workflow", () => ({
+vi.mock("../api/question-batches", () => ({
     getQuestionBatch: vi.fn(),
     ingestQuestionBatch: vi.fn(),
     listQuestionBatches: vi.fn(),
     materializeQuestionBatch: vi.fn(),
-    submitQuestionReview: vi.fn(),
-    listWorkItems: vi.fn(),
-    requestAgentQuestion: vi.fn(),
 }));
 
 const owner = "00000000-0000-4000-8000-000000000821";
 const questionId = "00000000-0000-4000-8000-000000000822";
-const versionId = "00000000-0000-4000-8000-000000000823";
 const artifact = questionBatchArtifactSchema.parse({
     schemaVersion: 1,
     batchKey: "00000000-0000-4000-8000-000000000824",
@@ -54,10 +50,10 @@ const retained: QuestionBatch = {
 };
 const materialized: QuestionBatch = {
     ...retained,
-    items: [{ key: "rest-01", questionId, versionId, currentVersionId: versionId }],
+    items: [{ key: "rest-01", questionId }],
 };
 
-it("uploads a batch artifact, materializes drafts, then explicitly submits one for review", async () => {
+it("uploads a batch artifact and materializes usable private questions", async () => {
     const user = userEvent.setup();
     let current = retained;
     vi.mocked(workflow.listQuestionBatches).mockImplementation(() =>
@@ -82,23 +78,6 @@ it("uploads a batch artifact, materializes drafts, then explicitly submits one f
     vi.mocked(workflow.materializeQuestionBatch).mockImplementation(() => {
         current = materialized;
         return Promise.resolve(materialized);
-    });
-    vi.mocked(workflow.submitQuestionReview).mockResolvedValue({
-        id: "00000000-0000-4000-8000-000000000826",
-        queueName: "question-review",
-        itemType: "REVIEW_QUESTION",
-        questionId,
-        questionVersionId: versionId,
-        versionNumber: 1,
-        prompt: artifact.questions[0]!.content.prompt,
-        input: { schemaVersion: 1, type: "REVIEW_QUESTION", versionId },
-        status: "pending",
-        attempts: 0,
-        claimGeneration: 0,
-        claimToken: null,
-        assignedAgentActorId: null,
-        leaseUntil: null,
-        createdAt: retained.createdAt,
     });
     vi.spyOn(window, "scrollTo").mockImplementation(() => {});
     const testRouter = createRouter({
@@ -127,15 +106,16 @@ it("uploads a batch artifact, materializes drafts, then explicitly submits one f
     await waitFor(() =>
         expect(workflow.ingestQuestionBatch).toHaveBeenCalledWith(artifact, expect.anything()),
     );
-    await user.click(await screen.findByRole("button", { name: "Create private drafts" }));
+    await user.click(await screen.findByRole("button", { name: "Create private questions" }));
     await waitFor(() =>
         expect(workflow.materializeQuestionBatch).toHaveBeenCalledWith(
             retained.id,
             expect.anything(),
         ),
     );
-    await user.click(await screen.findByRole("button", { name: "Submit for review" }));
-    await waitFor(() =>
-        expect(workflow.submitQuestionReview).toHaveBeenCalledWith(questionId, versionId),
+    expect(await screen.findByRole("link", { name: /rest-01/ })).toHaveAttribute(
+        "href",
+        `/questions/${questionId}`,
     );
+    expect(screen.queryByRole("button", { name: "Submit for review" })).not.toBeInTheDocument();
 });

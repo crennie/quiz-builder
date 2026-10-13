@@ -1,353 +1,111 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
-import { useState } from "react";
-import type { QuestionVersionContent, Visibility } from "@quiz-builder/contracts";
-
-import {
-    archiveQuestion,
-    assignQuestionTag,
-    createQuestionVersion,
-    getQuestion,
-    getQuestionVersions,
-    listTags,
-    removeQuestionTag,
-    publishQuestion,
-    restoreQuestion,
-    unpublishQuestion,
-    updateQuestionMetadata,
-} from "../api/questions";
+import { getQuestion, saveQuestionContent } from "../api/questions";
 import { useAuth } from "../auth/auth-state";
 import { QuestionEditor } from "../components/question-editor";
-import { submitQuestionReview } from "../api/content-workflow";
-
+import { ContentTags } from "../components/content-tags";
+import { FeedbackForm } from "../components/feedback-form";
+import type { QuestionContent } from "@quiz-builder/contracts";
 export function QuestionDetailPage() {
-    const { questionId } = useParams({ from: "/questions/mine/$questionId" });
+    const { questionId } = useParams({ from: "/questions/$questionId" });
     const { session } = useAuth();
-    const queryClient = useQueryClient();
-    const [tagId, setTagId] = useState("");
-    const [actionError, setActionError] = useState("");
-    const question = useQuery({
+    const client = useQueryClient();
+    const query = useQuery({
         queryKey: ["question", session?.user.id, questionId],
         queryFn: () => getQuestion(questionId),
     });
-    const tags = useQuery({ queryKey: ["tags", session?.user.id], queryFn: listTags });
-    const versions = useQuery({
-        queryKey: ["question-versions", session?.user.id, questionId],
-        queryFn: () => getQuestionVersions(questionId),
-        enabled: question.data?.isOwner === true,
-    });
-    const saveVersion = useMutation({
-        mutationFn: (content: QuestionVersionContent) => createQuestionVersion(questionId, content),
-        onSuccess: () => {
-            void refresh();
+    const save = useMutation({
+        mutationFn: (content: QuestionContent) => saveQuestionContent(questionId, content),
+        onSuccess: async () => {
+            await client.invalidateQueries({
+                queryKey: ["question", session?.user.id, questionId],
+            });
+            await client.invalidateQueries({ queryKey: ["questions"] });
         },
     });
-    const updateMetadata = useMutation({
-        mutationFn: (value: { visibility: Visibility }) =>
-            updateQuestionMetadata(questionId, value),
-        onSuccess: () => {
-            void refresh();
-        },
-    });
-    const lifecycle = useMutation({
-        mutationFn: (action: "publish" | "unpublish" | "archive" | "restore") => {
-            if (action === "publish")
-                return publishQuestion(questionId, question.data!.currentVersion.id);
-            if (action === "unpublish") return unpublishQuestion(questionId);
-            if (action === "archive") return archiveQuestion(questionId);
-            return restoreQuestion(questionId);
-        },
-        onSuccess: () => {
-            void refresh();
-        },
-    });
-    const submitReview = useMutation({
-        mutationFn: () => submitQuestionReview(questionId, question.data!.currentVersion.id),
-        onSuccess: () => {
-            void queryClient.invalidateQueries({ queryKey: ["work-items"] });
-        },
-    });
-    const assignTag = useMutation({
-        mutationFn: (id: string) => assignQuestionTag(questionId, id),
-        onSuccess: () => {
-            setTagId("");
-            void refresh();
-        },
-    });
-    const removeTag = useMutation({
-        mutationFn: (id: string) => removeQuestionTag(questionId, id),
-        onSuccess: () => {
-            void refresh();
-        },
-    });
-
-    async function refresh() {
-        await Promise.all([
-            queryClient.invalidateQueries({ queryKey: ["question", session?.user.id, questionId] }),
-            queryClient.invalidateQueries({
-                queryKey: ["question-versions", session?.user.id, questionId],
-            }),
-            queryClient.invalidateQueries({ queryKey: ["questions"] }),
-        ]);
-    }
-    async function changeMetadata(value: { visibility: Visibility }) {
-        setActionError("");
-        try {
-            await updateMetadata.mutateAsync(value);
-        } catch (error) {
-            setActionError(error instanceof Error ? error.message : "Could not update question.");
-        }
-    }
-    async function changeLifecycle(action: "publish" | "unpublish" | "archive" | "restore") {
-        setActionError("");
-        try {
-            await lifecycle.mutateAsync(action);
-        } catch (error) {
-            setActionError(
-                error instanceof Error ? error.message : "Could not change question lifecycle.",
-            );
-        }
-    }
-    async function addTag() {
-        if (!tagId) return;
-        setActionError("");
-        try {
-            await assignTag.mutateAsync(tagId);
-        } catch (error) {
-            setActionError(error instanceof Error ? error.message : "Could not add tag.");
-        }
-    }
-    async function sendForReview() {
-        setActionError("");
-        try {
-            await submitReview.mutateAsync();
-        } catch (error) {
-            setActionError(error instanceof Error ? error.message : "Could not submit review.");
-        }
-    }
-    async function dropTag(id: string) {
-        setActionError("");
-        try {
-            await removeTag.mutateAsync(id);
-        } catch (error) {
-            setActionError(error instanceof Error ? error.message : "Could not remove tag.");
-        }
-    }
-
-    if (question.isPending) return <p role="status">Loading question…</p>;
-    if (question.isError)
+    if (query.isPending) return <p role="status">Loading question…</p>;
+    if (query.isError)
         return (
-            <div className="message-panel" role="alert">
+            <div role="alert">
                 <h1>Question unavailable</h1>
-                <p>{question.error.message}</p>
-                <Link to="/questions/mine">Return to my questions</Link>
+                <p>{query.error.message}</p>
+                <Link to="/questions/mine">My questions</Link>
             </div>
         );
-    const current = question.data;
-    const availableTags =
-        tags.data?.filter((item) => !current.tags.some((assigned) => assigned.id === item.id)) ??
-        [];
+    const q = query.data;
+    const answer = q.answerConfig;
     return (
         <div className="page-stack narrow">
             <Link to="/questions/mine">← My questions</Link>
-            <div>
-                <p className="eyebrow">Question · Version {current.currentVersion.versionNumber}</p>
-                <h1>{current.currentVersion.prompt}</h1>
-                <p className="muted">
-                    {current.currentVersion.questionType.replaceAll("_", " ")} · {current.status} ·{" "}
-                    {current.visibility}
-                </p>
-                {current.agentOriginRunId ? (
-                    <p className="muted small">
-                        Agent-origin question. You own this draft; publication requires human review
-                        and a final gate decision.
-                    </p>
-                ) : null}
-                {current.batchOriginId ? (
-                    <p className="muted small">
-                        Imported from a question batch. Review and a final gate decision are
-                        required before publication.{" "}
-                        <Link to="/questions/batches">View batches</Link>.
-                    </p>
-                ) : null}
-            </div>
-            {current.isOwner ? (
-                <>
-                    <section className="panel form-grid">
-                        <h2>Access and lifecycle</h2>
-                        <label>
-                            Visibility
-                            <select
-                                aria-label="Visibility"
-                                value={current.visibility}
-                                disabled={updateMetadata.isPending}
-                                onChange={(event) => {
-                                    void changeMetadata({
-                                        visibility: event.target.value as Visibility,
-                                    });
-                                }}
-                            >
-                                <option value="private">Private</option>
-                                <option value="unlisted">Unlisted</option>
-                                <option value="public">Public</option>
-                            </select>
-                        </label>
-                        <div className="quiz-actions">
-                            {current.status === "archived" ? (
-                                <button
-                                    type="button"
-                                    onClick={() => void changeLifecycle("restore")}
-                                >
-                                    Restore question
-                                </button>
-                            ) : (
-                                <>
-                                    {!current.agentOriginRunId && !current.batchOriginId ? (
-                                        <button
-                                            type="button"
-                                            onClick={() => void changeLifecycle("publish")}
-                                        >
-                                            Publish current version
-                                        </button>
-                                    ) : null}
-                                    <button
-                                        type="button"
-                                        className="secondary"
-                                        disabled={submitReview.isPending}
-                                        onClick={() => void sendForReview()}
-                                    >
-                                        Submit for review
-                                    </button>
-                                    {current.status === "published" ? (
-                                        <button
-                                            type="button"
-                                            className="secondary"
-                                            onClick={() => void changeLifecycle("unpublish")}
-                                        >
-                                            Unpublish question
-                                        </button>
-                                    ) : null}
-                                    <button
-                                        type="button"
-                                        className="secondary"
-                                        onClick={() => void changeLifecycle("archive")}
-                                    >
-                                        Archive question
-                                    </button>
-                                </>
-                            )}
-                        </div>
-                        <p className="muted small">
-                            Submitting a version for review sends it through content approval and a
-                            final publication gate.{" "}
-                            <Link to="/work-items">Open the work queue</Link>.
-                        </p>
-                    </section>
-                    <section className="panel">
-                        <h2>Tags</h2>
-                        <div className="tag-row">
-                            {current.tags.length ? (
-                                current.tags.map((item) => (
-                                    <button
-                                        className="tag removable"
-                                        type="button"
-                                        key={item.id}
-                                        onClick={() => {
-                                            void dropTag(item.id);
-                                        }}
-                                        aria-label={`Remove ${item.name} tag`}
-                                    >
-                                        {item.name} ×
-                                    </button>
-                                ))
-                            ) : (
-                                <span className="muted">No tags yet.</span>
-                            )}
-                        </div>
-                        <div className="inline-form">
-                            <label className="sr-only" htmlFor="assign-tag">
-                                Tag to add
-                            </label>
-                            <select
-                                id="assign-tag"
-                                value={tagId}
-                                onChange={(event) => setTagId(event.target.value)}
-                            >
-                                <option value="">Choose a tag</option>
-                                {availableTags.map((item) => (
-                                    <option value={item.id} key={item.id}>
-                                        {item.name}
-                                    </option>
-                                ))}
-                            </select>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    void addTag();
-                                }}
-                                disabled={!tagId || assignTag.isPending}
-                            >
-                                Add tag
-                            </button>
-                        </div>
-                        <p className="muted small">Create tags in the question bank.</p>
-                    </section>
-                    {actionError ? (
-                        <p role="alert" className="error-text">
-                            {actionError}
-                        </p>
-                    ) : null}
-                    {current.status === "archived" ? (
-                        <section className="panel">
-                            <h2>Archived question</h2>
-                            <p className="muted">Archived questions cannot be revised.</p>
-                        </section>
-                    ) : (
-                        <section className="panel">
-                            <h2>Revise question</h2>
-                            <p className="muted">
-                                Saving creates a new immutable version. Existing quizzes keep their
-                                selected version.
-                            </p>
-                            <QuestionEditor
-                                key={current.currentVersion.id}
-                                initial={current.currentVersion}
-                                submitLabel="Save new version"
-                                busy={saveVersion.isPending}
-                                onSave={async (content) => {
-                                    await saveVersion.mutateAsync(content);
-                                }}
-                            />
-                        </section>
-                    )}
-                    <section className="panel">
-                        <h2>Version history</h2>
-                        {versions.isPending ? <p role="status">Loading versions…</p> : null}
-                        {versions.isError ? (
-                            <p role="alert">Could not load versions. {versions.error.message}</p>
-                        ) : null}
-                        {versions.data ? (
-                            <ol className="version-list">
-                                {versions.data.versions.map((version) => (
-                                    <li key={version.id}>
-                                        <strong>Version {version.versionNumber}</strong>
-                                        {version.agentRunId ? " · Agent generated" : ""} ·{" "}
-                                        {version.prompt}
-                                        <span className="muted small">
-                                            {new Date(version.createdAt).toLocaleDateString()}
-                                        </span>
+            <h1>{q.prompt}</h1>
+            <p>
+                {q.questionType.replaceAll("_", " ")} · {q.visibility}
+            </p>
+            <section className="panel">
+                <h2>Question content</h2>
+                {answer.questionType === "exact_text" ? (
+                    <>
+                        <h3>Accepted answers</h3>
+                        <ul>
+                            {answer.acceptedAnswers.map((text, index) => (
+                                <li key={index}>{text}</li>
+                            ))}
+                        </ul>
+                    </>
+                ) : (
+                    <>
+                        <h3>Choices</h3>
+                        <ol>
+                            {answer.options.map((option) => {
+                                const correct =
+                                    answer.questionType === "multiple_choice_single"
+                                        ? answer.correctOptionId === option.id
+                                        : answer.correctOptionIds.includes(option.id);
+                                return (
+                                    <li key={option.id}>
+                                        {option.text}
+                                        {correct ? " · Correct" : null}
                                     </li>
-                                ))}
-                            </ol>
-                        ) : null}
-                    </section>
-                </>
+                                );
+                            })}
+                        </ol>
+                    </>
+                )}
+                {q.gradingConfig.questionType === "exact_text" ? (
+                    <p className="muted">
+                        {q.gradingConfig.caseSensitive ? "Case sensitive" : "Case insensitive"} ·{" "}
+                        {q.gradingConfig.trimWhitespace
+                            ? "Leading and trailing spaces ignored"
+                            : "Spaces must match"}
+                    </p>
+                ) : null}
+                <p>{q.explanation}</p>
+            </section>
+            {q.isOwner ? <ContentTags id={q.id} kind="question" tags={q.tags} /> : null}
+            {q.canEditContent ? (
+                <section className="panel">
+                    <h2>Edit question</h2>
+                    <QuestionEditor
+                        key={q.updatedAt}
+                        initial={q}
+                        busy={save.isPending}
+                        submitLabel="Save question"
+                        onSave={async (c) => {
+                            await save.mutateAsync(c);
+                        }}
+                    />
+                </section>
             ) : (
                 <section className="panel">
-                    <h2>Question content</h2>
-                    <p>{current.currentVersion.prompt}</p>
+                    <p>
+                        {q.contentLockedAt
+                            ? "This question has been used in a quiz and is permanently locked. Create a new question to make changes."
+                            : "Public question content is read-only."}
+                    </p>
+                    {q.isOwner ? <Link to="/questions/new">New question</Link> : null}
                 </section>
             )}
+            <FeedbackForm target={{ questionId: q.id }} />
         </div>
     );
 }

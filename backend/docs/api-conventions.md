@@ -7,7 +7,7 @@ types, response validation, and OpenAPI component schemas. OpenAPI operation met
 HTTP method, path, summary, and status descriptions lives in `src/openapi/document.ts` because it
 has no equivalent in a data schema.
 
-Shared question, quiz, and tag contracts come from `@quiz-builder/contracts`; build that package before
+Shared direct content, course/lesson, attempt, feedback, batch and tag contracts come from `@quiz-builder/contracts`; build that package before
 backend validation or builds. The backend accepts their schemas at request/response boundaries
 without maintaining parallel copies.
 
@@ -20,13 +20,12 @@ Define route schemas near the route or its feature under `src/`. Validate each a
 boundary at the start of the handler with `validateRequest`:
 
 ```ts
-const createQuestionRequest = {
-    params: z.object({ questionId: z.string().uuid() }),
-    query: z.object({ dryRun: z.stringbool().default(false) }),
-    body: z.object({ prompt: z.string().trim().min(1) }),
+const saveQuestionRequest = {
+    params: z.strictObject({ questionId: z.uuid() }),
+    body: questionContentSchema,
 };
 
-const { params, query, body } = validateRequest(request, createQuestionRequest);
+const { params, body } = validateRequest(request, saveQuestionRequest);
 ```
 
 - Path parameters arrive as strings; validate their format explicitly.
@@ -78,3 +77,12 @@ Domain routes belong under `/api/v1`, as specified by the
 [Architecture & Implementation Plan](../../architecture-plan.md). `/health` is operational and
 remains unversioned. Protected routes use Supabase Auth user access tokens via the HTTP bearer
 scheme. `GET /api/v1/me` is the current-user endpoint.
+
+## Direct V1 authoring contracts
+
+Creation bodies are strict `{ content: QuestionContent | QuizContent }` contracts for their specific
+route. Visibility, lifecycle and content-version fields are rejected. Quiz composition uses only
+question IDs, points, required flags and timing. Direct question/quiz DTOs expose derived
+`canEditContent`; the backend remains authoritative and returns 409 for substantive locked edits.
+Course/lesson routes are public reads only. No version/publication/review/agent/work-item operations
+are registered. Snapshot attempts retain API URL version `/api/v1` without entity content versions.

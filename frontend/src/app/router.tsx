@@ -8,14 +8,11 @@ import { RequireAuth } from "../auth/require-auth";
 import { QuestionBankPage } from "../pages/question-bank-page";
 import { NewQuestionPage } from "../pages/new-question-page";
 import { QuestionDetailPage } from "../pages/question-detail-page";
-import { BankQuestionDetailPage } from "../pages/bank-question-detail-page";
 import { QuizListPage } from "../pages/quiz-list-page";
 import { NewQuizPage } from "../pages/new-quiz-page";
 import { QuizDetailPage } from "../pages/quiz-detail-page";
 import { AttemptHistoryPage } from "../pages/attempt-history-page";
 import { AttemptPage } from "../pages/attempt-page";
-import { WorkQueuePage } from "../pages/work-queue-page";
-import { AgentQuestionPage } from "../pages/agent-question-page";
 import { QuestionBatchPage } from "../pages/question-batch-page";
 
 const rootRoute = createRootRoute({ component: AppLayout, notFoundComponent: NotFoundPage });
@@ -25,21 +22,12 @@ const signInRoute = createRoute({
     path: "/sign-in",
     component: SignInPage,
 });
-const questionBankRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: "/questions",
-    component: () => (
-        <RequireAuth>
-            <QuestionBankPage />
-        </RequireAuth>
-    ),
-});
 const myQuestionsRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/questions/mine",
     component: () => (
         <RequireAuth>
-            <QuestionBankPage mine />
+            <QuestionBankPage />
         </RequireAuth>
     ),
 });
@@ -64,15 +52,6 @@ const questionBatchRoute = createRoute({
 const questionDetailRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/questions/$questionId",
-    component: () => (
-        <RequireAuth>
-            <BankQuestionDetailPage />
-        </RequireAuth>
-    ),
-});
-const manageQuestionRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: "/questions/mine/$questionId",
     component: () => (
         <RequireAuth>
             <QuestionDetailPage />
@@ -115,24 +94,6 @@ const attemptHistoryRoute = createRoute({
         </RequireAuth>
     ),
 });
-const workQueueRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: "/work-items",
-    component: () => (
-        <RequireAuth>
-            <WorkQueuePage />
-        </RequireAuth>
-    ),
-});
-const agentQuestionRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: "/questions/agent",
-    component: () => (
-        <RequireAuth>
-            <AgentQuestionPage />
-        </RequireAuth>
-    ),
-});
 const attemptRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/attempts/$attemptId",
@@ -147,18 +108,14 @@ export const router = createRouter({
     routeTree: rootRoute.addChildren([
         homeRoute,
         signInRoute,
-        questionBankRoute,
         myQuestionsRoute,
         newQuestionRoute,
         questionBatchRoute,
         questionDetailRoute,
-        manageQuestionRoute,
         quizListRoute,
         newQuizRoute,
         quizDetailRoute,
         attemptHistoryRoute,
-        workQueueRoute,
-        agentQuestionRoute,
         attemptRoute,
     ]),
 });

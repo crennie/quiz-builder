@@ -74,7 +74,7 @@ export function AttemptHistoryPage() {
                         </ul>
                     ) : (
                         <div className="message-panel">
-                            <p>No attempts yet. Choose a published quiz to begin.</p>
+                            <p>No attempts yet. Choose a quiz to begin.</p>
                         </div>
                     )}
                     <div className="pagination">

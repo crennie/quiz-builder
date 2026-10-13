@@ -1,240 +1,108 @@
-import { applyMigrations } from "./apply-migrations.ts";
-import { PGlite } from "@electric-sql/pglite";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
-
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import {
+    testDatabase,
+    transaction,
+    fixture,
+    owner,
+    other,
+    third,
+    content,
+    quizContent,
+} from "./v1-fixtures.ts";
+import { createQuestionInTransaction } from "../../src/db/question-bank.ts";
+import { createQuizInTransaction } from "../../src/db/quizzes.ts";
 import { startAttemptInTransaction } from "../../src/db/attempts.ts";
 import {
     createFeedback,
     listReceivedFeedback,
     updateFeedbackStatus,
 } from "../../src/db/feedback.ts";
-import {
-    createQuestionInTransaction,
-    publishQuestionInTransaction,
-    type QueryExecutor,
-} from "../../src/db/question-bank.ts";
-import { createQuizInTransaction, updateQuizMetadataInTransaction } from "../../src/db/quizzes.ts";
-
-const ownerId = "00000000-0000-4000-8000-000000000401";
-const learnerId = "00000000-0000-4000-8000-000000000402";
-const outsiderId = "00000000-0000-4000-8000-000000000403";
-const content = {
-    prompt: "What is two plus two?",
-    questionType: "exact_text" as const,
-    answerConfig: { questionType: "exact_text" as const, acceptedAnswers: ["4"] },
-    gradingConfig: {
-        questionType: "exact_text" as const,
-        caseSensitive: false,
-        trimWhitespace: true,
-    },
-    explanation: null,
-};
-
-describe("feedback persistence", () => {
-    let database: PGlite;
-    let sql: QueryExecutor;
-
+describe("feedback access", () => {
+    let s: Awaited<ReturnType<typeof testDatabase>>;
     beforeAll(async () => {
-        database = new PGlite();
-        sql = database as unknown as QueryExecutor;
-        await database.exec("CREATE SCHEMA auth; CREATE TABLE auth.users (id uuid PRIMARY KEY)");
-        await applyMigrations((sql) => database.exec(sql));
-        for (const id of [ownerId, learnerId, outsiderId]) {
-            await database.query("INSERT INTO auth.users (id) VALUES ($1)", [id]);
-            await database.query(
-                "INSERT INTO public.profiles (id, display_name) VALUES ($1, 'User')",
-                [id],
-            );
+        s = await testDatabase();
+    });
+    afterAll(async () => s.db.close());
+    it("authorizes direct content feedback and owner-only triage", async () => {
+        const { db, sql } = s;
+        const { question, quiz } = await transaction(db, () => fixture(sql));
+        await expect(
+            createFeedback(
+                other,
+                { questionId: question.id, category: "typo", comment: "Private" },
+                sql,
+            ),
+        ).rejects.toMatchObject({ code: "FEEDBACK_TARGET_NOT_FOUND" });
+        await expect(
+            createFeedback(other, { quizId: quiz.id, category: "other", comment: "Private" }, sql),
+        ).rejects.toMatchObject({ code: "FEEDBACK_TARGET_NOT_FOUND" });
+        const f = await createFeedback(
+            owner,
+            { questionId: question.id, category: "typo", comment: "Typo" },
+            sql,
+        );
+        expect(
+            (await listReceivedFeedback(owner, { limit: 50, offset: 0 }, sql)).items,
+        ).toContainEqual(f);
+        await expect(updateFeedbackStatus(f.id, other, "resolved", sql)).rejects.toMatchObject({
+            code: "FEEDBACK_NOT_FOUND",
+        });
+        const resolved = await updateFeedbackStatus(f.id, owner, "resolved", sql);
+        expect(resolved.reviewedAt).not.toBeNull();
+        expect((await updateFeedbackStatus(f.id, owner, "open", sql)).reviewedAt).toBeNull();
+        for (const cols of ["", ",question_id,quiz_id"]) {
+            const values = cols ? ",$2,$3" : "";
+            await expect(
+                sql.query(
+                    `INSERT INTO public.feedback(submitted_by,category,comment${cols}) VALUES($1,'other','Invalid'${values})`,
+                    cols ? [owner, question.id, quiz.id] : [owner],
+                ),
+            ).rejects.toMatchObject({ code: "23514" });
         }
     });
-    afterAll(async () => database.close());
-    beforeEach(async () => database.exec("BEGIN"));
-    afterEach(async () => database.exec("ROLLBACK"));
-
-    async function fixture(questionOwnerId = ownerId) {
-        const draft = await createQuestionInTransaction(
-            questionOwnerId,
-            { content, visibility: "public" },
-            sql,
+    it("delivers attempted-question feedback to both quiz and source owners without exposing learner attempts", async () => {
+        const { db, sql } = s;
+        const q = await createQuestionInTransaction(other, { content }, sql);
+        await sql.query("UPDATE public.questions SET visibility='public' WHERE id=$1", [q.id]);
+        const quiz = await transaction(db, () =>
+            createQuizInTransaction(owner, { content: quizContent(q.id) }, sql),
         );
-        const question = await publishQuestionInTransaction(
-            draft.id,
-            questionOwnerId,
-            draft.currentVersion.id,
-            sql,
-        );
-        const quiz = await createQuizInTransaction(
-            ownerId,
-            {
-                content: {
-                    title: "Practice",
-                    description: null,
-                    settings: { shuffleQuestions: false, showAnswersAfterCompletion: true },
-                    questions: [
-                        {
-                            questionId: question.id,
-                            questionVersionId: question.currentVersion.id,
-                            points: 1,
-                            required: true,
-                            timeLimitSeconds: null,
-                        },
-                    ],
-                },
-                visibility: "public",
-                status: "published",
-            },
-            sql,
-        );
-        const attempt = await startAttemptInTransaction(quiz.id, learnerId, sql);
-        return { question, quiz, attempt };
-    }
-
-    it("accepts every target type and lets content owners review feedback", async () => {
-        const { question, quiz, attempt } = await fixture();
-        const questionFeedback = await createFeedback(
-            learnerId,
-            {
-                questionId: question.id,
-                category: "typo",
-                comment: " Typo in prompt ",
-            },
-            sql,
-        );
-        const quizFeedback = await createFeedback(
-            learnerId,
-            {
-                quizId: quiz.id,
-                category: "other",
-                comment: "Helpful practice",
-            },
-            sql,
-        );
-        const attemptFeedback = await createFeedback(
-            learnerId,
-            {
-                quizAttemptQuestionId: attempt.questions[0].id,
-                category: "unfair_grading",
-                comment: "Please review this answer",
-            },
-            sql,
-        );
-        expect(questionFeedback).toMatchObject({
-            questionId: question.id,
-            quizId: null,
-            status: "open",
-        });
-        expect(quizFeedback).toMatchObject({ quizId: quiz.id, questionId: null });
-        expect(attemptFeedback).toMatchObject({
-            quizAttemptQuestionId: attempt.questions[0].id,
-            questionId: null,
-            quizId: null,
-        });
-        const received = await listReceivedFeedback(ownerId, { limit: 2, offset: 0 }, sql);
-        expect(received.items).toHaveLength(2);
-        expect(received.nextOffset).toBe(2);
-        expect(
-            (await listReceivedFeedback(ownerId, { limit: 20, offset: 0 }, sql)).items,
-        ).toHaveLength(3);
-        expect(
-            (await listReceivedFeedback(learnerId, { limit: 20, offset: 0 }, sql)).items,
-        ).toEqual([]);
-        await expect(
-            updateFeedbackStatus(questionFeedback.id, learnerId, "reviewed", sql),
-        ).rejects.toMatchObject({ code: "FEEDBACK_NOT_FOUND" });
-        const reviewed = await updateFeedbackStatus(questionFeedback.id, ownerId, "reviewed", sql);
-        expect(reviewed.reviewedAt).not.toBeNull();
-        const resolved = await updateFeedbackStatus(questionFeedback.id, ownerId, "resolved", sql);
-        expect(resolved.reviewedAt).toBe(reviewed.reviewedAt);
-        const dismissed = await updateFeedbackStatus(
-            questionFeedback.id,
-            ownerId,
-            "dismissed",
-            sql,
-        );
-        expect(dismissed.status).toBe("dismissed");
-        expect(dismissed.reviewedAt).toBe(reviewed.reviewedAt);
-        const reopened = await updateFeedbackStatus(questionFeedback.id, ownerId, "open", sql);
-        expect(reopened.reviewedAt).toBeNull();
-    });
-
-    it("rejects private or archived targets and foreign attempt questions", async () => {
-        const { question, quiz, attempt } = await fixture();
+        await sql.query("UPDATE public.quizzes SET visibility='public' WHERE id=$1", [quiz.id]);
+        const a = await transaction(db, () => startAttemptInTransaction(quiz.id, third, sql));
         await expect(
             createFeedback(
-                outsiderId,
+                owner,
                 {
-                    quizAttemptQuestionId: attempt.questions[0].id,
-                    category: "other",
-                    comment: "Not my attempt",
+                    quizAttemptQuestionId: a.questions[0].id,
+                    category: "unfair_grading",
+                    comment: "Foreign",
                 },
                 sql,
             ),
-        ).rejects.toMatchObject({
-            code: "FEEDBACK_TARGET_NOT_FOUND",
-        });
-        await updateQuizMetadataInTransaction(quiz.id, ownerId, { visibility: "private" }, sql);
-        await expect(
-            createFeedback(
-                outsiderId,
-                { quizId: quiz.id, category: "other", comment: "Hidden" },
-                sql,
-            ),
         ).rejects.toMatchObject({ code: "FEEDBACK_TARGET_NOT_FOUND" });
-        await database.query("UPDATE public.questions SET status = 'archived' WHERE id = $1", [
-            question.id,
-        ]);
-        await expect(
-            createFeedback(
-                outsiderId,
-                { questionId: question.id, category: "other", comment: "Archived" },
-                sql,
-            ),
-        ).rejects.toMatchObject({ code: "FEEDBACK_TARGET_NOT_FOUND" });
-        expect(
-            (await listReceivedFeedback(outsiderId, { limit: 20, offset: 0 }, sql)).items,
-        ).toEqual([]);
-    });
-
-    it("shows attempted-question feedback to quiz and source-question owners", async () => {
-        const { attempt } = await fixture(outsiderId);
-        const feedback = await createFeedback(
-            learnerId,
+        const f = await createFeedback(
+            third,
             {
-                quizAttemptQuestionId: attempt.questions[0].id,
-                category: "ambiguous_question",
-                comment: "This wording is unclear",
+                quizAttemptQuestionId: a.questions[0].id,
+                category: "unfair_grading",
+                comment: "Check",
             },
             sql,
         );
+        for (const id of [owner, other])
+            expect(
+                (await listReceivedFeedback(id, { limit: 50, offset: 0 }, sql)).items,
+            ).toContainEqual(f);
         expect(
-            (await listReceivedFeedback(ownerId, { limit: 20, offset: 0 }, sql)).items[0]?.id,
-        ).toBe(feedback.id);
+            (await listReceivedFeedback(third, { limit: 50, offset: 0 }, sql)).items,
+        ).not.toContainEqual(f);
+        expect((await updateFeedbackStatus(f.id, other, "reviewed", sql)).status).toBe("reviewed");
         expect(
-            (await listReceivedFeedback(outsiderId, { limit: 20, offset: 0 }, sql)).items[0]?.id,
-        ).toBe(feedback.id);
-        expect((await updateFeedbackStatus(feedback.id, outsiderId, "reviewed", sql)).status).toBe(
-            "reviewed",
-        );
-    });
-
-    it("enforces exactly one target in the database", async () => {
-        const { question, quiz } = await fixture();
-        await database.exec("SAVEPOINT invalid_feedback");
-        await expect(
-            database.query(
-                `INSERT INTO public.feedback (submitted_by, category, comment)
-             VALUES ($1, 'other', 'missing target')`,
-                [learnerId],
+            await createFeedback(
+                third,
+                { questionId: q.id, category: "other", comment: "Public" },
+                sql,
             ),
-        ).rejects.toThrow();
-        await database.exec("ROLLBACK TO SAVEPOINT invalid_feedback");
-        await expect(
-            database.query(
-                `INSERT INTO public.feedback (submitted_by, question_id, quiz_id, category, comment)
-             VALUES ($1, $2, $3, 'other', 'two targets')`,
-                [learnerId, question.id, quiz.id],
-            ),
-        ).rejects.toThrow();
-        await database.exec("ROLLBACK TO SAVEPOINT invalid_feedback");
+        ).toMatchObject({ questionId: q.id });
     });
 });

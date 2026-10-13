@@ -1,20 +1,11 @@
-# ADR-003: Store v1 responses and evaluations with attempt questions
+# ADR-003: JSONB attempt snapshots and evaluation
 
-Status: Accepted
-Date: 2026-09-29
+Status: accepted; direct identity fields clarified by ADR-009.
 
-## Context
-
-V1 supports one deterministic answer and evaluation per attempted question. The system also needs the original question, answer, grading, and settings data for historical consistency.
-
-## Decision
-
-Store snapshots, `user_response`, and `evaluation_result` as JSONB on attempt records. Validate their shapes with shared Zod schemas when writing and reading. Evaluate exact text and choice responses synchronously against frozen snapshots and store awarded points with the result.
-
-## Consequences
-
-One transaction can save an answer and its evaluation without a worker or additional response tables. The current model does not represent multiple submissions, regrading history, or evaluator revisions. Those capabilities require separate response/evaluation records or another explicit migration. Database checks ensure JSONB objects; Zod enforces the domain shape in application code.
-
-## Alternatives
-
-Separate response and evaluation tables would support revisions and audit history but add relationships and lifecycle behavior not needed for v1. The implementation plan reserves them for future work.
+Store immutable presentation/answer/grading snapshots alongside a response and evaluation JSONB on
+each attempt question. The attempt also snapshots quiz title and settings; required flags, timing and
+points belong to immutable attempt-question columns. Direct quiz/question FKs identify sources but
+historical reads and grading never join current source content or composition.
+Shared Zod schemas validate snapshots, responses, evaluation and numeric score summaries. Exact
+text/single/multi choice grading remains synchronous. Learner-only ownership and snapshotted display
+settings govern presentation. Separate response/evaluation tables and fuzzy/manual evaluation are deferred.

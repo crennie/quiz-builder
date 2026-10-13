@@ -11,18 +11,15 @@ vi.mock("../../src/db/quizzes.ts", () => ({
     assignQuizTag: vi.fn(),
     createQuiz: vi.fn(),
     getQuizDetail: vi.fn(),
-    getQuizVersions: vi.fn(),
     listQuizzes: vi.fn(),
     removeQuizTag: vi.fn(),
     saveQuizContent: vi.fn(),
-    updateQuizMetadata: vi.fn(),
 }));
 
 import { app } from "../../src/app.ts";
 
 const userId = "123e4567-e89b-42d3-a456-426614174000";
 const quizId = "223e4567-e89b-42d3-a456-426614174000";
-const versionId = "323e4567-e89b-42d3-a456-426614174000";
 const timestamp = "2026-09-28T00:00:00.000Z";
 const content = {
     title: "Study",
@@ -31,21 +28,15 @@ const content = {
     questions: [],
 };
 const detail = {
+    ...content,
     id: quizId,
     createdBy: userId,
     visibility: "public" as const,
-    status: "published" as const,
     createdAt: timestamp,
     updatedAt: timestamp,
     tags: [],
     isOwner: false,
-    currentVersion: {
-        id: versionId,
-        versionNumber: 1,
-        ...content,
-        createdBy: userId,
-        createdAt: timestamp,
-    },
+    canEditContent: false,
 };
 
 describe("quiz API", () => {
@@ -98,11 +89,10 @@ describe("quiz API", () => {
         expect(createQuiz).not.toHaveBeenCalled();
     });
 
-    it("creates a private draft by default and sends a no-op save to the backend", async () => {
+    it("creates private content and sends equivalent saves to the backend", async () => {
         const owned = {
             ...detail,
             visibility: "private" as const,
-            status: "draft" as const,
             isOwner: true,
         };
         vi.mocked(createQuiz).mockResolvedValueOnce(owned);
@@ -113,8 +103,6 @@ describe("quiz API", () => {
         expect(created.status).toBe(201);
         expect(createQuiz).toHaveBeenCalledWith(userId, {
             content,
-            visibility: "private",
-            status: "draft",
         });
         vi.mocked(saveQuizContent).mockResolvedValueOnce(owned);
         const saved = await request(app)
@@ -122,7 +110,7 @@ describe("quiz API", () => {
             .set("Authorization", "Bearer verified-token")
             .send(content);
         expect(saved.status).toBe(200);
-        expect(saved.body).toMatchObject({ currentVersion: { id: versionId } });
+        expect(saved.body).toMatchObject({ id: quizId, title: content.title });
         expect(saveQuizContent).toHaveBeenCalledWith(quizId, userId, content);
     });
 });

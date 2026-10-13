@@ -24,6 +24,7 @@ export function QuizStartPanel({ quiz }: { quiz: QuizDetail }) {
             const attempt = await start.mutateAsync();
             queryClient.setQueryData(["attempt", session?.user.id, attempt.id], attempt);
             void queryClient.invalidateQueries({ queryKey: ["attempts", session?.user.id] });
+            void queryClient.invalidateQueries({ queryKey: ["quiz", session?.user.id, quiz.id] });
             await navigate({ to: "/attempts/$attemptId", params: { attemptId: attempt.id } });
         } catch (caught) {
             setError(caught instanceof Error ? caught.message : "Could not start quiz.");
@@ -34,24 +35,23 @@ export function QuizStartPanel({ quiz }: { quiz: QuizDetail }) {
         <section className="panel">
             <h2>Take this quiz</h2>
             <p className="muted">
-                {quiz.currentVersion.questions.length} questions ·{" "}
-                {quiz.currentVersion.settings.shuffleQuestions
+                {quiz.questions.length} questions ·{" "}
+                {quiz.settings.shuffleQuestions
                     ? "Questions shuffled"
                     : "Questions in author order"}{" "}
                 ·{" "}
-                {quiz.currentVersion.settings.showAnswersAfterCompletion
+                {quiz.settings.showAnswersAfterCompletion
                     ? "Answers shown after completion"
                     : "Answers hidden in the review"}
             </p>
-            {quiz.status === "published" ? (
-                <button type="button" disabled={start.isPending} onClick={() => void begin()}>
-                    {start.isPending ? "Starting…" : "Start new attempt"}
-                </button>
-            ) : (
-                <p className="muted">
-                    This quiz is not published, so new attempts are unavailable.
-                </p>
-            )}
+            <button
+                type="button"
+                disabled={start.isPending || quiz.questions.length === 0}
+                onClick={() => void begin()}
+            >
+                {start.isPending ? "Starting…" : "Start new attempt"}
+            </button>
+            {quiz.questions.length === 0 ? <p>Add questions before starting an attempt.</p> : null}
             {error ? (
                 <p role="alert" className="error-text">
                     {error}

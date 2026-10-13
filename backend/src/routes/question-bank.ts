@@ -1,16 +1,11 @@
 import {
-    bankQuestionDetailSchema,
-    bankQuestionListResponseSchema,
     createQuestionBodySchema,
     createTagBodySchema,
     questionDetailSchema,
     questionListResponseSchema,
-    questionVersionContentSchema,
-    questionVersionsResponseSchema,
-    publishQuestionBodySchema,
+    questionContentSchema,
     tagListResponseSchema,
     tagSchema,
-    updateQuestionMetadataBodySchema,
     type QuestionDetail,
     type Tag,
 } from "@quiz-builder/contracts";
@@ -24,23 +19,14 @@ import {
     questionTagParamsSchema,
 } from "../api/schemas/question-bank.ts";
 import {
-    archiveQuestion,
     assignQuestionTag,
     createQuestion,
-    createQuestionVersion,
     createTag,
-    getBankQuestionDetail,
     getQuestionDetail,
-    getPublishedQuestionVersions,
-    getQuestionVersions,
     listManagedQuestions,
-    listQuestions,
     listTags,
-    publishQuestion,
+    saveQuestionContent,
     removeQuestionTag,
-    restoreQuestion,
-    unpublishQuestion,
-    updateQuestionMetadata,
 } from "../db/question-bank.ts";
 import { AppError } from "../errors/app-error.ts";
 import { optionalAuthentication, requireAuthentication } from "../middleware/authentication.ts";
@@ -52,17 +38,6 @@ function authenticatedUserId(request: Request): string {
 }
 
 export const questionBankRouter = Router();
-
-questionBankRouter.get("/questions", optionalAuthentication, async (request, response) => {
-    const { query } = validateRequest(request, { query: questionListQuerySchema });
-    const result = await listQuestions({
-        viewerId: request.authenticatedUser?.id ?? null,
-        tagSlug: query.tag,
-        limit: query.limit,
-        offset: query.offset,
-    });
-    sendResponse(response, 200, bankQuestionListResponseSchema, result);
-});
 
 questionBankRouter.get("/questions/mine", requireAuthentication, async (request, response) => {
     const { query } = validateRequest(request, { query: questionListQuerySchema });
@@ -80,36 +55,12 @@ questionBankRouter.get(
     optionalAuthentication,
     async (request, response) => {
         const { params } = validateRequest(request, { params: questionParamsSchema });
-        const question = await getBankQuestionDetail(
+        const question = await getQuestionDetail(
             params.questionId,
             request.authenticatedUser?.id ?? null,
         );
-        if (!question) throw new AppError(404, "QUESTION_NOT_FOUND", "Question not found");
-        sendResponse(response, 200, bankQuestionDetailSchema, question);
-    },
-);
-
-questionBankRouter.get(
-    "/questions/:questionId/manage",
-    requireAuthentication,
-    async (request, response) => {
-        const { params } = validateRequest(request, { params: questionParamsSchema });
-        const question = await getQuestionDetail(params.questionId, authenticatedUserId(request));
         if (!question) throw new AppError(404, "QUESTION_NOT_FOUND", "Question not found");
         sendResponse(response, 200, questionDetailSchema, question);
-    },
-);
-
-questionBankRouter.get(
-    "/questions/:questionId/published-versions",
-    optionalAuthentication,
-    async (request, response) => {
-        const { params } = validateRequest(request, { params: questionParamsSchema });
-        const versions = await getPublishedQuestionVersions(
-            params.questionId,
-            request.authenticatedUser?.id ?? null,
-        );
-        sendResponse(response, 200, questionVersionsResponseSchema, { versions });
     },
 );
 
@@ -123,94 +74,20 @@ questionBankRouter.post(
     },
 );
 
-questionBankRouter.get(
-    "/questions/:questionId/versions",
+questionBankRouter.put(
+    "/questions/:questionId/content",
     requireAuthentication,
     async (request, response) => {
-        const { params } = validateRequest(request, { params: questionParamsSchema });
-        const versions = await getQuestionVersions(params.questionId, authenticatedUserId(request));
-        sendResponse(response, 200, questionVersionsResponseSchema, { versions });
-    },
-);
-
-questionBankRouter.post(
-    "/questions/:questionId/versions",
-    requireAuthentication,
-    async (request, response: Response<QuestionDetail>) => {
         const { params, body } = validateRequest(request, {
             params: questionParamsSchema,
-            body: questionVersionContentSchema,
+            body: questionContentSchema,
         });
-        const question = await createQuestionVersion(
-            params.questionId,
-            authenticatedUserId(request),
-            body,
+        sendResponse(
+            response,
+            200,
+            questionDetailSchema,
+            await saveQuestionContent(params.questionId, authenticatedUserId(request), body),
         );
-        sendResponse(response, 201, questionDetailSchema, question);
-    },
-);
-
-questionBankRouter.patch(
-    "/questions/:questionId",
-    requireAuthentication,
-    async (request, response: Response<QuestionDetail>) => {
-        const { params, body } = validateRequest(request, {
-            params: questionParamsSchema,
-            body: updateQuestionMetadataBodySchema,
-        });
-        const question = await updateQuestionMetadata(
-            params.questionId,
-            authenticatedUserId(request),
-            body,
-        );
-        sendResponse(response, 200, questionDetailSchema, question);
-    },
-);
-
-questionBankRouter.post(
-    "/questions/:questionId/publish",
-    requireAuthentication,
-    async (request, response: Response<QuestionDetail>) => {
-        const { params, body } = validateRequest(request, {
-            params: questionParamsSchema,
-            body: publishQuestionBodySchema,
-        });
-        const question = await publishQuestion(
-            params.questionId,
-            authenticatedUserId(request),
-            body.versionId,
-        );
-        sendResponse(response, 200, questionDetailSchema, question);
-    },
-);
-
-questionBankRouter.post(
-    "/questions/:questionId/unpublish",
-    requireAuthentication,
-    async (request, response: Response<QuestionDetail>) => {
-        const { params } = validateRequest(request, { params: questionParamsSchema });
-        const question = await unpublishQuestion(params.questionId, authenticatedUserId(request));
-        sendResponse(response, 200, questionDetailSchema, question);
-    },
-);
-
-questionBankRouter.post(
-    "/questions/:questionId/archive",
-    requireAuthentication,
-    async (request, response: Response<QuestionDetail>) => {
-        const { params } = validateRequest(request, { params: questionParamsSchema });
-        const question = await archiveQuestion(params.questionId, authenticatedUserId(request));
-        sendResponse(response, 200, questionDetailSchema, question);
-    },
-);
-
-questionBankRouter.post(
-    "/questions/:questionId/restore",
-    requireAuthentication,
-    async (request, response: Response<QuestionDetail>) => {
-        const { params } = validateRequest(request, { params: questionParamsSchema });
-        const question = await restoreQuestion(params.questionId, authenticatedUserId(request));
-        sendResponse(response, 200, questionDetailSchema, question);
     },
 );
 

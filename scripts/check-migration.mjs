@@ -1,222 +1,82 @@
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
-import { resolve } from "node:path";
-
 import { PGlite } from "@electric-sql/pglite";
-
-const database = new PGlite();
-const migrationDirectory = resolve("supabase/migrations");
-const migrationNames = readdirSync(migrationDirectory)
-    .filter((name) => name.endsWith(".sql"))
-    .sort();
-
-const userId = "00000000-0000-4000-8000-000000000001";
-const questionId = "00000000-0000-4000-8000-000000000002";
-const questionVersionId = "00000000-0000-4000-8000-000000000003";
-const otherQuestionId = "00000000-0000-4000-8000-000000000004";
-const quizId = "00000000-0000-4000-8000-000000000005";
-const quizVersionId = "00000000-0000-4000-8000-000000000006";
-const membershipId = "00000000-0000-4000-8000-000000000007";
-const attemptId = "00000000-0000-4000-8000-000000000008";
-const attemptQuestionId = "00000000-0000-4000-8000-000000000009";
-
+const db = new PGlite();
+export const applicationTables = [
+    "profiles",
+    "questions",
+    "quizzes",
+    "quiz_questions",
+    "quiz_attempts",
+    "quiz_attempt_questions",
+    "courses",
+    "lessons",
+    "lesson_quizzes",
+    "tags",
+    "question_tags",
+    "quiz_tags",
+    "feedback",
+    "question_batches",
+    "question_batch_items",
+];
 try {
-    // Supabase owns auth.users; this stub tests our migration against its ID boundary.
-    await database.exec("CREATE SCHEMA auth; CREATE TABLE auth.users (id uuid PRIMARY KEY)");
-    for (const name of migrationNames) {
-        await database.exec(readFileSync(resolve(migrationDirectory, name), "utf8"));
-    }
-
-    const tables = await database.query(`
-        SELECT count(*)::int AS count FROM pg_tables
-        WHERE schemaname = 'public' AND tablename IN (
-            'profiles', 'questions', 'question_versions', 'quizzes', 'quiz_versions',
-            'quiz_version_questions', 'tags', 'question_tags', 'quiz_tags',
-            'quiz_attempts', 'quiz_attempt_questions', 'feedback',
-            'question_publication_events', 'question_review_submissions',
-            'question_review_decisions', 'question_publication_gate_decisions',
-            'work_items', 'work_item_events', 'agent_actors', 'agent_generation_runs',
-            'agent_execution_runs', 'question_batches', 'question_batch_items'
+    await db.exec("CREATE SCHEMA auth;CREATE TABLE auth.users(id uuid PRIMARY KEY)");
+    const migrations = readdirSync("supabase/migrations")
+        .filter((n) => n.endsWith(".sql"))
+        .sort();
+    assert.equal(migrations.length, 1, "V1 uses one clean baseline");
+    for (const name of migrations)
+        await db.exec(readFileSync(`supabase/migrations/${name}`, "utf8"));
+    const tables = (
+        await db.query(
+            "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename",
         )
-    `);
-    assert.equal(tables.rows[0].count, 23);
-
-    await database.query("INSERT INTO auth.users (id) VALUES ($1)", [userId]);
-    await database.query("INSERT INTO public.profiles (id, display_name) VALUES ($1, 'Tester')", [
-        userId,
-    ]);
-    await database.query("INSERT INTO public.questions (id, created_by) VALUES ($1, $2)", [
-        questionId,
-        userId,
-    ]);
-    await database.query("INSERT INTO public.questions (id, created_by) VALUES ($1, $2)", [
-        otherQuestionId,
-        userId,
-    ]);
-    await database.query(
-        `INSERT INTO public.question_versions
-         (id, question_id, version_number, prompt, question_type, answer_config, grading_config, created_by)
-         VALUES ($1, $2, 1, 'Prompt', 'exact_text', '{}', '{}', $3)`,
-        [questionVersionId, questionId, userId],
+    ).rows.map((r) => r.tablename);
+    assert.deepEqual(tables, [...applicationTables].sort());
+    const rls = (
+        await db.query(
+            "SELECT count(*)::int AS count FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='r' AND c.relrowsecurity",
+        )
+    ).rows[0].count;
+    assert.equal(rls, applicationTables.length);
+    assert.equal(
+        (await db.query("SELECT count(*)::int AS count FROM pg_policies WHERE schemaname='public'"))
+            .rows[0].count,
+        0,
     );
-    await database.query("UPDATE public.questions SET current_version_id = $1 WHERE id = $2", [
-        questionVersionId,
-        questionId,
-    ]);
-    await assert.rejects(
-        database.query(
-            `INSERT INTO public.question_versions
-             (question_id, version_number, prompt, question_type, answer_config, grading_config, created_by)
-             VALUES ($1, 1, 'Duplicate', 'exact_text', '{}', '{}', $2)`,
-            [questionId, userId],
-        ),
-        { code: "23505" },
+    const columns = (
+        await db.query(
+            "SELECT column_name FROM information_schema.columns WHERE table_schema='public'",
+        )
+    ).rows.map((r) => r.column_name);
+    assert.ok(!columns.some((n) => /version|agent|work_item|published/.test(n)));
+    const enums = (
+        await db.query(
+            "SELECT e.enumlabel FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid WHERE t.typname='content_visibility' ORDER BY e.enumsortorder",
+        )
+    ).rows.map((r) => r.enumlabel);
+    assert.deepEqual(enums, ["private", "public"]);
+    const guards = (
+        await db.query("SELECT tgname FROM pg_trigger WHERE NOT tgisinternal ORDER BY tgname")
+    ).rows.map((r) => r.tgname);
+    for (const name of [
+        "questions_guard",
+        "quizzes_guard",
+        "quiz_questions_guard",
+        "lesson_quizzes_guard",
+        "quiz_attempts_guard",
+        "quiz_attempts_preserve",
+        "quiz_attempt_questions_guard",
+        "quiz_attempt_questions_preserve",
+        "question_batches_immutable",
+        "question_batch_items_immutable",
+        "quiz_attempts_complete_snapshot",
+        "quiz_attempt_questions_complete_snapshot",
+    ])
+        assert.ok(guards.includes(name), `Missing ${name}`);
+    console.log(
+        `Fresh V1 baseline passed: ${tables.length} tables, closed RLS, direct identities and all integrity guards.`,
     );
-    await assert.rejects(
-        database.query("UPDATE public.questions SET current_version_id = $1 WHERE id = $2", [
-            questionVersionId,
-            otherQuestionId,
-        ]),
-        { code: "23503" },
-    );
-    await assert.rejects(
-        database.query("UPDATE public.question_versions SET prompt = 'Changed' WHERE id = $1", [
-            questionVersionId,
-        ]),
-    );
-
-    await database.query("INSERT INTO public.quizzes (id, created_by) VALUES ($1, $2)", [
-        quizId,
-        userId,
-    ]);
-    await database.query(
-        `INSERT INTO public.quiz_versions (id, quiz_id, version_number, title, settings, created_by)
-         VALUES ($1, $2, 1, 'Quiz', '{}', $3)`,
-        [quizVersionId, quizId, userId],
-    );
-    await database.query("UPDATE public.quizzes SET current_version_id = $1 WHERE id = $2", [
-        quizVersionId,
-        quizId,
-    ]);
-    await assert.rejects(
-        database.query(
-            `INSERT INTO public.quiz_versions (quiz_id, version_number, title, settings, created_by)
-             VALUES ($1, 1, 'Duplicate', '{}', $2)`,
-            [quizId, userId],
-        ),
-        { code: "23505" },
-    );
-    await database.query(
-        `INSERT INTO public.quiz_version_questions
-         (id, quiz_version_id, question_id, question_version_id, position, points)
-         VALUES ($1, $2, $3, $4, 0, 2.5)`,
-        [membershipId, quizVersionId, questionId, questionVersionId],
-    );
-    await assert.rejects(
-        database.query(
-            `INSERT INTO public.quiz_version_questions
-             (quiz_version_id, question_id, question_version_id, position, points)
-             VALUES ($1, $2, $3, 1, 1)`,
-            [quizVersionId, otherQuestionId, questionVersionId],
-        ),
-        { code: "23503" },
-    );
-    await assert.rejects(
-        database.query("UPDATE public.quiz_version_questions SET points = 3 WHERE id = $1", [
-            membershipId,
-        ]),
-    );
-
-    await database.query(
-        `INSERT INTO public.quiz_attempts (id, quiz_version_id, user_id, settings_snapshot)
-         VALUES ($1, $2, $3, '{}')`,
-        [attemptId, quizVersionId, userId],
-    );
-    await assert.rejects(
-        database.query(
-            `INSERT INTO public.quiz_attempt_questions
-             (quiz_attempt_id, quiz_version_question_id, position, question_snapshot,
-              answer_snapshot, grading_snapshot, points_possible)
-             VALUES ($1, $2, 0, '{}', '{}', '{}', 3)`,
-            [attemptId, membershipId],
-        ),
-        { code: "23514" },
-    );
-    await database.query(
-        `INSERT INTO public.quiz_attempt_questions
-         (id, quiz_attempt_id, quiz_version_question_id, position, question_snapshot,
-          answer_snapshot, grading_snapshot, points_possible)
-         VALUES ($1, $2, $3, 0, '{}', '{}', '{}', 2.5)`,
-        [attemptQuestionId, attemptId, membershipId],
-    );
-    await assert.rejects(
-        database.query(
-            "UPDATE public.quiz_attempt_questions SET question_snapshot = '{\"changed\":true}' WHERE id = $1",
-            [attemptQuestionId],
-        ),
-    );
-    await database.query(
-        `UPDATE public.quiz_attempt_questions SET points_awarded = 1.25,
-         user_response = '{}', evaluation_result = '{}' WHERE id = $1`,
-        [attemptQuestionId],
-    );
-
-    await assert.rejects(
-        database.query(
-            `INSERT INTO public.feedback (submitted_by, category, comment)
-             VALUES ($1, 'other', 'Missing target')`,
-            [userId],
-        ),
-        { code: "23514" },
-    );
-    await assert.rejects(
-        database.query(
-            `INSERT INTO public.feedback (submitted_by, question_id, quiz_id, category, comment)
-             VALUES ($1, $2, $3, 'other', 'Two targets')`,
-            [userId, questionId, quizId],
-        ),
-        { code: "23514" },
-    );
-    await database.query(
-        `INSERT INTO public.feedback (submitted_by, question_id, category, comment)
-         VALUES ($1, $2, 'other', 'One target')`,
-        [userId, questionId],
-    );
-
-    const rls = await database.query(`
-        SELECT count(*)::int AS count FROM pg_class c
-        JOIN pg_namespace n ON n.oid = c.relnamespace
-        WHERE n.nspname = 'public' AND c.relkind = 'r' AND c.relrowsecurity
-    `);
-    assert.equal(rls.rows[0].count, 23);
-    const provenanceFks = await database.query(`
-        SELECT count(*)::int AS count FROM pg_constraint
-        WHERE conname IN ('questions_agent_origin_run_id_fkey',
-          'question_versions_agent_run_id_fkey', 'work_items_claimed_agent_actor_id_fkey',
-          'work_items_assigned_agent_actor_id_fkey',
-          'question_review_decisions_agent_execution_run_id_fkey',
-          'question_publication_gate_decisions_agent_execution_run_id_fkey')
-        AND contype = 'f'
-    `);
-    assert.equal(provenanceFks.rows[0].count, 6);
-    const batchVersionFk = await database.query(`
-        SELECT count(*)::int AS count FROM pg_constraint
-        WHERE conname = 'question_batch_items_version_fkey' AND contype = 'f'
-    `);
-    assert.equal(batchVersionFk.rows[0].count, 1);
-    const immutableTriggers = await database.query(`
-        SELECT count(*)::int AS count FROM pg_trigger
-        WHERE tgname IN ('question_versions_immutable', 'quiz_versions_immutable',
-          'quiz_version_questions_immutable', 'quiz_attempts_snapshot_immutable',
-          'quiz_attempt_questions_snapshot_immutable',
-          'question_publication_events_immutable',
-          'question_review_submissions_immutable', 'question_review_decisions_immutable',
-          'question_publication_gate_decisions_immutable', 'work_item_events_immutable',
-          'agent_generation_runs_immutable', 'agent_execution_runs_immutable',
-          'question_batches_immutable', 'question_batch_items_immutable') AND NOT tgisinternal
-    `);
-    assert.equal(immutableTriggers.rows[0].count, 14);
-    console.log(`Applied ${migrationNames.length} migration(s); schema constraints passed.`);
 } finally {
-    await database.close();
+    await db.close();
 }

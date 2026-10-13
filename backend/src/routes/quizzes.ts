@@ -3,8 +3,6 @@ import {
     quizContentSchema,
     quizDetailSchema,
     quizListResponseSchema,
-    quizVersionsResponseSchema,
-    updateQuizMetadataBodySchema,
     type QuizDetail,
 } from "@quiz-builder/contracts";
 import { Router, type Request, type Response } from "express";
@@ -20,11 +18,9 @@ import {
     assignQuizTag,
     createQuiz,
     getQuizDetail,
-    getQuizVersions,
     listQuizzes,
     removeQuizTag,
     saveQuizContent,
-    updateQuizMetadata,
 } from "../db/quizzes.ts";
 import { AppError } from "../errors/app-error.ts";
 import { optionalAuthentication, requireAuthentication } from "../middleware/authentication.ts";
@@ -69,12 +65,6 @@ quizRouter.post(
     },
 );
 
-quizRouter.get("/quizzes/:quizId/versions", requireAuthentication, async (request, response) => {
-    const { params } = validateRequest(request, { params: quizParamsSchema });
-    const versions = await getQuizVersions(params.quizId, userId(request));
-    sendResponse(response, 200, quizVersionsResponseSchema, { versions });
-});
-
 quizRouter.put(
     "/quizzes/:quizId/content",
     requireAuthentication,
@@ -84,43 +74,6 @@ quizRouter.put(
             body: quizContentSchema,
         });
         const quiz = await saveQuizContent(params.quizId, userId(request), body);
-        sendResponse(response, 200, quizDetailSchema, quiz);
-    },
-);
-
-quizRouter.patch(
-    "/quizzes/:quizId",
-    requireAuthentication,
-    async (request, response: Response<QuizDetail>) => {
-        const { params, body } = validateRequest(request, {
-            params: quizParamsSchema,
-            body: updateQuizMetadataBodySchema,
-        });
-        const quiz = await updateQuizMetadata(params.quizId, userId(request), body);
-        sendResponse(response, 200, quizDetailSchema, quiz);
-    },
-);
-
-quizRouter.post(
-    "/quizzes/:quizId/publish",
-    requireAuthentication,
-    async (request, response: Response<QuizDetail>) => {
-        const { params } = validateRequest(request, { params: quizParamsSchema });
-        const quiz = await updateQuizMetadata(params.quizId, userId(request), {
-            status: "published",
-        });
-        sendResponse(response, 200, quizDetailSchema, quiz);
-    },
-);
-
-quizRouter.post(
-    "/quizzes/:quizId/archive",
-    requireAuthentication,
-    async (request, response: Response<QuizDetail>) => {
-        const { params } = validateRequest(request, { params: quizParamsSchema });
-        const quiz = await updateQuizMetadata(params.quizId, userId(request), {
-            status: "archived",
-        });
         sendResponse(response, 200, quizDetailSchema, quiz);
     },
 );

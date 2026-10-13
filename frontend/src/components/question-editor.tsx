@@ -1,7 +1,7 @@
 import {
-    questionVersionContentSchema,
+    questionContentSchema,
     type QuestionType,
-    type QuestionVersionContent,
+    type QuestionContent,
 } from "@quiz-builder/contracts";
 import { useState, type FormEvent } from "react";
 
@@ -18,7 +18,7 @@ type Draft = {
     options: OptionDraft[];
 };
 
-function initialDraft(content?: QuestionVersionContent): Draft {
+function initialDraft(content?: QuestionContent): Draft {
     const defaults = {
         prompt: content?.prompt ?? "",
         explanation: content?.explanation ?? "",
@@ -118,10 +118,10 @@ export function QuestionEditor({
     busy,
     onSave,
 }: {
-    initial?: QuestionVersionContent;
+    initial?: QuestionContent;
     submitLabel: string;
     busy: boolean;
-    onSave: (content: QuestionVersionContent) => Promise<void>;
+    onSave: (content: QuestionContent) => Promise<void>;
 }) {
     const [draft, setDraft] = useState<Draft>(() => initialDraft(initial));
     const [error, setError] = useState("");
@@ -137,7 +137,7 @@ export function QuestionEditor({
 
     async function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        const result = questionVersionContentSchema.safeParse(makeContent(draft));
+        const result = questionContentSchema.safeParse(makeContent(draft));
         if (!result.success) {
             setError(
                 "Check the prompt and answer settings. Choices need text and a correct answer.",

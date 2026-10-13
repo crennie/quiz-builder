@@ -1,184 +1,167 @@
-import { applyMigrations } from "./apply-migrations.ts";
-import { Pool } from "pg";
+import { Pool, type PoolClient } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
-import { startAttemptInTransaction, submitAnswerInTransaction } from "../../src/db/attempts.ts";
+import { applyMigrations } from "./apply-migrations.ts";
+import { content, quizContent, owner, other } from "./v1-fixtures.ts";
 import {
     createQuestionInTransaction,
-    publishQuestionInTransaction,
-    type QueryExecutor,
+    saveQuestionContentInTransaction,
 } from "../../src/db/question-bank.ts";
 import { createQuizInTransaction, saveQuizContentInTransaction } from "../../src/db/quizzes.ts";
+import { startAttemptInTransaction, submitAnswerInTransaction } from "../../src/db/attempts.ts";
 import { withTransaction } from "../../src/db/transaction.ts";
-
-const ownerId = "00000000-0000-4000-8000-000000000601";
-const learnerId = "00000000-0000-4000-8000-000000000602";
-const questionContent = {
-    prompt: "Capital of France?",
-    questionType: "exact_text" as const,
-    answerConfig: { questionType: "exact_text" as const, acceptedAnswers: ["Paris"] },
-    gradingConfig: {
-        questionType: "exact_text" as const,
-        caseSensitive: false,
-        trimWhitespace: true,
-    },
-    explanation: null,
-};
-
 describe.skipIf(!process.env.TEST_DATABASE_URL)("PostgreSQL transactions and row locks", () => {
     let pool: Pool;
-
     beforeAll(async () => {
         const url = new URL(process.env.TEST_DATABASE_URL!);
         if (
             url.pathname !== "/quiz_builder_test" ||
             !["localhost", "127.0.0.1"].includes(url.hostname)
-        ) {
-            throw new Error(
-                "PostgreSQL integration tests require a local quiz_builder_test database",
-            );
-        }
+        )
+            throw new Error("Tests require a disposable local quiz_builder_test database");
         pool = new Pool({ connectionString: url.toString(), max: 4 });
-        await pool.query("CREATE SCHEMA auth; CREATE TABLE auth.users (id uuid PRIMARY KEY)");
-        await applyMigrations((sql) => pool.query(sql));
-        for (const id of [ownerId, learnerId]) {
-            await pool.query("INSERT INTO auth.users (id) VALUES ($1)", [id]);
-            await pool.query("INSERT INTO public.profiles (id, display_name) VALUES ($1, 'User')", [
+        const tables = await pool.query<{ count: string }>(
+            "SELECT count(*) FROM pg_tables WHERE schemaname IN ('public','auth')",
+        );
+        if (Number(tables.rows[0].count) !== 0)
+            throw new Error("Refusing to initialize a nonempty test database");
+        await pool.query("CREATE SCHEMA auth;CREATE TABLE auth.users(id uuid PRIMARY KEY)");
+        await applyMigrations((s) => pool.query(s));
+        for (const id of [owner, other]) {
+            await pool.query("INSERT INTO auth.users(id) VALUES($1)", [id]);
+            await pool.query("INSERT INTO public.profiles(id,display_name) VALUES($1,'Tester')", [
                 id,
             ]);
         }
     });
-
-    afterAll(async () => {
-        await pool?.end();
-    });
-
-    async function fixture() {
-        const question = await withTransaction(async (client) => {
-            const draft = await createQuestionInTransaction(
-                ownerId,
-                { content: questionContent, visibility: "private" },
-                client,
-            );
-            return publishQuestionInTransaction(draft.id, ownerId, draft.currentVersion.id, client);
-        }, pool);
-        const content = {
-            title: "Original",
-            description: null,
-            settings: { shuffleQuestions: false, showAnswersAfterCompletion: true },
-            questions: [
-                {
-                    questionId: question.id,
-                    questionVersionId: question.currentVersion.id,
-                    points: 2.5,
-                    required: true,
-                    timeLimitSeconds: null,
-                },
-            ],
-        };
-        const quiz = await withTransaction(
-            (client) =>
-                createQuizInTransaction(
-                    ownerId,
-                    { content, visibility: "public", status: "published" },
-                    client,
-                ),
-            pool,
-        );
-        return { quiz, content };
+    afterAll(async () => pool?.end());
+    async function question() {
+        return withTransaction((c) => createQuestionInTransaction(owner, { content }, c), pool);
     }
-
-    it("rolls back a multi-row write after a later statement fails", async () => {
-        const { quiz, content } = await fixture();
-        const failure = new Error("injected membership failure");
-        await expect(
-            withTransaction((client) => {
-                const failingExecutor = {
-                    query: (sql: string, values?: unknown[]) => {
-                        if (sql.includes("INSERT INTO public.quiz_version_questions")) {
-                            throw failure;
-                        }
-                        return client.query(sql, values);
-                    },
-                } as unknown as QueryExecutor;
-                return saveQuizContentInTransaction(
-                    quiz.id,
-                    ownerId,
-                    { ...content, title: "Should roll back" },
-                    failingExecutor,
-                );
-            }, pool),
-        ).rejects.toBe(failure);
-        const versions = await pool.query<{ count: string }>(
-            "SELECT count(*) FROM public.quiz_versions WHERE quiz_id = $1",
-            [quiz.id],
-        );
-        expect(Number(versions.rows[0]?.count)).toBe(1);
-        const current = await pool.query<{ current_version_id: string }>(
-            "SELECT current_version_id FROM public.quizzes WHERE id = $1",
-            [quiz.id],
-        );
-        expect(current.rows[0]?.current_version_id).toBe(quiz.currentVersion.id);
-    });
-
-    it("serializes concurrent identical and changed quiz saves", async () => {
-        const { quiz, content } = await fixture();
-        const save = (title: string) =>
-            withTransaction(
-                (client) =>
-                    saveQuizContentInTransaction(quiz.id, ownerId, { ...content, title }, client),
-                pool,
-            );
-        const identical = await Promise.all([save("Same"), save("Same")]);
-        expect(identical.map((item) => item.currentVersion.id)).toEqual([
-            identical[0]?.currentVersion.id,
-            identical[0]?.currentVersion.id,
-        ]);
-        await Promise.all([save("Alpha"), save("Beta")]);
-        const versions = await pool.query<{ version_number: number }>(
-            "SELECT version_number FROM public.quiz_versions WHERE quiz_id = $1 ORDER BY version_number",
-            [quiz.id],
-        );
-        expect(versions.rows.map((row) => row.version_number)).toEqual([1, 2, 3, 4]);
-        const current = await pool.query<{ version_number: number }>(
-            `SELECT v.version_number FROM public.quizzes q
-             JOIN public.quiz_versions v ON v.id = q.current_version_id WHERE q.id = $1`,
-            [quiz.id],
-        );
-        expect(current.rows[0]?.version_number).toBe(4);
-    });
-
-    it("accepts only one of two concurrent answers to the same attempt question", async () => {
-        const { quiz } = await fixture();
-        const started = await withTransaction(
-            (client) => startAttemptInTransaction(quiz.id, learnerId, client),
+    async function fixture() {
+        const q = await question();
+        const input = quizContent(q.id);
+        const quiz = await withTransaction(
+            (c) => createQuizInTransaction(owner, { content: input }, c),
             pool,
         );
-        const attemptQuestionId = started.questions[0]?.id;
-        expect(attemptQuestionId).toBeDefined();
+        return { q, input, quiz };
+    }
+    async function race<A, B>(
+        first: (c: PoolClient) => Promise<A>,
+        second: (c: PoolClient) => Promise<B>,
+    ) {
+        const a = await pool.connect();
+        const b = await pool.connect();
+        let pending: Promise<PromiseSettledResult<B>> | undefined;
+        try {
+            await a.query("BEGIN");
+            await b.query("BEGIN");
+            const result = await first(a);
+            const pid = (await b.query<{ pid: number }>("SELECT pg_backend_pid() AS pid")).rows[0]
+                .pid;
+            pending = second(b).then(
+                (value) => ({ status: "fulfilled" as const, value }),
+                (reason) => ({ status: "rejected" as const, reason: reason as unknown }),
+            );
+            const deadline = Date.now() + 3000;
+            let waiting = false;
+            while (Date.now() < deadline) {
+                const r = await pool.query<{ blocked: boolean }>(
+                    "SELECT cardinality(pg_blocking_pids($1))>0 AS blocked",
+                    [pid],
+                );
+                if (r.rows[0].blocked) {
+                    waiting = true;
+                    break;
+                }
+                await new Promise((resolve) => setTimeout(resolve, 10));
+            }
+            expect(waiting).toBe(true);
+            await a.query("COMMIT");
+            const outcome = await pending;
+            await b.query(outcome.status === "fulfilled" ? "COMMIT" : "ROLLBACK");
+            return { result, outcome };
+        } finally {
+            await a.query("ROLLBACK");
+            await pending;
+            await b.query("ROLLBACK");
+            a.release();
+            b.release();
+        }
+    }
+    it("serializes question edit before use and use before edit", async () => {
+        const q = await question();
+        const input = quizContent(q.id);
+        const changed = { ...content, prompt: "Edited first" };
+        const editFirst = await race(
+            (c) => saveQuestionContentInTransaction(q.id, owner, changed, c),
+            (c) => createQuizInTransaction(owner, { content: input }, c),
+        );
+        expect(editFirst.outcome).toMatchObject({
+            status: "fulfilled",
+            value: { questions: [{ question: { prompt: "Edited first" } }] },
+        });
+        const fresh = await question();
+        const useFirst = await race(
+            (c) => createQuizInTransaction(owner, { content: quizContent(fresh.id) }, c),
+            (c) => saveQuestionContentInTransaction(fresh.id, owner, changed, c),
+        );
+        expect(useFirst.outcome).toMatchObject({
+            status: "rejected",
+            reason: { code: "QUESTION_CONTENT_LOCKED" },
+        });
+    });
+    it("serializes quiz save before attempt and attempt before save", async () => {
+        const { quiz, input } = await fixture();
+        const saveFirst = await race(
+            (c) =>
+                saveQuizContentInTransaction(
+                    quiz.id,
+                    owner,
+                    { ...input, title: "Edited first" },
+                    c,
+                ),
+            (c) => startAttemptInTransaction(quiz.id, owner, c),
+        );
+        expect(saveFirst.outcome).toMatchObject({
+            status: "fulfilled",
+            value: { quizTitle: "Edited first" },
+        });
+        const fresh = await fixture();
+        const attemptFirst = await race(
+            (c) => startAttemptInTransaction(fresh.quiz.id, owner, c),
+            (c) =>
+                saveQuizContentInTransaction(
+                    fresh.quiz.id,
+                    owner,
+                    { ...fresh.input, title: "Too late" },
+                    c,
+                ),
+        );
+        expect(attemptFirst.outcome).toMatchObject({
+            status: "rejected",
+            reason: { code: "QUIZ_CONTENT_LOCKED" },
+        });
+    });
+    it("accepts only one concurrent answer to the same attempt question", async () => {
+        const { quiz } = await fixture();
+        const a = await withTransaction((c) => startAttemptInTransaction(quiz.id, owner, c), pool);
         const answer = (text: string) =>
             withTransaction(
-                (client) =>
+                (c) =>
                     submitAnswerInTransaction(
-                        started.id,
-                        attemptQuestionId,
-                        learnerId,
+                        a.id,
+                        a.questions[0].id,
+                        owner,
                         { questionType: "exact_text", text },
-                        client,
+                        c,
                     ),
                 pool,
             );
         const outcomes = await Promise.allSettled([answer("Paris"), answer("London")]);
-        expect(outcomes.filter((outcome) => outcome.status === "fulfilled")).toHaveLength(1);
-        const rejected = outcomes.find((outcome) => outcome.status === "rejected");
-        expect(rejected).toMatchObject({ reason: { code: "QUESTION_ALREADY_ANSWERED" } });
-        const row = await pool.query<{ user_response: { text: string }; points_awarded: string }>(
-            "SELECT user_response, points_awarded FROM public.quiz_attempt_questions WHERE id = $1",
-            [attemptQuestionId],
-        );
-        expect(["Paris", "London"]).toContain(row.rows[0]?.user_response.text);
-        expect(Number(row.rows[0]?.points_awarded)).toBe(
-            row.rows[0]?.user_response.text === "Paris" ? 2.5 : 0,
-        );
+        expect(outcomes.filter((o) => o.status === "fulfilled")).toHaveLength(1);
+        expect(outcomes.find((o) => o.status === "rejected")).toMatchObject({
+            reason: { code: "QUESTION_ALREADY_ANSWERED" },
+        });
     });
 });

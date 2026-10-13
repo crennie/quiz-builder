@@ -1,47 +1,15 @@
-# Take quiz attempt
+# Take a quiz attempt
 
-**Scenario:** A verified learner starts a published quiz in the web UI, submits answers one at a time, and completes it through the API. The attempt route reloads saved progress by attempt ID after a refresh.
+A verified learner can start an owned private or public quiz. The API locks the quiz parent and
+rejects an empty composition. Insert the attempt with immutable quiz title and settings, then
+snapshot ordered (or shuffled) question identity/content, answer/grading, points, required and timing.
+Repeated source questions receive separate attempt-question IDs. Commit the complete snapshot set.
 
-```mermaid
-sequenceDiagram
-    actor Learner
-    participant API as Express routes and auth middleware
-    participant Store as Attempt operations
-    participant Grade as Deterministic evaluator
-    participant DB as Postgres
+Each answer operation locks the learner's attempt. Require an in-progress attempt, unanswered
+attempt-question identity and a valid response type/choice. Evaluate snapshots synchronously and
+record response, evaluation and points. Completion locks the same attempt, requires all required
+answers, and sums recorded numeric points. Concurrent submissions permit one answer only.
 
-    Learner->>API: POST /quizzes/:quizId/attempts with access token
-    API->>Store: Start attempt for verified user
-    Store->>DB: Check published quiz and visibility; read current version
-    alt Quiz unavailable or empty
-        Store-->>API: 404 or 409; no attempt committed
-    else Allowed
-        Store->>DB: Insert attempt and frozen settings/questions in one transaction
-        Store-->>API: In-progress attempt
-    end
-    API-->>Learner: Attempt detail or error
-    Learner->>API: PUT /attempts/:id/questions/:questionId/answer
-    API->>Store: Submit validated response as owner
-    Store->>DB: Lock owned in-progress attempt; read frozen snapshots
-    alt Closed, already answered, or invalid choice
-        Store-->>API: 409 or 400; no answer stored
-    else Valid response
-        Store->>Grade: Evaluate response against frozen answer and grading data
-        Grade-->>Store: Correctness and awarded points
-        Store->>DB: Store response, evaluation, and points in transaction
-        Store-->>API: Updated attempt
-    end
-    API-->>Learner: Updated detail or error
-    Learner->>API: POST /attempts/:id/complete
-    API->>Store: Complete owned attempt
-    Store->>DB: Lock attempt; check required answers; sum points
-    alt Required answers missing
-        Store-->>API: 409; remains in progress
-    else Complete
-        Store->>DB: Store score summary and completed status atomically
-        Store-->>API: Completed result
-    end
-    API-->>Learner: Result or error
-```
-
-The quiz access check depends on quiz visibility and publication, not on current visibility of its source questions. A learner can access only their own attempts. Attempts use frozen snapshots even after later edits. The current evaluator awards all points or zero for exact text, single choice, and multiple choice; points can be fractional. The web UI shows scores and per-question review after completion, reads history from the API, and lets the learner submit feedback. Correct answers and explanations in the response are governed by the saved `showAnswersAfterCompletion` setting, while answer secrecy is not a security requirement for this practice app.
+Load and grade exclusively from snapshots. Answers/evaluation are hidden until completion, and
+correct answers/explanations obey the saved display setting. History is learner-only. Source edits,
+independent replacements and association changes cannot reconstruct or change historical evidence.

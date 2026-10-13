@@ -239,14 +239,6 @@ nav a {
     gap: 1rem;
     margin-top: 1rem;
 }
-.version-list {
-    padding-left: 1.5rem;
-    display: grid;
-    gap: 0.7rem;
-}
-.version-list li span {
-    display: block;
-}
 .quiz-question-list {
     display: grid;
     gap: 0.8rem;

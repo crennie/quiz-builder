@@ -28,7 +28,7 @@ export function SignInPage() {
             return;
         }
         if (result.data.session) {
-            void navigate({ to: "/questions" });
+            void navigate({ to: "/questions/mine" });
             return;
         }
         setMessage("Check your email to confirm your account, then sign in.");
@@ -39,7 +39,7 @@ export function SignInPage() {
             <section className="message-panel">
                 <h1>You're signed in</h1>
                 <p>Open your question bank to continue.</p>
-                <Link className="button" to="/questions">
+                <Link className="button" to="/questions/mine">
                     Question bank
                 </Link>
             </section>

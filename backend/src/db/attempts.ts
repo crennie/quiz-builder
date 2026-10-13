@@ -21,10 +21,7 @@ import { pool } from "./index.ts";
 import type { QueryExecutor } from "./question-bank.ts";
 import { withTransaction } from "./transaction.ts";
 
-type AttemptRow = Database["public"]["Tables"]["quiz_attempts"]["Row"] & {
-    quiz_id: string;
-    quiz_title: string;
-};
+type AttemptRow = Database["public"]["Tables"]["quiz_attempts"]["Row"];
 type AttemptQuestionRow = Database["public"]["Tables"]["quiz_attempt_questions"]["Row"] & {
     points_possible: string | number;
     points_awarded: string | number | null;
@@ -34,7 +31,8 @@ type AttemptQuestionRow = Database["public"]["Tables"]["quiz_attempt_questions"]
 type SourceQuestionRow = {
     id: string;
     question_id: string;
-    question_version_id: string;
+    required: boolean;
+    time_limit_seconds: number | null;
     position: number;
     points: string | number;
     prompt: string;
@@ -53,8 +51,7 @@ async function ownedAttempt(
     lock = false,
 ): Promise<AttemptRow> {
     const result = await database.query<AttemptRow>(
-        `SELECT a.*, v.quiz_id, v.title AS quiz_title
-         FROM public.quiz_attempts a JOIN public.quiz_versions v ON v.id = a.quiz_version_id
+        `SELECT a.* FROM public.quiz_attempts a
          WHERE a.id = $1 AND a.user_id = $2 ${lock ? "FOR UPDATE OF a" : ""}`,
         [attemptId, userId],
     );
@@ -66,9 +63,7 @@ async function ownedAttempt(
 async function mapAttempt(row: AttemptRow, database: QueryExecutor): Promise<AttemptDetail> {
     const settings = settingsSnapshotSchema.parse(row.settings_snapshot);
     const result = await database.query<AttemptQuestionRow>(
-        `SELECT aq.*, m.required, m.time_limit_seconds
-         FROM public.quiz_attempt_questions aq
-         JOIN public.quiz_version_questions m ON m.id = aq.quiz_version_question_id
+        `SELECT aq.* FROM public.quiz_attempt_questions aq
          WHERE aq.quiz_attempt_id = $1 ORDER BY aq.position`,
         [row.id],
     );
@@ -76,8 +71,7 @@ async function mapAttempt(row: AttemptRow, database: QueryExecutor): Promise<Att
     return attemptDetailSchema.parse({
         id: row.id,
         quizId: row.quiz_id,
-        quizVersionId: row.quiz_version_id,
-        quizTitle: row.quiz_title,
+        quizTitle: row.quiz_title_snapshot,
         status: row.status,
         startedAt: iso(row.started_at),
         completedAt: row.completed_at ? iso(row.completed_at) : null,
@@ -148,33 +142,25 @@ export async function startAttemptInTransaction(
     userId: string,
     database: QueryExecutor,
 ): Promise<AttemptDetail> {
-    const quizzes = await database.query<{
-        current_version_id: string | null;
-        settings: unknown;
-    }>(
-        `SELECT q.current_version_id, v.settings FROM public.quizzes q
-         JOIN public.quiz_versions v ON v.id = q.current_version_id
-         WHERE q.id = $1 AND q.status = 'published'
-           AND (q.created_by = $2 OR q.visibility IN ('public', 'unlisted'))
-         FOR SHARE OF q`,
+    const quizzes = await database.query<{ title: string; settings: unknown }>(
+        `SELECT title,settings FROM public.quizzes WHERE id=$1 AND (created_by=$2 OR visibility='public') FOR UPDATE`,
         [quizId, userId],
     );
     const quiz = quizzes.rows[0];
-    if (!quiz?.current_version_id) throw new AppError(404, "QUIZ_NOT_FOUND", "Quiz not found");
+    if (!quiz) throw new AppError(404, "QUIZ_NOT_FOUND", "Quiz not found");
     const settings = settingsSnapshotSchema.parse(quiz.settings);
     const sources = await database.query<SourceQuestionRow>(
-        `SELECT m.id, m.question_id, m.question_version_id, m.position, m.points,
-                qv.prompt, qv.question_type, qv.answer_config, qv.grading_config, qv.explanation
-         FROM public.quiz_version_questions m
-         JOIN public.question_versions qv ON qv.id = m.question_version_id
-         WHERE m.quiz_version_id = $1 ORDER BY m.position`,
-        [quiz.current_version_id],
+        `SELECT m.id,m.question_id,m.position,m.points,m.required,m.time_limit_seconds,
+         q.prompt,q.question_type,q.answer_config,q.grading_config,q.explanation
+         FROM public.quiz_questions m JOIN public.questions q ON q.id=m.question_id
+         WHERE m.quiz_id=$1 ORDER BY m.position`,
+        [quizId],
     );
     if (sources.rows.length === 0) throw new AppError(409, "EMPTY_QUIZ", "Quiz has no questions");
     const attempts = await database.query<{ id: string }>(
-        `INSERT INTO public.quiz_attempts (quiz_version_id, user_id, settings_snapshot)
-         VALUES ($1, $2, $3::jsonb) RETURNING id`,
-        [quiz.current_version_id, userId, JSON.stringify(settings)],
+        `INSERT INTO public.quiz_attempts(quiz_id,user_id,quiz_title_snapshot,settings_snapshot)
+         VALUES($1,$2,$3,$4::jsonb) RETURNING id`,
+        [quizId, userId, quiz.title, JSON.stringify(settings)],
     );
     const attemptId = attempts.rows[0]?.id;
     if (!attemptId) throw new Error("Attempt insertion returned no row");
@@ -189,7 +175,6 @@ export async function startAttemptInTransaction(
         const snapshots = attemptQuestionSnapshotsSchema.parse({
             question: questionSnapshotSchema.parse({
                 questionId: source.question_id,
-                questionVersionId: source.question_version_id,
                 prompt: source.prompt,
                 questionType: source.question_type,
                 explanation: source.explanation,
@@ -199,17 +184,19 @@ export async function startAttemptInTransaction(
         });
         await database.query(
             `INSERT INTO public.quiz_attempt_questions
-               (quiz_attempt_id, quiz_version_question_id, position, question_snapshot,
-                answer_snapshot, grading_snapshot, points_possible)
-             VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6::jsonb, $7)`,
+               (quiz_attempt_id, question_id, position, question_snapshot,
+                answer_snapshot, grading_snapshot, points_possible, required, time_limit_seconds)
+             VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6::jsonb, $7, $8, $9)`,
             [
                 attemptId,
-                source.id,
+                source.question_id,
                 position,
                 JSON.stringify(snapshots.question),
                 JSON.stringify(snapshots.answer),
                 JSON.stringify(snapshots.grading),
                 source.points,
+                source.required,
+                source.time_limit_seconds,
             ],
         );
     }
@@ -302,9 +289,7 @@ export async function completeAttemptInTransaction(
         throw new AppError(409, "ATTEMPT_CLOSED", "Attempt is no longer in progress");
     }
     const questions = await database.query<AttemptQuestionRow>(
-        `SELECT aq.*, m.required, m.time_limit_seconds
-         FROM public.quiz_attempt_questions aq
-         JOIN public.quiz_version_questions m ON m.id = aq.quiz_version_question_id
+        `SELECT aq.* FROM public.quiz_attempt_questions aq
          WHERE aq.quiz_attempt_id = $1`,
         [attemptId],
     );
@@ -340,8 +325,7 @@ export async function listAttempts(
     database: QueryExecutor = pool,
 ): Promise<{ items: AttemptDetail[]; nextOffset: number | null }> {
     const result = await database.query<AttemptRow>(
-        `SELECT a.*, v.quiz_id, v.title AS quiz_title
-         FROM public.quiz_attempts a JOIN public.quiz_versions v ON v.id = a.quiz_version_id
+        `SELECT a.* FROM public.quiz_attempts a
          WHERE a.user_id = $1 ORDER BY a.started_at DESC, a.id DESC LIMIT $2 OFFSET $3`,
         [userId, options.limit + 1, options.offset],
     );

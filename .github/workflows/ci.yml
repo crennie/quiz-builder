@@ -125,7 +125,7 @@ jobs:
         run: npm run db:test
 
       - name: Check generated database types
-        run: npm run db:types && git diff --exit-code -- shared/src/database.types.ts
+        run: npm run db:types -- --check
 
       - name: Run browser workflows
         run: npm run test:e2e --prefix frontend

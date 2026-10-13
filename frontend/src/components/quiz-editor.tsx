@@ -1,23 +1,21 @@
-import { quizContentSchema, type QuizContent, type QuizVersion } from "@quiz-builder/contracts";
+import { quizContentSchema, type QuizContent, type QuizDetail } from "@quiz-builder/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 
-import { getPublishedQuestionVersions, listQuestions, listTags } from "../api/questions";
+import { getQuestion, listManagedQuestions, listTags } from "../api/questions";
 import { useAuth } from "../auth/auth-state";
 
 type DraftQuestion = QuizContent["questions"][number] & {
     prompt: string;
-    versionNumber: number;
 };
 
-function contentFromVersion(version: QuizVersion): QuizContent {
+function contentFromQuiz(quiz: QuizDetail): QuizContent {
     return {
-        title: version.title,
-        description: version.description,
-        settings: version.settings,
-        questions: version.questions.map((question) => ({
+        title: quiz.title,
+        description: quiz.description,
+        settings: quiz.settings,
+        questions: quiz.questions.map((question) => ({
             questionId: question.questionId,
-            questionVersionId: question.questionVersionId,
             points: question.points,
             required: question.required,
             timeLimitSeconds: question.timeLimitSeconds,
@@ -31,7 +29,7 @@ export function QuizEditor({
     submitLabel,
     onSave,
 }: {
-    initial?: QuizVersion;
+    initial?: QuizDetail;
     busy: boolean;
     submitLabel: string;
     onSave: (content: QuizContent) => Promise<void>;
@@ -47,12 +45,10 @@ export function QuizEditor({
     const [questions, setQuestions] = useState<DraftQuestion[]>(
         initial?.questions.map((question) => ({
             questionId: question.questionId,
-            questionVersionId: question.questionVersionId,
             points: question.points,
             required: question.required,
             timeLimitSeconds: question.timeLimitSeconds,
             prompt: question.question.prompt,
-            versionNumber: 0,
         })) ?? [],
     );
     const [pickerIndex, setPickerIndex] = useState<number | null>(null);
@@ -72,15 +68,12 @@ export function QuizEditor({
             title,
             description: description.trim() ? description : null,
             settings: { shuffleQuestions, showAnswersAfterCompletion: showAnswers },
-            questions: questions.map(
-                ({ questionId, questionVersionId, points, required, timeLimitSeconds }) => ({
-                    questionId,
-                    questionVersionId,
-                    points,
-                    required,
-                    timeLimitSeconds,
-                }),
-            ),
+            questions: questions.map(({ questionId, points, required, timeLimitSeconds }) => ({
+                questionId,
+                points,
+                required,
+                timeLimitSeconds,
+            })),
         };
     }
 
@@ -91,11 +84,8 @@ export function QuizEditor({
             setMessage(parsed.error.issues[0]?.message ?? "Check the quiz content.");
             return;
         }
-        if (
-            initial &&
-            JSON.stringify(parsed.data) === JSON.stringify(contentFromVersion(initial))
-        ) {
-            setMessage("No changes to save. The current version was kept.");
+        if (initial && JSON.stringify(parsed.data) === JSON.stringify(contentFromQuiz(initial))) {
+            setMessage("No changes to save.");
             return;
         }
         setMessage("");
@@ -142,18 +132,12 @@ export function QuizEditor({
             </fieldset>
             <section aria-label="Quiz questions">
                 <h2>Questions</h2>
-                <p className="muted small">
-                    Each question keeps the selected content version when the quiz is saved.
-                </p>
+                <p className="muted small">Adding a question permanently locks its content.</p>
                 {questions.length ? (
                     <ol className="quiz-question-list">
                         {questions.map((question, index) => (
                             <li className="question-card" key={`${question.questionId}-${index}`}>
                                 <strong>{question.prompt}</strong>
-                                <p className="muted small">
-                                    Selected question version{" "}
-                                    {question.versionNumber || "from saved quiz"}
-                                </p>
                                 <div className="filter-grid">
                                     <label>
                                         Points for question {index + 1}
@@ -206,7 +190,7 @@ export function QuizEditor({
                                         className="secondary"
                                         onClick={() => setPickerIndex(index)}
                                     >
-                                        Change question or version
+                                        Change question
                                     </button>
                                     <button
                                         type="button"
@@ -260,7 +244,7 @@ export function QuizEditor({
                         ))}
                     </ol>
                 ) : (
-                    <p className="muted">No questions yet. Add one from the question bank.</p>
+                    <p className="muted">No questions yet. Add one from the My questions.</p>
                 )}
                 <button
                     type="button"
@@ -304,30 +288,44 @@ function QuestionPicker({
     onSelect,
 }: {
     onClose: () => void;
-    onSelect: (question: DraftQuestion) => void;
+    onSelect: (q: DraftQuestion) => void;
 }) {
     const { session } = useAuth();
     const [tag, setTag] = useState("");
     const [offset, setOffset] = useState(0);
     const [search, setSearch] = useState("");
-    const [selectedId, setSelectedId] = useState("");
+    const [knownId, setKnownId] = useState("");
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
     const questions = useQuery({
-        queryKey: ["questions", session?.user.id, tag, offset],
-        queryFn: () => listQuestions({ ...(tag ? { tag } : {}), offset }),
+        queryKey: ["questions", "mine", session?.user.id, tag, offset],
+        queryFn: () => listManagedQuestions({ ...(tag ? { tag } : {}), offset }),
     });
     const tags = useQuery({ queryKey: ["tags", session?.user.id], queryFn: listTags });
-    const selected = questions.data?.items.find((question) => question.id === selectedId);
-    const versions = useQuery({
-        queryKey: ["published-question-versions", session?.user.id, selectedId],
-        queryFn: () => getPublishedQuestionVersions(selectedId),
-        enabled: Boolean(selected),
-    });
-    const availableVersions = versions.data?.versions ?? [];
-
+    function select(q: { id: string; prompt: string }) {
+        onSelect({
+            questionId: q.id,
+            prompt: q.prompt,
+            points: 1,
+            required: true,
+            timeLimitSeconds: null,
+        });
+    }
+    async function addKnown() {
+        setError("");
+        setLoading(true);
+        try {
+            select(await getQuestion(knownId.trim()));
+        } catch (e) {
+            setError(e instanceof Error ? e.message : "Question unavailable");
+        } finally {
+            setLoading(false);
+        }
+    }
     return (
-        <div className="panel quiz-picker" aria-label="Question bank picker">
+        <div className="panel quiz-picker" aria-label="Question picker">
             <div className="section-heading">
-                <h3>Choose a question and version</h3>
+                <h3>Choose a question</h3>
                 <button type="button" className="secondary" onClick={onClose}>
                     Close
                 </button>
@@ -338,52 +336,42 @@ function QuestionPicker({
                     <input
                         type="search"
                         value={search}
-                        onChange={(event) => setSearch(event.target.value)}
-                        placeholder="Search this page"
+                        onChange={(e) => setSearch(e.target.value)}
                     />
                 </label>
                 <label>
                     Tag
                     <select
                         value={tag}
-                        onChange={(event) => {
-                            setTag(event.target.value);
+                        onChange={(e) => {
+                            setTag(e.target.value);
                             setOffset(0);
-                            setSelectedId("");
                         }}
                     >
                         <option value="">All tags</option>
-                        {tags.data?.map((item) => (
-                            <option key={item.id} value={item.slug}>
-                                {item.name}
+                        {tags.data?.map((t) => (
+                            <option key={t.id} value={t.slug}>
+                                {t.name}
                             </option>
                         ))}
                     </select>
                 </label>
             </div>
             {questions.isPending ? <p role="status">Loading questions…</p> : null}
-            {questions.isError ? (
-                <p role="alert">Could not load questions. {questions.error.message}</p>
-            ) : null}
+            {questions.isError ? <p role="alert">{questions.error.message}</p> : null}
             {questions.data ? (
                 <>
                     <ul className="card-list">
                         {questions.data.items
-                            .filter(
-                                (question) =>
-                                    question.status !== "archived" &&
-                                    question.publishedVersion.prompt
-                                        .toLowerCase()
-                                        .includes(search.toLowerCase()),
-                            )
-                            .map((question) => (
-                                <li key={question.id}>
+                            .filter((q) => q.prompt.toLowerCase().includes(search.toLowerCase()))
+                            .map((q) => (
+                                <li key={q.id}>
                                     <button
                                         type="button"
                                         className="secondary"
-                                        onClick={() => setSelectedId(question.id)}
+                                        onClick={() => select(q)}
                                     >
-                                        {question.publishedVersion.prompt}
+                                        {q.prompt}
                                     </button>
                                 </li>
                             ))}
@@ -391,62 +379,38 @@ function QuestionPicker({
                     <div className="pagination">
                         <button
                             type="button"
-                            className="secondary"
                             disabled={offset === 0}
-                            onClick={() => {
-                                setOffset(Math.max(0, offset - 50));
-                                setSelectedId("");
-                            }}
+                            onClick={() => setOffset(Math.max(0, offset - 50))}
                         >
                             Previous
                         </button>
                         <span>Page {Math.floor(offset / 50) + 1}</span>
                         <button
                             type="button"
-                            className="secondary"
                             disabled={questions.data.nextOffset === null}
-                            onClick={() => {
-                                setOffset(questions.data.nextOffset ?? offset);
-                                setSelectedId("");
-                            }}
+                            onClick={() => setOffset(questions.data.nextOffset ?? offset)}
                         >
                             Next
                         </button>
                     </div>
                 </>
             ) : null}
-            {selected ? (
-                <div>
-                    <h4>Versions of {selected.publishedVersion.prompt}</h4>
-                    {versions.isPending ? <p role="status">Loading versions…</p> : null}
-                    {versions.isError ? (
-                        <p role="alert">Could not load versions. {versions.error.message}</p>
-                    ) : null}
-                    <ul className="card-list">
-                        {availableVersions.map((version) => (
-                            <li key={version.id}>
-                                <button
-                                    type="button"
-                                    className="secondary"
-                                    onClick={() =>
-                                        onSelect({
-                                            questionId: selected.id,
-                                            questionVersionId: version.id,
-                                            points: 1,
-                                            required: true,
-                                            timeLimitSeconds: null,
-                                            prompt: version.prompt,
-                                            versionNumber: version.versionNumber,
-                                        })
-                                    }
-                                >
-                                    Select version {version.versionNumber}: {version.prompt}
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            ) : null}
+            <label>
+                Public question ID
+                <input
+                    value={knownId}
+                    onChange={(e) => setKnownId(e.target.value)}
+                    placeholder="Question UUID"
+                />
+            </label>
+            <button
+                type="button"
+                disabled={!knownId.trim() || loading}
+                onClick={() => void addKnown()}
+            >
+                Add by ID
+            </button>
+            {error ? <p role="alert">{error}</p> : null}
         </div>
     );
 }

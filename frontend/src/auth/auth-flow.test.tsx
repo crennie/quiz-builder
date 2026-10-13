@@ -42,7 +42,7 @@ function renderSignIn() {
     });
     const questions = createRoute({
         getParentRoute: () => root,
-        path: "/questions",
+        path: "/questions/mine",
         component: () => <h1>Question bank</h1>,
     });
     const testRouter = createRouter({
@@ -79,7 +79,7 @@ it("signs up and shows the confirmation state without a session", async () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Check your email");
 });
 
-it("signs in and navigates to the question bank", async () => {
+it("signs in and navigates to the personal questions", async () => {
     const user = userEvent.setup();
     mockAuth.signInWithPassword.mockResolvedValue({ data: { session }, error: null });
     renderSignIn();
@@ -173,7 +173,10 @@ it("signs out and clears cached server data", async () => {
     );
     await screen.findByRole("navigation", { name: "Primary navigation" });
     expect(screen.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
-    expect(screen.getByRole("link", { name: "Questions" })).toHaveAttribute("href", "/questions");
+    expect(screen.getByRole("link", { name: "My questions" })).toHaveAttribute(
+        "href",
+        "/questions/mine",
+    );
     expect(screen.getByRole("link", { name: "Quizzes" })).toHaveAttribute("href", "/quizzes");
     expect(screen.getByRole("link", { name: "Attempts" })).toHaveAttribute("href", "/attempts");
     await user.click(await screen.findByRole("button", { name: "Sign out" }));

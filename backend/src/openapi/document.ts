@@ -1,7 +1,5 @@
 import { OpenAPIRegistry, OpenApiGeneratorV31 } from "@asteasolutions/zod-to-openapi";
 import {
-    bankQuestionDetailSchema,
-    bankQuestionListResponseSchema,
     attemptDetailSchema,
     attemptListResponseSchema,
     createFeedbackBodySchema,
@@ -12,32 +10,30 @@ import {
     feedbackSchema,
     questionDetailSchema,
     questionListResponseSchema,
-    questionVersionContentSchema,
-    questionVersionsResponseSchema,
-    publishQuestionBodySchema,
-    requestAgentQuestionBodySchema,
+    questionContentSchema,
+    courseSchema,
+    courseListResponseSchema,
+    lessonSchema,
+    lessonListResponseSchema,
+    lessonQuizListResponseSchema,
     questionBatchArtifactSchema,
     questionBatchListSchema,
     questionBatchSchema,
-    submitQuestionReviewBodySchema,
-    claimWorkItemBodySchema,
-    decideWorkItemBodySchema,
-    failWorkItemBodySchema,
-    workItemSchema,
-    workItemListResponseSchema,
     quizContentSchema,
     quizDetailSchema,
     quizListResponseSchema,
-    quizVersionsResponseSchema,
     tagListResponseSchema,
     tagSchema,
     submitAnswerBodySchema,
-    updateQuestionMetadataBodySchema,
-    updateQuizMetadataBodySchema,
     updateFeedbackStatusBodySchema,
 } from "@quiz-builder/contracts";
 import { z } from "zod";
 
+import {
+    courseParamsSchema,
+    lessonParamsSchema,
+    contentListQuerySchema,
+} from "../api/schemas/courses.ts";
 import { currentUserResponseSchema } from "../api/schemas/current-user.ts";
 import {
     attemptListQuerySchema,
@@ -82,9 +78,6 @@ const errorContent = {
 const questionContent = {
     "application/json": { schema: apiSchema(questionDetailSchema) },
 };
-const bankQuestionContent = {
-    "application/json": { schema: apiSchema(bankQuestionDetailSchema) },
-};
 const quizContent = { "application/json": { schema: apiSchema(quizDetailSchema) } };
 const tagContent = {
     "application/json": { schema: apiSchema(tagSchema) },
@@ -122,24 +115,9 @@ registry.registerPath({
 
 registry.registerPath({
     method: "get",
-    path: "/api/v1/questions",
-    tags: ["Questions"],
-    summary: "List published questions available in the question bank",
-    request: { query: questionListQuerySchema },
-    responses: {
-        200: {
-            description: "Questions and pagination offset.",
-            content: { "application/json": { schema: apiSchema(bankQuestionListResponseSchema) } },
-        },
-        ...commonErrors,
-    },
-});
-
-registry.registerPath({
-    method: "get",
     path: "/api/v1/questions/mine",
     tags: ["Questions"],
-    summary: "List owned questions, including drafts",
+    summary: "List owned questions",
     security: [{ BearerAuth: [] }],
     request: { query: questionListQuerySchema },
     responses: {
@@ -155,38 +133,10 @@ registry.registerPath({
     method: "get",
     path: "/api/v1/questions/{questionId}",
     tags: ["Questions"],
-    summary: "Get an accessible published question and its default version",
+    summary: "Get an owned or public question",
     request: { params: questionParamsSchema },
     responses: {
-        200: { description: "Published question detail.", content: bankQuestionContent },
-        ...commonErrors,
-    },
-});
-
-registry.registerPath({
-    method: "get",
-    path: "/api/v1/questions/{questionId}/manage",
-    tags: ["Questions"],
-    summary: "Get an owned question and its latest candidate version",
-    security: [{ BearerAuth: [] }],
-    request: { params: questionParamsSchema },
-    responses: {
-        200: { description: "Owned question detail.", content: questionContent },
-        ...commonErrors,
-    },
-});
-
-registry.registerPath({
-    method: "get",
-    path: "/api/v1/questions/{questionId}/published-versions",
-    tags: ["Questions"],
-    summary: "List accessible published versions of a question",
-    request: { params: questionParamsSchema },
-    responses: {
-        200: {
-            description: "Published question versions, newest first.",
-            content: { "application/json": { schema: apiSchema(questionVersionsResponseSchema) } },
-        },
+        200: { description: "Question detail.", content: questionContent },
         ...commonErrors,
     },
 });
@@ -195,7 +145,7 @@ registry.registerPath({
     method: "post",
     path: "/api/v1/questions",
     tags: ["Questions"],
-    summary: "Create a question and its first immutable version",
+    summary: "Create a private question",
     security: [{ BearerAuth: [] }],
     request: {
         body: { content: { "application/json": { schema: apiSchema(createQuestionBodySchema) } } },
@@ -206,97 +156,12 @@ registry.registerPath({
     },
 });
 
-registry.registerPath({
-    method: "get",
-    path: "/api/v1/questions/{questionId}/versions",
-    tags: ["Questions"],
-    summary: "List an owned question's immutable versions",
-    security: [{ BearerAuth: [] }],
-    request: { params: questionParamsSchema },
-    responses: {
-        200: {
-            description: "Question versions, newest first.",
-            content: { "application/json": { schema: apiSchema(questionVersionsResponseSchema) } },
-        },
-        ...commonErrors,
-    },
-});
-
-registry.registerPath({
-    method: "post",
-    path: "/api/v1/questions/{questionId}/versions",
-    tags: ["Questions"],
-    summary: "Create the next immutable question version",
-    security: [{ BearerAuth: [] }],
-    request: {
-        params: questionParamsSchema,
-        body: {
-            content: { "application/json": { schema: apiSchema(questionVersionContentSchema) } },
-        },
-    },
-    responses: {
-        201: { description: "Question with new current version.", content: questionContent },
-        ...commonErrors,
-    },
-});
-
-registry.registerPath({
-    method: "patch",
-    path: "/api/v1/questions/{questionId}",
-    tags: ["Questions"],
-    summary: "Update question visibility without creating a version",
-    security: [{ BearerAuth: [] }],
-    request: {
-        params: questionParamsSchema,
-        body: {
-            content: {
-                "application/json": { schema: apiSchema(updateQuestionMetadataBodySchema) },
-            },
-        },
-    },
-    responses: {
-        200: { description: "Updated question.", content: questionContent },
-        ...commonErrors,
-    },
-});
-
-registry.registerPath({
-    method: "post",
-    path: "/api/v1/questions/{questionId}/archive",
-    tags: ["Questions"],
-    summary: "Archive a question",
-    security: [{ BearerAuth: [] }],
-    request: { params: questionParamsSchema },
-    responses: {
-        200: { description: "Archived question.", content: questionContent },
-        ...commonErrors,
-    },
-});
-
-registry.registerPath({
-    method: "post",
-    path: "/api/v1/questions/{questionId}/publish",
-    tags: ["Questions"],
-    summary: "Directly approve and publish the current human-authored candidate",
-    security: [{ BearerAuth: [] }],
-    request: {
-        params: questionParamsSchema,
-        body: { content: { "application/json": { schema: apiSchema(publishQuestionBodySchema) } } },
-    },
-    responses: {
-        200: { description: "Published question.", content: questionContent },
-        ...commonErrors,
-    },
-});
-
-const workItemContent = { "application/json": { schema: apiSchema(workItemSchema) } };
-const workItemParamsSchema = z.strictObject({ itemId: z.uuid() });
 const batchParamsSchema = z.strictObject({ batchId: z.uuid() });
 const batchContent = { "application/json": { schema: apiSchema(questionBatchSchema) } };
 registry.registerPath({
     method: "post",
     path: "/api/v1/question-batches",
-    tags: ["Workflow"],
+    tags: ["Batches"],
     summary: "Validate and retain a question batch artifact",
     security: [{ BearerAuth: [] }],
     request: {
@@ -312,7 +177,7 @@ registry.registerPath({
 registry.registerPath({
     method: "get",
     path: "/api/v1/question-batches",
-    tags: ["Workflow"],
+    tags: ["Batches"],
     summary: "List the sponsor's recent question batches",
     security: [{ BearerAuth: [] }],
     responses: {
@@ -326,7 +191,7 @@ registry.registerPath({
 registry.registerPath({
     method: "get",
     path: "/api/v1/question-batches/{batchId}",
-    tags: ["Workflow"],
+    tags: ["Batches"],
     summary: "Get an owned batch artifact and its materialized questions",
     security: [{ BearerAuth: [] }],
     request: { params: batchParamsSchema },
@@ -338,106 +203,18 @@ registry.registerPath({
 registry.registerPath({
     method: "post",
     path: "/api/v1/question-batches/{batchId}/materialize",
-    tags: ["Workflow"],
-    summary: "Create private drafts from a retained batch",
+    tags: ["Batches"],
+    summary: "Create usable private questions from a retained batch",
     security: [{ BearerAuth: [] }],
     request: {
         params: batchParamsSchema,
         body: { content: { "application/json": { schema: z.strictObject({}) } } },
     },
     responses: {
-        200: { description: "Batch and created draft mappings.", content: batchContent },
+        200: { description: "Batch and question mappings.", content: batchContent },
         ...commonErrors,
     },
 });
-registry.registerPath({
-    method: "post",
-    path: "/api/v1/agent-questions",
-    tags: ["Workflow"],
-    summary: "Queue a private agent-generated question for configured review",
-    security: [{ BearerAuth: [] }],
-    request: {
-        body: {
-            content: { "application/json": { schema: apiSchema(requestAgentQuestionBodySchema) } },
-        },
-    },
-    responses: {
-        202: { description: "Queued creation item.", content: workItemContent },
-        429: { description: "Agent request quota reached.", content: errorContent },
-        ...commonErrors,
-    },
-});
-registry.registerPath({
-    method: "post",
-    path: "/api/v1/questions/{questionId}/review-submissions",
-    tags: ["Workflow"],
-    summary: "Submit the current candidate for configured content review",
-    security: [{ BearerAuth: [] }],
-    request: {
-        params: questionParamsSchema,
-        body: {
-            content: { "application/json": { schema: apiSchema(submitQuestionReviewBodySchema) } },
-        },
-    },
-    responses: { 201: { description: "Review item.", content: workItemContent }, ...commonErrors },
-});
-registry.registerPath({
-    method: "get",
-    path: "/api/v1/work-items",
-    tags: ["Workflow"],
-    summary: "List work assigned to the authenticated human",
-    security: [{ BearerAuth: [] }],
-    responses: {
-        200: {
-            description: "Assigned work items.",
-            content: {
-                "application/json": { schema: apiSchema(workItemListResponseSchema) },
-            },
-        },
-        ...commonErrors,
-    },
-});
-for (const [action, body, summary] of [
-    ["claim", claimWorkItemBodySchema, "Claim an assigned item with a fenced lease"],
-    ["decision", decideWorkItemBodySchema, "Complete content review or publication gate"],
-    ["fail", failWorkItemBodySchema, "Retry or fail a claimed item"],
-    ["cancel", claimWorkItemBodySchema, "Cancel an assigned item"],
-    ["hand-off", claimWorkItemBodySchema, "Move failed agent work to the human queue"],
-] as const) {
-    registry.registerPath({
-        method: "post",
-        path: `/api/v1/work-items/{itemId}/${action}`,
-        tags: ["Workflow"],
-        summary,
-        security: [{ BearerAuth: [] }],
-        request: {
-            params: workItemParamsSchema,
-            body: { content: { "application/json": { schema: apiSchema(body) } } },
-        },
-        responses: {
-            200: { description: "Updated work item.", content: workItemContent },
-            ...commonErrors,
-        },
-    });
-}
-
-for (const [path, summary] of [
-    ["unpublish", "Unpublish a question"],
-    ["restore", "Restore an archived question"],
-] as const) {
-    registry.registerPath({
-        method: "post",
-        path: `/api/v1/questions/{questionId}/${path}`,
-        tags: ["Questions"],
-        summary,
-        security: [{ BearerAuth: [] }],
-        request: { params: questionParamsSchema },
-        responses: {
-            200: { description: "Updated question.", content: questionContent },
-            ...commonErrors,
-        },
-    });
-}
 
 registry.registerPath({
     method: "put",
@@ -546,7 +323,7 @@ registry.registerPath({
     method: "get",
     path: "/api/v1/quizzes/{quizId}",
     tags: ["Quizzes"],
-    summary: "Get an accessible quiz with its exact question versions",
+    summary: "Get an owned or public quiz",
     request: { params: quizParamsSchema },
     responses: { 200: { description: "Quiz detail.", content: quizContent }, ...commonErrors },
 });
@@ -555,7 +332,7 @@ registry.registerPath({
     method: "post",
     path: "/api/v1/quizzes",
     tags: ["Quizzes"],
-    summary: "Create a quiz and its first immutable version",
+    summary: "Create a private quiz",
     security: [{ BearerAuth: [] }],
     request: {
         body: { content: { "application/json": { schema: apiSchema(createQuizBodySchema) } } },
@@ -564,28 +341,10 @@ registry.registerPath({
 });
 
 registry.registerPath({
-    method: "get",
-    path: "/api/v1/quizzes/{quizId}/versions",
-    tags: ["Quizzes"],
-    summary: "List an owned quiz's immutable versions",
-    security: [{ BearerAuth: [] }],
-    request: { params: quizParamsSchema },
-    responses: {
-        200: {
-            description: "Quiz versions, newest first.",
-            content: {
-                "application/json": { schema: apiSchema(quizVersionsResponseSchema) },
-            },
-        },
-        ...commonErrors,
-    },
-});
-
-registry.registerPath({
     method: "put",
     path: "/api/v1/quizzes/{quizId}/content",
     tags: ["Quizzes"],
-    summary: "Save attempt-relevant content; an equivalent save keeps the current version",
+    summary: "Save unused private quiz content; equivalent saves are harmless",
     security: [{ BearerAuth: [] }],
     request: {
         params: quizParamsSchema,
@@ -597,41 +356,12 @@ registry.registerPath({
     },
     responses: {
         200: {
-            description: "Current quiz, whether or not a new version was created.",
+            description: "Saved quiz.",
             content: quizContent,
         },
         ...commonErrors,
     },
 });
-
-registry.registerPath({
-    method: "patch",
-    path: "/api/v1/quizzes/{quizId}",
-    tags: ["Quizzes"],
-    summary: "Update visibility or lifecycle without creating a content version",
-    security: [{ BearerAuth: [] }],
-    request: {
-        params: quizParamsSchema,
-        body: {
-            content: {
-                "application/json": { schema: apiSchema(updateQuizMetadataBodySchema) },
-            },
-        },
-    },
-    responses: { 200: { description: "Updated quiz.", content: quizContent }, ...commonErrors },
-});
-
-for (const action of ["publish", "archive"] as const) {
-    registry.registerPath({
-        method: "post",
-        path: `/api/v1/quizzes/{quizId}/${action}`,
-        tags: ["Quizzes"],
-        summary: `${action === "publish" ? "Publish" : "Archive"} an owned quiz`,
-        security: [{ BearerAuth: [] }],
-        request: { params: quizParamsSchema },
-        responses: { 200: { description: "Updated quiz.", content: quizContent }, ...commonErrors },
-    });
-}
 
 registry.registerPath({
     method: "put",
@@ -659,7 +389,7 @@ registry.registerPath({
     method: "post",
     path: "/api/v1/quizzes/{quizId}/attempts",
     tags: ["Attempts"],
-    summary: "Start an attempt from the current published quiz version",
+    summary: "Start an attempt from an accessible quiz",
     security: [{ BearerAuth: [] }],
     request: { params: quizParamsSchema },
     responses: {
@@ -783,6 +513,73 @@ registry.registerPath({
     },
 });
 
+registry.registerPath({
+    method: "put",
+    path: "/api/v1/questions/{questionId}/content",
+    tags: ["Questions"],
+    summary: "Save unused private question content",
+    security: [{ BearerAuth: [] }],
+    request: {
+        params: questionParamsSchema,
+        body: { content: { "application/json": { schema: apiSchema(questionContentSchema) } } },
+    },
+    responses: {
+        200: { description: "Saved question.", content: questionContent },
+        ...commonErrors,
+    },
+});
+for (const [path, params, query, schema, summary] of [
+    [
+        "/api/v1/courses",
+        undefined,
+        contentListQuerySchema,
+        courseListResponseSchema,
+        "List public courses",
+    ],
+    [
+        "/api/v1/courses/{courseId}",
+        courseParamsSchema,
+        undefined,
+        courseSchema,
+        "Get a public course",
+    ],
+    [
+        "/api/v1/courses/{courseId}/lessons",
+        courseParamsSchema,
+        contentListQuerySchema,
+        lessonListResponseSchema,
+        "List ordered course lessons",
+    ],
+    [
+        "/api/v1/lessons/{lessonId}",
+        lessonParamsSchema,
+        undefined,
+        lessonSchema,
+        "Get a public lesson",
+    ],
+    [
+        "/api/v1/lessons/{lessonId}/quizzes",
+        lessonParamsSchema,
+        contentListQuerySchema,
+        lessonQuizListResponseSchema,
+        "List ordered lesson quizzes",
+    ],
+] as const)
+    registry.registerPath({
+        method: "get",
+        path,
+        tags: ["Courses"],
+        summary,
+        request: { params, query },
+        responses: {
+            200: {
+                description: summary,
+                content: { "application/json": { schema: apiSchema(schema) } },
+            },
+            ...commonErrors,
+        },
+    });
+
 export function createOpenApiDocument() {
     const generator = new OpenApiGeneratorV31(registry.definitions);
 
@@ -797,7 +594,7 @@ export function createOpenApiDocument() {
             { name: "Operations", description: "Service operational endpoints." },
             { name: "Users", description: "Authenticated user endpoints." },
             { name: "Questions", description: "Question bank endpoints." },
-            { name: "Workflow", description: "Human content review and publication work." },
+            { name: "Courses", description: "Public learning content." },
             { name: "Quizzes", description: "Quiz management endpoints." },
             { name: "Tags", description: "User-scoped tag endpoints." },
         ],

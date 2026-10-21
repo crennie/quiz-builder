@@ -3,6 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { ingestQuestionBatch, materializeQuestionBatch } from "../api/question-batches";
+import { Modal } from "../components/modal";
 import { createQuiz } from "../api/quizzes";
 import { parseQuizFile, type QuizImport } from "../import/quiz-file";
 
@@ -10,6 +11,7 @@ export function ImportQuizPage() {
     const navigate = useNavigate();
     const client = useQueryClient();
     const [preview, setPreview] = useState<QuizImport | null>(null);
+    const [importOpen, setImportOpen] = useState(false);
     const [busy, setBusy] = useState(false);
     const [reading, setReading] = useState(false);
     const [error, setError] = useState("");
@@ -47,6 +49,7 @@ export function ImportQuizPage() {
 
     async function importQuiz() {
         if (!preview || busy) return;
+        setImportOpen(true);
         setBusy(true);
         setError("");
         try {
@@ -78,6 +81,7 @@ export function ImportQuizPage() {
                 });
                 quizId.current = quiz.id;
             }
+            setStatus("Opening your quiz…");
             await Promise.all([
                 client.invalidateQueries({ queryKey: ["quizzes"] }),
                 client.invalidateQueries({ queryKey: ["questions"] }),
@@ -159,8 +163,33 @@ export function ImportQuizPage() {
                     </button>
                 </section>
             ) : null}
-            {status ? <p role="status">{status}</p> : null}
-            {error ? (
+            <Modal
+                open={importOpen}
+                title={busy ? "Importing quiz" : "Import needs attention"}
+                onClose={() => setImportOpen(false)}
+                dismissible={!busy}
+            >
+                <div className="form-grid">
+                    {busy ? <progress aria-label="Import progress" /> : null}
+                    {status ? <p role="status">{status}</p> : null}
+                    {busy ? (
+                        <p className="muted">
+                            Please keep this page open while we prepare your quiz.
+                        </p>
+                    ) : null}
+                    {error ? (
+                        <p role="alert" className="error-text">
+                            {error}
+                        </p>
+                    ) : null}
+                    {!busy ? (
+                        <button type="button" onClick={() => void importQuiz()}>
+                            Retry import
+                        </button>
+                    ) : null}
+                </div>
+            </Modal>
+            {error && !importOpen ? (
                 <p role="alert" className="error-text">
                     {error}
                 </p>

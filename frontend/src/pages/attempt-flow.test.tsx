@@ -326,9 +326,8 @@ it("starts, answers every format, completes, reviews, sends feedback, and opens 
     expect(within(review).getAllByText(/Your answer:/)).toHaveLength(3);
     expect(within(review).getAllByText(/Correct answer:/)).toHaveLength(3);
     expect(screen.getByText("Paris is the capital of France.")).toBeInTheDocument();
-    const feedbackDetails = screen.getByText("Send feedback about question 1").closest("details");
-    if (!feedbackDetails) throw new Error("Feedback form was not found");
-    await user.click(screen.getByText("Send feedback about question 1"));
+    await user.click(screen.getByRole("button", { name: "Send feedback about question 1" }));
+    const feedbackDetails = screen.getByRole("dialog", { name: "Send feedback about question 1" });
     await user.selectOptions(
         within(feedbackDetails).getByRole("combobox", { name: "Category" }),
         "typo",
@@ -343,9 +342,9 @@ it("starts, answers every format, completes, reviews, sends feedback, and opens 
         category: "typo",
         comment: "Please check the wording.",
     });
-    const quizFeedback = screen.getByText("Send feedback about this quiz").closest("details");
-    if (!quizFeedback) throw new Error("Quiz feedback form was not found");
-    await user.click(screen.getByText("Send feedback about this quiz"));
+    await user.click(within(feedbackDetails).getByRole("button", { name: "Close" }));
+    await user.click(screen.getByRole("button", { name: "Send feedback about this quiz" }));
+    const quizFeedback = screen.getByRole("dialog", { name: "Send feedback about this quiz" });
     await user.type(
         within(quizFeedback).getByRole("textbox", { name: "Feedback" }),
         "Great practice quiz.",
@@ -355,6 +354,7 @@ it("starts, answers every format, completes, reviews, sends feedback, and opens 
         quizId,
         comment: "Great practice quiz.",
     });
+    await user.click(within(quizFeedback).getByRole("button", { name: "Close" }));
     await user.click(screen.getByRole("link", { name: "← Attempt history" }));
     expect(await screen.findByRole("heading", { name: "Attempt history" })).toBeInTheDocument();
     await user.click(screen.getByRole("link", { name: "View results" }));
@@ -449,9 +449,8 @@ it("navigates between questions, preserves saved answers, and accepts feedback i
     expect(screen.getByText(/Your saved answer:/).parentElement).toHaveTextContent("Paris");
     expect(screen.queryByRole("button", { name: "Submit answer" })).not.toBeInTheDocument();
     expect(screen.getByText(/1 of 3 answered/)).toBeInTheDocument();
-    const feedbackDetails = screen.getByText("Send feedback about question 1").closest("details");
-    if (!feedbackDetails) throw new Error("Feedback form was not found");
-    await user.click(screen.getByText("Send feedback about question 1"));
+    await user.click(screen.getByRole("button", { name: "Send feedback about question 1" }));
+    const feedbackDetails = screen.getByRole("dialog", { name: "Send feedback about question 1" });
     await user.type(
         within(feedbackDetails).getByRole("textbox", { name: "Feedback" }),
         "This question needs clarification.",

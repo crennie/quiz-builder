@@ -150,7 +150,7 @@ export function ImportCoursePage({ courseId }: { courseId?: string }) {
                     href={`${import.meta.env.BASE_URL}sample-${courseId ? "lessons" : "course"}.json`}
                     download
                 >
-                    Download example {noun}
+                    {courseId ? "Download example lessons" : "Download example course with lessons"}
                 </a>
                 <p className="muted small">
                     Course and lesson content will be publicly readable.{" "}

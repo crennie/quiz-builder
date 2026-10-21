@@ -79,7 +79,7 @@ function AttemptPlayer({ attemptId }: { attemptId: string }) {
         const updated = await answer.mutateAsync({ questionId, response });
         updateAttempt(updated);
         const next = updated.questions.findIndex((question) => question.userResponse === null);
-        if (next >= 0) setQuestionIndex(next);
+        setQuestionIndex(next >= 0 ? next : updated.questions.length);
     }
 
     async function finish() {
@@ -120,7 +120,8 @@ function AttemptPlayer({ attemptId }: { attemptId: string }) {
     const firstUnanswered = current.questions.findIndex(
         (question) => question.userResponse === null,
     );
-    const selectedIndex = questionIndex ?? (firstUnanswered >= 0 ? firstUnanswered : 0);
+    const selectedIndex =
+        questionIndex ?? (firstUnanswered >= 0 ? firstUnanswered : current.questions.length);
     const selected = current.questions[selectedIndex];
     const answeredCount = current.questions.filter(
         (question) => question.userResponse !== null,
@@ -134,14 +135,18 @@ function AttemptPlayer({ attemptId }: { attemptId: string }) {
                 <Link to="/attempts">Leave quiz</Link>
             </header>
             {selected ? (
-                <section className={styles.stage} aria-label={`Question ${selectedIndex + 1}`}>
+                <section
+                    key={selected.id}
+                    className={styles.stage}
+                    aria-label={`Question ${selectedIndex + 1}`}
+                >
                     <div className={styles.progress}>
                         <span>
                             Question {selectedIndex + 1} of {current.questions.length}
                         </span>
                         <span>{answeredCount} answered</span>
                     </div>
-                    <QuestionPrompt key={selected.id} prompt={selected.prompt} />
+                    <QuestionPrompt prompt={selected.prompt} />
                     {selected.userResponse ? (
                         <div className="message-panel">
                             <p>
@@ -154,7 +159,6 @@ function AttemptPlayer({ attemptId }: { attemptId: string }) {
                         </div>
                     ) : (
                         <AnswerForm
-                            key={selected.id}
                             question={selected}
                             busy={busy}
                             draft={drafts[selected.id]}
@@ -176,27 +180,34 @@ function AttemptPlayer({ attemptId }: { attemptId: string }) {
                         <button
                             type="button"
                             className="secondary"
-                            disabled={
-                                !selected.userResponse ||
-                                selectedIndex === current.questions.length - 1 ||
-                                busy
-                            }
+                            disabled={!selected.userResponse || busy}
                             onClick={() => setQuestionIndex(selectedIndex + 1)}
                         >
                             Next
                         </button>
                     </div>
                 </section>
-            ) : null}
-            {canComplete ? (
-                <section className="panel" aria-label="Finish quiz">
-                    <h2>All questions answered</h2>
+            ) : canComplete ? (
+                <section key="results" className={styles.stage} aria-label="Finish quiz">
+                    <QuestionPrompt prompt="All questions answered" />
                     <p className="muted">
                         Review your saved answers, or finish to see your total result.
                     </p>
-                    <button type="button" disabled={busy} onClick={() => void finish()}>
-                        {complete.isPending ? "Completing…" : "Show results"}
-                    </button>
+                    <div className={styles.actions}>
+                        <button type="button" disabled={busy} onClick={() => void finish()}>
+                            {complete.isPending ? "Completing…" : "Show results"}
+                        </button>
+                    </div>
+                    <div className="pagination">
+                        <button
+                            type="button"
+                            className="secondary"
+                            disabled={busy || current.questions.length === 0}
+                            onClick={() => setQuestionIndex(current.questions.length - 1)}
+                        >
+                            Previous
+                        </button>
+                    </div>
                     {actionError ? (
                         <p role="alert" className="error-text">
                             {actionError}

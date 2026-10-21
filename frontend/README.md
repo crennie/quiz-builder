@@ -33,13 +33,29 @@ is a format identifier rather than an entity version. No review, queue or provid
 Choose personal questions by ID, or add an accessible public question using its known UUID. Preserve
 question ordering, repeat questions if desired, and set points/required/timing and display settings.
 Equivalent saves are harmless. A quiz with any attempt shows content read-only and a replacement
-creation link; tags remain editable. Public quiz authoring and course editors are deferred.
+creation link; tags remain editable. Lesson quizzes are managed exclusively in their lesson editor.
 
 ## Courses and lessons
 
 **Courses** is public and lists existing courses. Open a course for its ordered lesson outline,
 then read lessons with section links and previous/next navigation. The reading layout supports
-light/dark themes and narrow screens. There are no enrollment, completion, or quiz attachment controls.
+light/dark themes and narrow screens. View is the default for everyone. Any signed-in user can choose
+**Edit lesson** to change title, description and Markdown, and import, edit, remove or reorder quizzes.
+**Save lesson** publishes the entire draft atomically; **Cancel** discards it. Conflicting saves ask
+you to reload instead of overwriting another editor's changes.
+
+Quizzes are created only by **Import quiz** in the lesson editor. Use the
+[example quiz](public/sample-quiz.json), an existing question batch artifact, or a full
+`LessonQuizContent` JSON document. Each quiz belongs to this lesson alone. Imported questions are
+public. Edit quiz settings, question content and points in the draft. Apply or cancel a question
+edit before saving the lesson. Replacing or removing a quiz preserves historical attempts.
+The save request shares the API's 256 KiB body limit; each quiz supports up to 200 questions and a
+lesson supports up to 100 quizzes.
+
+In View, **Start / retry quiz** opens the existing player inside the lesson. Submit answers, finish
+for scores and review, then return to retry. **Your lesson attempts** includes resumable attempts
+and past results, even for removed or replaced quizzes. Quiz taking is unavailable in Edit, and
+editing is disabled while the player is open. There are no enrollment or completion controls.
 
 Signed-in users can choose **Import course**, or **Import lessons** on any course overview. Select a
 JSON file, expand lessons to preview their content, then import public content. Lessons append in

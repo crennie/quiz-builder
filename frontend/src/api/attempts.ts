@@ -7,8 +7,9 @@ import {
 
 import { authenticatedRequest } from "./client";
 
-export async function listAttempts(offset: number) {
+export async function listAttempts(offset: number, lessonId?: string) {
     const query = new URLSearchParams({ limit: "20", offset: String(offset) });
+    if (lessonId) query.set("lessonId", lessonId);
     return attemptListResponseSchema.parse(
         await authenticatedRequest<unknown>(`/v1/attempts?${query}`),
     );
@@ -18,10 +19,11 @@ export async function getAttempt(id: string): Promise<AttemptDetail> {
     return attemptDetailSchema.parse(await authenticatedRequest<unknown>(`/v1/attempts/${id}`));
 }
 
-export async function startAttempt(quizId: string): Promise<AttemptDetail> {
+export async function startAttempt(quizId: string, lessonQuizId?: string): Promise<AttemptDetail> {
     return attemptDetailSchema.parse(
         await authenticatedRequest<unknown>(`/v1/quizzes/${quizId}/attempts`, {
             method: "POST",
+            body: JSON.stringify({ lessonQuizId: lessonQuizId ?? null }),
         }),
     );
 }

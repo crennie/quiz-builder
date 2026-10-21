@@ -1,4 +1,5 @@
 import {
+    saveLessonBodySchema,
     courseSchema,
     courseImportBodySchema,
     lessonImportBodySchema,
@@ -25,6 +26,7 @@ import {
 } from "../db/courses.ts";
 import { importCourseContent } from "../db/course-imports.ts";
 import { requireAuthentication, optionalAuthentication } from "../middleware/authentication.ts";
+import { saveLesson } from "../db/lesson-editing.ts";
 export const courseRouter = Router();
 // Writes authenticate before public read middleware to avoid verifying tokens twice.
 courseRouter.post("/courses/import", requireAuthentication, async (req, res) => {
@@ -51,6 +53,15 @@ courseRouter.post("/courses/:courseId/lessons/import", requireAuthentication, as
         courseImportResultSchema,
         await importCourseContent(userId, body.importKey, body.content, params.courseId),
     );
+});
+courseRouter.put("/lessons/:lessonId", requireAuthentication, async (req, res) => {
+    const { params, body } = validateRequest(req, {
+        params: lessonParamsSchema,
+        body: saveLessonBodySchema,
+    });
+    const userId = req.authenticatedUser?.id;
+    if (!userId) throw new Error("Authenticated user is missing");
+    sendResponse(res, 200, lessonDetailSchema, await saveLesson(params.lessonId, userId, body));
 });
 courseRouter.use(["/courses", "/lessons"], optionalAuthentication);
 courseRouter.get("/courses", async (req, res) => {

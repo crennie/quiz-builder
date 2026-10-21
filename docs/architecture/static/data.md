@@ -12,7 +12,7 @@ The baseline and subsequent SQL migrations in `supabase/migrations/` are authori
 | quiz_attempt_questions                  | Source question identity, immutable presentation/answer/grading/required/timing/points, recorded responses/results |
 | courses                                 | Public title/description and timestamps                                                                            |
 | lessons                                 | Exactly one course FK, ordered title/description/Markdown and timestamps                                           |
-| lesson_quizzes                          | Stable UUID, immutable lesson/quiz identity, reusable public quiz and unique lesson position                       |
+| lesson_quizzes                          | Stable UUID, exclusive public quiz, immutable identity, removed_at, unique active lesson position                  |
 | tags / question_tags / quiz_tags        | Owner-scoped labels and associations                                                                               |
 | feedback                                | Exactly one question/quiz/attempt-question target, category/comment/triage                                         |
 | question_batches / question_batch_items | Immutable sponsor artifact/digest/key and direct question mappings                                                 |
@@ -26,3 +26,8 @@ shared runtime Zod validation. Batch keys and mappings are unique and immutable.
 
 Lesson context uses a restrictive FK. Association identity and attempt context cannot be changed.
 Import receipts serialize retries; append operations lock the course before assigning lesson positions.
+
+`lesson_quizzes.quiz_id` is unique even for retired associations; quizzes cannot be shared across
+lessons. A partial unique index orders only active associations (`removed_at IS NULL`). Retired
+associations preserve history, but cannot start new attempts. Lesson saves lock the lesson, check
+`expectedUpdatedAt`, lock associated quizzes in UUID order, and publish the entire draft atomically.

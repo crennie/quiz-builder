@@ -165,10 +165,23 @@ export async function startAttemptInTransaction(
     if (!quiz) throw new AppError(404, "QUIZ_NOT_FOUND", "Quiz not found");
     if (quiz.archived_at)
         throw new AppError(409, "QUIZ_ARCHIVED", "Restore this quiz before starting a new attempt");
+    const association = await database.query<{ id: string; removed_at: string | null }>(
+        "SELECT id,removed_at FROM public.lesson_quizzes WHERE quiz_id=$1",
+        [quizId],
+    );
+    if (
+        association.rows[0] &&
+        (association.rows[0].removed_at || association.rows[0].id !== lessonQuizId?.toLowerCase())
+    )
+        throw new AppError(
+            400,
+            "INVALID_LESSON_CONTEXT",
+            "Start this quiz from its lesson; removed quizzes cannot be started",
+        );
     if (lessonQuizId) {
         const context = await database.query(
             `SELECT lq.id FROM public.lesson_quizzes lq JOIN public.quizzes q ON q.id=lq.quiz_id
-             WHERE lq.id=$1 AND lq.quiz_id=$2 AND q.visibility='public' FOR KEY SHARE OF lq`,
+             WHERE lq.id=$1 AND lq.quiz_id=$2 AND q.visibility='public' AND lq.removed_at IS NULL FOR KEY SHARE OF lq`,
             [lessonQuizId, quizId],
         );
         if (!context.rows[0])
@@ -354,13 +367,14 @@ export function completeAttempt(attemptId: string, userId: string): Promise<Atte
 
 export async function listAttempts(
     userId: string,
-    options: { limit: number; offset: number },
+    options: { limit: number; offset: number; lessonId?: string },
     database: QueryExecutor = pool,
 ): Promise<{ items: AttemptDetail[]; nextOffset: number | null }> {
     const result = await database.query<AttemptRow>(
         `SELECT a.* FROM public.quiz_attempts a
-         WHERE a.user_id = $1 ORDER BY a.started_at DESC, a.id DESC LIMIT $2 OFFSET $3`,
-        [userId, options.limit + 1, options.offset],
+         WHERE a.user_id = $1 AND ($4::uuid IS NULL OR EXISTS (
+             SELECT 1 FROM public.lesson_quizzes lq WHERE lq.id=a.lesson_quiz_id AND lq.lesson_id=$4)) ORDER BY a.started_at DESC, a.id DESC LIMIT $2 OFFSET $3`,
+        [userId, options.limit + 1, options.offset, options.lessonId ?? null],
     );
     const items: AttemptDetail[] = [];
     for (const row of result.rows.slice(0, options.limit))

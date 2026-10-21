@@ -374,6 +374,47 @@ export const lessonImportContentSchema = z.strictObject({
         .max(200_000)
         .refine((value) => value.trim().length > 0, "Lesson content cannot be blank"),
 });
+// Lesson quiz documents are imported inline; existing quizzes can be edited by association ID.
+export const lessonQuizContentSchema = z.strictObject({
+    title: z.string().trim().min(1).max(300),
+    description: z.string().trim().max(5000).nullable(),
+    settings: quizSettingsSchema,
+    questions: z
+        .array(
+            z.strictObject({
+                content: questionContentSchema,
+                points: z.number().finite().nonnegative(),
+                required: z.boolean(),
+                timeLimitSeconds: z.number().int().positive().nullable(),
+            }),
+        )
+        .min(1)
+        .max(200),
+});
+export const saveLessonBodySchema = lessonImportContentSchema
+    .extend({
+        expectedUpdatedAt: apiTimestampSchema,
+        quizzes: z
+            .array(
+                z.union([
+                    z.strictObject({ id: z.uuid(), content: lessonQuizContentSchema }),
+                    z.strictObject({ import: lessonQuizContentSchema }),
+                ]),
+            )
+            .max(100),
+    })
+    .superRefine((value, ctx) => {
+        const ids = value.quizzes.flatMap((q) => ("id" in q ? [q.id.toLowerCase()] : []));
+        if (new Set(ids).size !== ids.length)
+            ctx.addIssue({
+                code: "custom",
+                message: "Duplicate lesson quiz IDs",
+                path: ["quizzes"],
+            });
+    });
+export type LessonQuizContent = z.output<typeof lessonQuizContentSchema>;
+export type SaveLessonBody = z.output<typeof saveLessonBodySchema>;
+
 export const courseImportFileSchema = z.strictObject({
     title: z.string().trim().min(1).max(300),
     description: z.string().trim().max(5000).nullable().default(null),

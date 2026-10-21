@@ -99,6 +99,7 @@ export async function listQuizzes(
 ) {
     const rows = await database.query<QuizRow>(
         `SELECT q.* FROM public.quizzes q WHERE (q.created_by=$1::uuid OR ($5::text='all' AND q.visibility='public'))
+ AND NOT EXISTS(SELECT 1 FROM public.lesson_quizzes lq WHERE lq.quiz_id=q.id)
  AND (($6::boolean AND q.archived_at IS NOT NULL AND q.created_by=$1::uuid) OR (NOT $6::boolean AND q.archived_at IS NULL))
  AND ($2::text IS NULL OR EXISTS(SELECT 1 FROM public.quiz_tags qt JOIN public.tags t ON t.id=qt.tag_id WHERE qt.quiz_id=q.id AND t.slug=$2))
  ORDER BY q.created_at DESC,q.id DESC LIMIT $3 OFFSET $4`,

@@ -63,13 +63,15 @@ isOneToOne: false
                   ]
                 },"lesson_quizzes": {
                   Row: {
-                    "id": string,"lesson_id": string,"position": number,"quiz_id": string
+                    "removed_at": string | null,"id": string,"lesson_id": string,"position": number,"quiz_id": string
                   }
                   Insert: {
+                    "removed_at"?: string | null,
                     "id"?: string,
                     "lesson_id": string,"position": number,"quiz_id": string
                   }
                   Update: {
+                    "removed_at"?: string | null,
                     "id"?: string,
                     "lesson_id"?: string,"position"?: number,"quiz_id"?: string
                   }
@@ -83,7 +85,7 @@ isOneToOne: false
     },{
       foreignKeyName: "lesson_quizzes_quiz_id_fkey"
       columns: ["quiz_id"]
-isOneToOne: false
+isOneToOne: true
       referencedRelation: "quizzes"
       referencedColumns: ["id"]
     }

@@ -1,4 +1,7 @@
 import {
+    lessonQuizListResponseSchema,
+    type SaveLessonBody,
+    type LessonQuiz,
     courseSchema,
     courseListResponseSchema,
     lessonDetailSchema,
@@ -42,6 +45,32 @@ export async function importLessons(
         await authenticatedRequest(`/v1/courses/${courseId}/lessons/import`, {
             method: "POST",
             body: JSON.stringify({ importKey, content }),
+        }),
+    );
+}
+
+export async function listLessonQuizzes(id: string): Promise<LessonQuiz[]> {
+    const items: LessonQuiz[] = [];
+    let offset: number | null = 0;
+    while (offset !== null) {
+        const page = lessonQuizListResponseSchema.parse(
+            await apiRequest(`/v1/lessons/${id}/quizzes?limit=100&offset=${offset}`),
+        );
+        items.push(...page.items);
+        offset = page.nextOffset;
+    }
+    return items;
+}
+export async function saveLesson(id: string, content: SaveLessonBody) {
+    const body = JSON.stringify(content);
+    if (new TextEncoder().encode(body).byteLength > 256 * 1024)
+        throw new Error(
+            "Lesson and quizzes exceed the 256 KiB save limit. Reduce the content before saving.",
+        );
+    return lessonDetailSchema.parse(
+        await authenticatedRequest(`/v1/lessons/${id}`, {
+            method: "PUT",
+            body,
         }),
     );
 }

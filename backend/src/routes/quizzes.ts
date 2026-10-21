@@ -10,11 +10,13 @@ import { Router, type Request, type Response } from "express";
 import { validateRequest } from "../api/request.ts";
 import { sendResponse } from "../api/response.ts";
 import {
+    quizArchiveBodySchema,
     quizListQuerySchema,
     quizParamsSchema,
     quizTagParamsSchema,
 } from "../api/schemas/quizzes.ts";
 import {
+    setQuizArchived,
     assignQuizTag,
     createQuiz,
     getQuizDetail,
@@ -35,12 +37,13 @@ export const quizRouter = Router();
 
 quizRouter.get("/quizzes", optionalAuthentication, async (request, response) => {
     const { query } = validateRequest(request, { query: quizListQuerySchema });
-    if (query.scope === "mine" && !request.authenticatedUser) {
+    if ((query.scope === "mine" || query.archived) && !request.authenticatedUser) {
         throw new AppError(401, "UNAUTHORIZED", "A valid access token is required");
     }
     const result = await listQuizzes({
         viewerId: request.authenticatedUser?.id ?? null,
         scope: query.scope,
+        archived: query.archived,
         tagSlug: query.tag,
         limit: query.limit,
         offset: query.offset,
@@ -97,3 +100,12 @@ quizRouter.delete(
         response.status(204).send();
     },
 );
+
+quizRouter.put("/quizzes/:quizId/archive", requireAuthentication, async (request, response) => {
+    const { params, body } = validateRequest(request, {
+        params: quizParamsSchema,
+        body: quizArchiveBodySchema,
+    });
+    const quiz = await setQuizArchived(params.quizId, userId(request), body.archived);
+    sendResponse(response, 200, quizDetailSchema, quiz);
+});

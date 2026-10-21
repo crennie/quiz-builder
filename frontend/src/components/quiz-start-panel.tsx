@@ -46,7 +46,7 @@ export function QuizStartPanel({ quiz }: { quiz: QuizDetail }) {
             </p>
             <button
                 type="button"
-                disabled={start.isPending || quiz.questions.length === 0}
+                disabled={start.isPending || quiz.questions.length === 0 || !!quiz.archivedAt}
                 onClick={() => void begin()}
             >
                 {start.isPending ? "Starting…" : "Take quiz"}

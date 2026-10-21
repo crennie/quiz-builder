@@ -49,6 +49,7 @@ import {
     questionTagParamsSchema,
 } from "../api/schemas/question-bank.ts";
 import {
+    quizArchiveBodySchema,
     quizListQuerySchema,
     quizParamsSchema,
     quizTagParamsSchema,
@@ -329,6 +330,19 @@ registry.registerPath({
 });
 
 registry.registerPath({
+    method: "put",
+    path: "/api/v1/quizzes/{quizId}/archive",
+    tags: ["Quizzes"],
+    summary: "Archive or restore an owned private quiz, preserving attempt history",
+    security: [{ BearerAuth: [] }],
+    request: {
+        params: quizParamsSchema,
+        body: { content: { "application/json": { schema: apiSchema(quizArchiveBodySchema) } } },
+    },
+    responses: { 200: { description: "Updated quiz.", content: quizContent }, ...commonErrors },
+});
+
+registry.registerPath({
     method: "post",
     path: "/api/v1/quizzes",
     tags: ["Quizzes"],
@@ -433,7 +447,7 @@ registry.registerPath({
     method: "put",
     path: "/api/v1/attempts/{attemptId}/questions/{questionId}/answer",
     tags: ["Attempts"],
-    summary: "Submit and evaluate one answer",
+    summary: "Save or replace and evaluate an answer while the attempt is in progress",
     security: [{ BearerAuth: [] }],
     request: {
         params: attemptQuestionParamsSchema,

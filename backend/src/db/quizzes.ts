@@ -54,8 +54,13 @@ async function mapDetail(
         settings: quizSettingsSchema.parse(row.settings),
         createdAt: iso(row.created_at),
         updatedAt: iso(row.updated_at),
+        archivedAt: row.archived_at ? iso(row.archived_at) : null,
         isOwner,
-        canEditContent: isOwner && row.visibility === "private" && !attempts.rows[0]?.exists,
+        canEditContent:
+            isOwner &&
+            row.visibility === "private" &&
+            !row.archived_at &&
+            !attempts.rows[0]?.exists,
         tags: tags.rows.map((t): Tag =>
             tagSchema.parse({ id: t.id, name: t.name, slug: t.slug, createdAt: iso(t.created_at) }),
         ),
@@ -86,6 +91,7 @@ export async function listQuizzes(
         viewerId: string | null;
         scope?: "all" | "mine";
         tagSlug?: string;
+        archived?: boolean;
         limit: number;
         offset: number;
     },
@@ -93,6 +99,7 @@ export async function listQuizzes(
 ) {
     const rows = await database.query<QuizRow>(
         `SELECT q.* FROM public.quizzes q WHERE (q.created_by=$1::uuid OR ($5::text='all' AND q.visibility='public'))
+ AND (($6::boolean AND q.archived_at IS NOT NULL AND q.created_by=$1::uuid) OR (NOT $6::boolean AND q.archived_at IS NULL))
  AND ($2::text IS NULL OR EXISTS(SELECT 1 FROM public.quiz_tags qt JOIN public.tags t ON t.id=qt.tag_id WHERE qt.quiz_id=q.id AND t.slug=$2))
  ORDER BY q.created_at DESC,q.id DESC LIMIT $3 OFFSET $4`,
         [
@@ -101,6 +108,7 @@ export async function listQuizzes(
             options.limit + 1,
             options.offset,
             options.scope ?? "all",
+            options.archived ?? false,
         ],
     );
     const items: QuizDetail[] = [];
@@ -183,6 +191,8 @@ export async function saveQuizContentInTransaction(
         })),
     });
     if (isDeepStrictEqual(content, comparable)) return current;
+    if (row.archived_at)
+        throw new AppError(409, "QUIZ_ARCHIVED", "Restore this quiz before editing its content");
     if (!current.canEditContent)
         throw new AppError(
             409,
@@ -256,4 +266,34 @@ export async function removeQuizTagInTransaction(
 
 export function removeQuizTag(quizId: string, tagId: string, ownerId: string): Promise<void> {
     return withTransaction((client) => removeQuizTagInTransaction(quizId, tagId, ownerId, client));
+}
+
+export function setQuizArchived(
+    quizId: string,
+    ownerId: string,
+    archived: boolean,
+): Promise<QuizDetail> {
+    return withTransaction(async (database) => {
+        const result = await database.query<QuizRow>(
+            `SELECT * FROM public.quizzes WHERE id=$1 AND created_by=$2 FOR UPDATE`,
+            [quizId, ownerId],
+        );
+        const quiz = result.rows[0];
+        if (!quiz) throw new AppError(404, "QUIZ_NOT_FOUND", "Quiz not found");
+        if (quiz.visibility !== "private") {
+            throw new AppError(
+                403,
+                "PUBLIC_CONTENT_READ_ONLY",
+                "Public quizzes cannot be archived through this API",
+            );
+        }
+        await database.query(
+            `UPDATE public.quizzes SET archived_at=CASE WHEN $2::boolean THEN COALESCE(archived_at, now()) ELSE NULL END,
+             updated_at=CASE WHEN (archived_at IS NOT NULL)=$2::boolean THEN updated_at ELSE now() END WHERE id=$1`,
+            [quizId, archived],
+        );
+        const detail = await getQuizDetail(quizId, ownerId, database);
+        if (!detail) throw new Error("Archived quiz was not found");
+        return detail;
+    });
 }

@@ -78,8 +78,13 @@ function AttemptPlayer({ attemptId }: { attemptId: string }) {
     async function saveAnswer(questionId: string, response: UserResponse) {
         const updated = await answer.mutateAsync({ questionId, response });
         updateAttempt(updated);
+        setDrafts((previous) => {
+            const remaining = { ...previous };
+            delete remaining[questionId];
+            return remaining;
+        });
         const next = updated.questions.findIndex((question) => question.userResponse === null);
-        if (next >= 0) setQuestionIndex(next);
+        setQuestionIndex(next >= 0 ? next : updated.questions.length);
     }
 
     async function finish() {
@@ -120,12 +125,17 @@ function AttemptPlayer({ attemptId }: { attemptId: string }) {
     const firstUnanswered = current.questions.findIndex(
         (question) => question.userResponse === null,
     );
-    const selectedIndex = questionIndex ?? (firstUnanswered >= 0 ? firstUnanswered : 0);
+    const selectedIndex =
+        questionIndex ?? (firstUnanswered >= 0 ? firstUnanswered : current.questions.length);
     const selected = current.questions[selectedIndex];
     const answeredCount = current.questions.filter(
         (question) => question.userResponse !== null,
     ).length;
     const canComplete = answeredCount === current.questions.length;
+    const hasUnsavedChanges =
+        selected &&
+        drafts[selected.id] !== undefined &&
+        JSON.stringify(drafts[selected.id]) !== JSON.stringify(selected.userResponse);
 
     return (
         <div className={styles.player}>
@@ -134,41 +144,32 @@ function AttemptPlayer({ attemptId }: { attemptId: string }) {
                 <Link to="/attempts">Leave quiz</Link>
             </header>
             {selected ? (
-                <section className={styles.stage} aria-label={`Question ${selectedIndex + 1}`}>
+                <section
+                    key={selected.id}
+                    className={styles.stage}
+                    aria-label={`Question ${selectedIndex + 1}`}
+                >
                     <div className={styles.progress}>
                         <span>
                             Question {selectedIndex + 1} of {current.questions.length}
                         </span>
                         <span>{answeredCount} answered</span>
                     </div>
-                    <QuestionPrompt key={selected.id} prompt={selected.prompt} />
-                    {selected.userResponse ? (
-                        <div className="message-panel">
-                            <p>
-                                <strong>Your saved answer:</strong> {responseText(selected)}
-                            </p>
-                            <p className="muted small">
-                                Submitted answers cannot be changed. Results appear after you finish
-                                the quiz.
-                            </p>
-                        </div>
-                    ) : (
-                        <AnswerForm
-                            key={selected.id}
-                            question={selected}
-                            busy={busy}
-                            draft={drafts[selected.id]}
-                            onDraft={(draft) =>
-                                setDrafts((previous) => ({ ...previous, [selected.id]: draft }))
-                            }
-                            onSave={(response) => saveAnswer(selected.id, response)}
-                        />
-                    )}
+                    <QuestionPrompt prompt={selected.prompt} />
+                    <AnswerForm
+                        question={selected}
+                        busy={busy}
+                        draft={drafts[selected.id] ?? selected.userResponse ?? undefined}
+                        onDraft={(draft) =>
+                            setDrafts((previous) => ({ ...previous, [selected.id]: draft }))
+                        }
+                        onSave={(response) => saveAnswer(selected.id, response)}
+                    />
                     <div className="pagination">
                         <button
                             type="button"
                             className="secondary"
-                            disabled={selectedIndex === 0 || busy}
+                            disabled={selectedIndex === 0 || busy || hasUnsavedChanges}
                             onClick={() => setQuestionIndex(selectedIndex - 1)}
                         >
                             Previous
@@ -176,27 +177,34 @@ function AttemptPlayer({ attemptId }: { attemptId: string }) {
                         <button
                             type="button"
                             className="secondary"
-                            disabled={
-                                !selected.userResponse ||
-                                selectedIndex === current.questions.length - 1 ||
-                                busy
-                            }
+                            disabled={!selected.userResponse || busy || hasUnsavedChanges}
                             onClick={() => setQuestionIndex(selectedIndex + 1)}
                         >
                             Next
                         </button>
                     </div>
                 </section>
-            ) : null}
-            {canComplete ? (
-                <section className="panel" aria-label="Finish quiz">
-                    <h2>All questions answered</h2>
+            ) : canComplete ? (
+                <section key="results" className={styles.stage} aria-label="Finish quiz">
+                    <QuestionPrompt prompt="All questions answered" />
                     <p className="muted">
                         Review your saved answers, or finish to see your total result.
                     </p>
-                    <button type="button" disabled={busy} onClick={() => void finish()}>
-                        {complete.isPending ? "Completing…" : "Show results"}
-                    </button>
+                    <div className={styles.actions}>
+                        <button type="button" disabled={busy} onClick={() => void finish()}>
+                            {complete.isPending ? "Completing…" : "Show results"}
+                        </button>
+                    </div>
+                    <div className="pagination">
+                        <button
+                            type="button"
+                            className="secondary"
+                            disabled={busy || current.questions.length === 0}
+                            onClick={() => setQuestionIndex(current.questions.length - 1)}
+                        >
+                            Previous
+                        </button>
+                    </div>
                     {actionError ? (
                         <p role="alert" className="error-text">
                             {actionError}
@@ -329,11 +337,16 @@ function AnswerForm({
             )}
             <div className={styles.actions}>
                 <button type="submit" disabled={!canSubmit || busy}>
-                    {busy ? "Saving answer…" : "Submit answer"}
+                    {busy
+                        ? "Saving answer…"
+                        : question.userResponse
+                          ? "Save answer"
+                          : "Submit answer"}
                 </button>
             </div>
             <p className="muted small">
-                Submit to save your answer before moving to another question.
+                Save your answer before moving to another question. You can change it until you show
+                results.
             </p>
             {error ? (
                 <p role="alert" className="error-text">

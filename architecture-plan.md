@@ -21,6 +21,10 @@ explanation, ownership and private/public visibility directly. Quizzes contain t
 settings and visibility directly; ordered `quiz_questions` reference question IDs with numeric
 points, required flags and optional timing. Repeating a question at different positions is allowed.
 
+Private quizzes support reversible archiving through `archived_at`; active lists exclude archives,
+new attempts are blocked while archived, and existing attempts and content locks are preserved.
+See [ADR-010](docs/architecture/decisions/ADR-010-quiz-archiving.md).
+
 Courses are public. Each ordered lesson has exactly one course FK and plain text/Markdown content.
 `lesson_quizzes` associates public quizzes with lessons; a quiz can be reused across courses.
 Courses and lessons have read-only HTTP APIs. Controlled public authoring and permissions are deferred.

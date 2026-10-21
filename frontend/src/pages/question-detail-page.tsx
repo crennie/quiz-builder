@@ -37,7 +37,20 @@ export function QuestionDetailPage() {
     return (
         <div className="page-stack narrow">
             <Link to="/questions/mine">← My questions</Link>
-            <h1>{q.prompt}</h1>
+            <header className="detail-title">
+                <h1>{q.prompt}</h1>
+                {q.isOwner ? (
+                    <ContentTags id={q.id} kind="question" tags={q.tags} compact />
+                ) : q.tags.length ? (
+                    <div className="tag-row">
+                        {q.tags.map((tag) => (
+                            <span className="tag" key={tag.id}>
+                                {tag.name}
+                            </span>
+                        ))}
+                    </div>
+                ) : null}
+            </header>
             <p>
                 {q.questionType.replaceAll("_", " ")} · {q.visibility}
             </p>
@@ -81,7 +94,6 @@ export function QuestionDetailPage() {
                 ) : null}
                 <p>{q.explanation}</p>
             </section>
-            {q.isOwner ? <ContentTags id={q.id} kind="question" tags={q.tags} /> : null}
             {q.canEditContent ? (
                 <section className="panel">
                     <h2>Edit question</h2>

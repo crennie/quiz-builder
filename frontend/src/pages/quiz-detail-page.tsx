@@ -61,11 +61,19 @@ export function QuizDetailPage() {
         <div className="page-stack">
             <Link to="/quizzes">← My Quizzes</Link>
             <header className="page-heading">
-                <div>
+                <div className="detail-title">
                     <h1>{q.title}</h1>
-                    <p className="muted">
-                        {q.questions.length} questions · {q.visibility}
-                    </p>
+                    {q.isOwner ? (
+                        <ContentTags id={q.id} kind="quiz" tags={q.tags} compact />
+                    ) : q.tags.length ? (
+                        <div className="tag-row">
+                            {q.tags.map((tag) => (
+                                <span className="tag" key={tag.id}>
+                                    {tag.name}
+                                </span>
+                            ))}
+                        </div>
+                    ) : null}
                 </div>
             </header>
             <QuizOverview quiz={q} />
@@ -171,7 +179,6 @@ export function QuizDetailPage() {
                                     />
                                 </section>
                             ) : null}
-                            {q.isOwner ? <ContentTags id={q.id} kind="quiz" tags={q.tags} /> : null}
                             <FeedbackForm target={{ quizId: q.id }} />
                         </div>
                     )}

@@ -1,7 +1,7 @@
 .layout {
     display: grid;
     grid-template-columns: 17rem minmax(0, 1fr);
-    gap: 1.5rem;
+    gap: 1rem;
     align-items: start;
 }
 
@@ -10,13 +10,12 @@
     top: 1.5rem;
     max-height: calc(100dvh - 3rem);
     overflow-y: auto;
-    min-height: min(36rem, calc(100dvh - 3rem));
     align-content: start;
     min-width: 0;
 }
 
 .sidebar > h2 {
-    margin-top: 1.5rem;
+    margin-top: 1.25rem;
 }
 
 .sidebar ol {
@@ -51,13 +50,13 @@
 
 .stats {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 1rem;
-    margin: 1.5rem 0;
+    margin: 0.85rem 0;
 }
 
 .stats div {
-    padding: 1rem;
+    padding: 0.75rem 1rem;
     background: var(--highlight);
     border-radius: 0.6rem;
 }
@@ -68,14 +67,14 @@
 }
 
 .stats dd {
-    margin: 0.5rem 0 0;
-    font-size: 1.6rem;
+    margin: 0.3rem 0 0;
+    font-size: 1.25rem;
     font-weight: 700;
 }
 
 @media (max-width: 48rem) {
     .stats {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
@@ -88,4 +87,12 @@
         min-height: auto;
         max-height: none;
     }
+}
+
+.overview > p {
+    margin: 0;
+}
+.lockNotice {
+    border-left: 2px solid var(--border);
+    padding-left: 0.75rem;
 }

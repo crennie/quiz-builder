@@ -2,7 +2,7 @@
     max-width: 64rem;
     margin: 0 auto;
     display: grid;
-    gap: 1.5rem;
+    gap: 1.25rem;
 }
 
 .header {
@@ -22,12 +22,12 @@
 }
 
 .stage {
-    padding: clamp(1.25rem, 4vw, 3rem);
+    padding: clamp(1rem, 3vw, 2rem);
     border: 1px solid var(--border);
     border-radius: 1.25rem;
     background: var(--surface);
     display: grid;
-    gap: 2rem;
+    gap: 1.5rem;
 }
 
 .progress {
@@ -51,7 +51,7 @@
 
 .form {
     display: grid;
-    gap: 1.5rem;
+    gap: 1.25rem;
 }
 
 .answers {
@@ -199,4 +199,11 @@
 .reviewBody {
     border-top: 1px solid var(--border);
     padding: 0.25rem 1.25rem 1.25rem;
+}
+
+.form > p {
+    margin: 0;
+}
+.stage .pagination {
+    margin-top: 0;
 }

@@ -1,6 +1,6 @@
 :root {
     color: var(--ink);
-    background: light-dark(#f6f4ee, #121a17);
+    background: light-dark(#f6f4ee, #17131f);
     font-family:
         Inter,
         ui-sans-serif,
@@ -12,15 +12,15 @@
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     color-scheme: light dark;
-    --ink: light-dark(#18201d, #e5ede8);
-    --muted: light-dark(#64706b, #a8b8af);
-    --surface: light-dark(#fffdf8, #1c2822);
-    --accent: light-dark(#176b55, #85d6b7);
-    --border: light-dark(#d8ddd7, #43564b);
-    --input: light-dark(#ffffff, #15201a);
-    --on-accent: light-dark(#ffffff, #10271e);
-    --highlight: light-dark(#e7eee9, #2a4034);
-    --tag-ink: light-dark(#355647, #c0e5ce);
+    --ink: light-dark(#18201d, #eee8f5);
+    --muted: light-dark(#64706b, #b7abc8);
+    --surface: light-dark(#fffdf8, #241d30);
+    --accent: light-dark(#176b55, #bba0e3);
+    --border: light-dark(#d8ddd7, #4c3e60);
+    --input: light-dark(#ffffff, #1b1624);
+    --on-accent: light-dark(#ffffff, #241633);
+    --highlight: light-dark(#e7eee9, #372946);
+    --tag-ink: light-dark(#355647, #ddc9f4);
 }
 
 :root[data-theme="light"] {
@@ -105,7 +105,7 @@ select:focus-visible,
 textarea:focus-visible,
 button:focus-visible,
 a:focus-visible {
-    outline: 3px solid #85b9a9;
+    outline: 3px solid light-dark(#85b9a9, #bba0e3);
     outline-offset: 2px;
 }
 
@@ -120,7 +120,7 @@ a:focus-visible {
     gap: 1rem;
     max-width: 72rem;
     margin: 0 auto;
-    padding: 1.25rem clamp(1.25rem, 4vw, 3rem);
+    padding: 0.85rem clamp(1rem, 3vw, 2rem);
     border-bottom: 1px solid var(--border);
 }
 .site-header nav {
@@ -141,11 +141,11 @@ nav a {
 .page-content {
     max-width: 72rem;
     margin: 0 auto;
-    padding: clamp(3rem, 9vw, 8rem) clamp(1.25rem, 4vw, 3rem);
+    padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 3vw, 2rem);
 }
 .page-stack {
     display: grid;
-    gap: 1.5rem;
+    gap: 1rem;
 }
 .narrow {
     max-width: 50rem;
@@ -155,7 +155,7 @@ nav a {
     display: flex;
     justify-content: space-between;
     align-items: end;
-    gap: 1.5rem;
+    gap: 1rem;
 }
 .page-heading h1,
 .narrow h1,
@@ -165,7 +165,7 @@ nav a {
 }
 .section-heading h2,
 .panel h2 {
-    margin: 0 0 1rem;
+    margin: 0 0 0.75rem;
     font-size: 1.3rem;
 }
 .muted {
@@ -182,7 +182,7 @@ nav a {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 0.9rem;
-    padding: clamp(1rem, 3vw, 1.5rem);
+    padding: clamp(1rem, 2vw, 1.25rem);
 }
 .message-panel {
     max-width: 38rem;
@@ -211,7 +211,7 @@ nav a {
     display: flex;
     gap: 0.4rem;
     flex-wrap: wrap;
-    margin: 0.8rem 0;
+    margin: 0.5rem 0;
 }
 .tag {
     display: inline-flex;
@@ -342,7 +342,7 @@ nav a {
     text-transform: uppercase;
 }
 h1 {
-    margin: 0.4rem 0 1rem;
+    margin: 0 0 0.65rem;
     font-size: clamp(2.5rem, 7vw, 5.5rem);
     line-height: 0.98;
     letter-spacing: -0.055em;
@@ -357,7 +357,7 @@ h1 {
     display: inline-flex;
     gap: 0.65rem;
     align-items: center;
-    margin-top: 2rem;
+    margin-top: 1.25rem;
     padding: 0.8rem 1rem;
     border: 1px solid var(--border);
     border-radius: 0.75rem;
@@ -434,4 +434,57 @@ h1 {
 .theme-control select {
     width: auto;
     padding: 0.4rem;
+}
+
+/* Let grid gaps and panel padding set the spacing at content boundaries. */
+.page-stack > :is(h1, h2, h3, p),
+.page-heading p:last-child {
+    margin-block: 0;
+}
+:is(.panel, .message-panel, .auth-card) > :first-child {
+    margin-top: 0;
+}
+:is(.panel, .message-panel, .auth-card) > :last-child {
+    margin-bottom: 0;
+}
+.page-heading .quiz-actions {
+    margin-top: 0;
+}
+.content-tags {
+    display: grid;
+    gap: 0.75rem;
+}
+.content-tags.compact {
+    gap: 0.5rem;
+}
+.content-tags .tag-row {
+    margin: 0;
+}
+.tag-controls {
+    display: flex;
+    align-items: end;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+.tag-controls label {
+    flex: 1 1 12rem;
+}
+.content-tags details > summary {
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 0.88rem;
+}
+.content-tags details[open] > summary {
+    margin-bottom: 0.75rem;
+}
+.detail-title {
+    display: grid;
+    gap: 0.6rem;
+}
+.detail-title h1 {
+    margin: 0;
+}
+
+.tag-row:empty {
+    display: none;
 }

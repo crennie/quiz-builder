@@ -344,11 +344,29 @@ function AnswerForm({
     );
 }
 
+function letterGrade(percentage: number): string {
+    const scale: [number, string][] = [
+        [97, "A+"],
+        [93, "A"],
+        [90, "A−"],
+        [87, "B+"],
+        [83, "B"],
+        [80, "B−"],
+        [77, "C+"],
+        [73, "C"],
+        [70, "C−"],
+        [67, "D+"],
+        [63, "D"],
+        [60, "D−"],
+    ];
+    return scale.find(([minimum]) => percentage >= minimum)?.[1] ?? "F";
+}
+
 function ResultView({ attempt }: { attempt: AttemptDetail }) {
     const score = attempt.scoreSummary;
     const percentage =
         score && score.pointsPossible > 0
-            ? Math.round((score.pointsAwarded / score.pointsPossible) * 100)
+            ? (score.pointsAwarded / score.pointsPossible) * 100
             : null;
     const showAnswers = attempt.settings.showAnswersAfterCompletion;
     return (
@@ -356,59 +374,95 @@ function ResultView({ attempt }: { attempt: AttemptDetail }) {
             <Link to="/attempts">← Attempt history</Link>
             <div>
                 <p className="eyebrow">Completed attempt</p>
-                <h1>{attempt.quizTitle}</h1>
+                <h1>
+                    <Link to="/quizzes/$quizId" params={{ quizId: attempt.quizId }}>
+                        {attempt.quizTitle}
+                    </Link>
+                </h1>
             </div>
             <section className="panel" aria-label="Result summary">
-                <h2>Result</h2>
+                <p className="muted small">
+                    Submitted{" "}
+                    {attempt.completedAt ? new Date(attempt.completedAt).toLocaleString() : "—"}
+                </p>
                 <p className="result-score">
                     {score
                         ? `${score.pointsAwarded} / ${score.pointsPossible} points`
                         : "Score unavailable"}
                 </p>
-                {percentage !== null ? <p>{percentage}%</p> : null}
-                <p className="muted small">
-                    Completed{" "}
-                    {attempt.completedAt ? new Date(attempt.completedAt).toLocaleString() : ""}
+                <p className={styles.percentage}>
+                    {percentage !== null
+                        ? `${Number(percentage.toFixed(2))}%`
+                        : "Percentage unavailable"}
                 </p>
-                <Link to="/quizzes/$quizId" params={{ quizId: attempt.quizId }}>
-                    Quiz details
-                </Link>
+                <p className={styles.grade}>
+                    <span className="sr-only">Letter grade: </span>
+                    {percentage !== null ? letterGrade(percentage) : "Not graded"}
+                </p>
             </section>
             <section aria-label="Question review">
                 <h2>Question review</h2>
                 {!showAnswers ? (
                     <p className="muted">Correct answers are hidden for this quiz.</p>
                 ) : null}
-                <ol className="quiz-question-list">
+                <ol className={styles.reviewList}>
                     {attempt.questions.map((question, index) => (
-                        <li className="question-card" key={question.id}>
-                            <h3>{question.prompt}</h3>
-                            <p>
-                                <strong>Your answer:</strong> {responseText(question)}
-                            </p>
-                            <p>
-                                <strong>Result:</strong>{" "}
-                                {question.evaluationResult
-                                    ? question.evaluationResult.isCorrect
-                                        ? "Correct"
-                                        : "Incorrect"
-                                    : "Not answered"}{" "}
-                                · {question.pointsAwarded ?? 0} / {question.pointsPossible} points
-                            </p>
-                            {showAnswers && question.correctAnswer ? (
-                                <p>
-                                    <strong>Correct answer:</strong> {correctAnswerText(question)}
-                                </p>
-                            ) : null}
-                            {showAnswers && question.explanation ? (
-                                <p>
-                                    <strong>Explanation:</strong> {question.explanation}
-                                </p>
-                            ) : null}
-                            <FeedbackForm
-                                target={{ quizAttemptQuestionId: question.id }}
-                                label={`Send feedback about question ${index + 1}`}
-                            />
+                        <li key={question.id}>
+                            <details
+                                className={styles.reviewItem}
+                                open={!question.evaluationResult?.isCorrect}
+                            >
+                                <summary>
+                                    <span
+                                        className={styles.reviewIcon}
+                                        data-correct={question.evaluationResult?.isCorrect ?? false}
+                                    >
+                                        <span aria-hidden="true">
+                                            {question.evaluationResult?.isCorrect ? "✓" : "✕"}
+                                        </span>
+                                        <span className="sr-only">
+                                            {question.evaluationResult?.isCorrect
+                                                ? "Correct"
+                                                : question.evaluationResult
+                                                  ? "Incorrect"
+                                                  : "Not answered"}
+                                        </span>
+                                    </span>
+                                    <span>
+                                        {index + 1}. {question.prompt}
+                                    </span>
+                                </summary>
+                                <div className={styles.reviewBody}>
+                                    <p>
+                                        <strong>Your answer:</strong> {responseText(question)}
+                                    </p>
+                                    <p>
+                                        <strong>Result:</strong>{" "}
+                                        {question.evaluationResult
+                                            ? question.evaluationResult.isCorrect
+                                                ? "Correct"
+                                                : "Incorrect"
+                                            : "Not answered"}{" "}
+                                        · {question.pointsAwarded ?? 0} / {question.pointsPossible}{" "}
+                                        points
+                                    </p>
+                                    {showAnswers && question.correctAnswer ? (
+                                        <p>
+                                            <strong>Correct answer:</strong>{" "}
+                                            {correctAnswerText(question)}
+                                        </p>
+                                    ) : null}
+                                    {showAnswers && question.explanation ? (
+                                        <p>
+                                            <strong>Explanation:</strong> {question.explanation}
+                                        </p>
+                                    ) : null}
+                                    <FeedbackForm
+                                        target={{ quizAttemptQuestionId: question.id }}
+                                        label={`Send feedback about question ${index + 1}`}
+                                    />
+                                </div>
+                            </details>
                         </li>
                     ))}
                 </ol>

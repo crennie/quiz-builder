@@ -20,3 +20,9 @@ advances to the first unanswered question. Previous/Next allow read-only review 
 all questions must be answered before the player offers final results (the API still requires only
 required answers). Failed submissions retain the current input for retry. In-app navigation and
 browser unload warn while an attempt is in progress; saved answers can be resumed from history.
+
+Completed results show points, percentage, and a display-only letter grade based on the unrounded
+percentage: A+/A/A− at 97/93/90, B+/B/B− at 87/83/80, C+/C/C− at 77/73/70, D+/D/D− at
+67/63/60, and F below 60. Zero possible points have no percentage or letter grade. Question review
+uses expandable rows, initially collapsed for correct answers and expanded for incorrect or
+unanswered questions. Quiz titles link back to the quiz detail page.

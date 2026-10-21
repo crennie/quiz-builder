@@ -5,6 +5,10 @@ import { useAuth } from "../auth/auth-state";
 import { useState } from "react";
 import { QuizQuestionList } from "../components/quiz-question-list";
 import { QuizOverview } from "../components/quiz-overview";
+import { QuizStartPanel } from "../components/quiz-start-panel";
+import { QuizEditor } from "../components/quiz-editor";
+import { ContentTags } from "../components/content-tags";
+import { FeedbackForm } from "../components/feedback-form";
 import { QuizQuestionSettings } from "../components/quiz-question-settings";
 import { QuizAddQuestion } from "../components/quiz-add-question";
 import { QuizQuestionPreview } from "../components/quiz-question-preview";
@@ -64,6 +68,7 @@ export function QuizDetailPage() {
                     </p>
                 </div>
             </header>
+            <QuizOverview quiz={q} />
             <div className={styles.layout}>
                 <aside
                     className={`panel ${styles.sidebar}`}
@@ -149,13 +154,26 @@ export function QuizDetailPage() {
                             )}
                         </div>
                     ) : (
-                        <QuizOverview
-                            quiz={q}
-                            busy={save.isPending}
-                            onSave={async (content) => {
-                                await save.mutateAsync(content);
-                            }}
-                        />
+                        <div className="page-stack">
+                            <QuizStartPanel quiz={q} />
+                            {q.canEditContent ? (
+                                <section className="panel">
+                                    <h2>Quiz settings</h2>
+                                    <QuizEditor
+                                        key={q.updatedAt}
+                                        initial={q}
+                                        manageQuestions={false}
+                                        busy={save.isPending}
+                                        submitLabel="Save quiz"
+                                        onSave={async (content) => {
+                                            await save.mutateAsync(content);
+                                        }}
+                                    />
+                                </section>
+                            ) : null}
+                            {q.isOwner ? <ContentTags id={q.id} kind="quiz" tags={q.tags} /> : null}
+                            <FeedbackForm target={{ quizId: q.id }} />
+                        </div>
                     )}
                 </div>
             </div>

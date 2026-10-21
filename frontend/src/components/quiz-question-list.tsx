@@ -15,15 +15,15 @@ export function QuizQuestionList({
 }) {
     return (
         <>
-            <h2 id="quiz-questions-heading">Questions</h2>
             <button
                 type="button"
                 aria-pressed={selectedId === null}
                 disabled={disabled}
                 onClick={() => onSelect(null)}
             >
-                Quiz overview
+                Attempts
             </button>
+            <h2 id="quiz-questions-heading">Questions</h2>
             {quiz.questions.length ? (
                 <ol>
                     {quiz.questions.map((item, index) => (

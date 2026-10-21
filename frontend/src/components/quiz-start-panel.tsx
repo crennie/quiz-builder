@@ -49,7 +49,7 @@ export function QuizStartPanel({ quiz }: { quiz: QuizDetail }) {
                 disabled={start.isPending || quiz.questions.length === 0}
                 onClick={() => void begin()}
             >
-                {start.isPending ? "Starting…" : "Start new attempt"}
+                {start.isPending ? "Starting…" : "Take quiz"}
             </button>
             {quiz.questions.length === 0 ? <p>Add questions before starting an attempt.</p> : null}
             {error ? (

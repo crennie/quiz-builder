@@ -132,7 +132,7 @@ a:focus-visible {
 .brand {
     display: inline-flex;
     align-items: center;
-    gap: 0.55rem;
+    min-height: 48px;
     color: var(--ink);
     text-decoration: none;
     flex-shrink: 0;
@@ -519,4 +519,31 @@ h1 {
 
 .tag-row:empty {
     display: none;
+}
+
+/* Keep the mascot mounted to animate route changes in both directions. */
+.brand-mascot {
+    display: block;
+    width: 48px;
+    margin-right: 0.55rem;
+    overflow: hidden;
+    opacity: 1;
+    transform: scale(1);
+    transform-origin: left center;
+    transition:
+        width 240ms ease,
+        margin-right 240ms ease,
+        opacity 180ms ease,
+        transform 240ms ease;
+}
+.brand-home .brand-mascot {
+    width: 0;
+    margin-right: 0;
+    opacity: 0;
+    transform: scale(0.75);
+}
+@media (prefers-reduced-motion: reduce) {
+    .brand-mascot {
+        transition: none;
+    }
 }

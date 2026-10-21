@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import type { CreateFeedbackBody } from "@quiz-builder/contracts";
 
 import { createFeedback } from "../api/feedback";
+import { Modal } from "./modal";
 
 const categories = [
     ["incorrect_answer", "Incorrect answer"],
@@ -22,6 +23,7 @@ export function FeedbackForm({
     target: { questionId: string } | { quizId: string } | { quizAttemptQuestionId: string };
     label?: string;
 }) {
+    const [open, setOpen] = useState(false);
     const [category, setCategory] = useState<CreateFeedbackBody["category"]>("other");
     const [comment, setComment] = useState("");
     const [message, setMessage] = useState("");
@@ -40,46 +42,55 @@ export function FeedbackForm({
     }
 
     return (
-        <details className="feedback-panel">
-            <summary>{label}</summary>
-            <form className="form-grid" onSubmit={(event) => void submit(event)}>
-                <label>
-                    Category
-                    <select
-                        value={category}
-                        onChange={(event) =>
-                            setCategory(event.target.value as CreateFeedbackBody["category"])
-                        }
-                    >
-                        {categories.map(([value, name]) => (
-                            <option key={value} value={value}>
-                                {name}
-                            </option>
-                        ))}
-                    </select>
-                </label>
-                <label>
-                    Feedback
-                    <textarea
-                        value={comment}
-                        onChange={(event) => setComment(event.target.value)}
-                        required
-                        maxLength={5000}
-                        rows={3}
-                    />
-                </label>
-                <button type="submit" disabled={mutation.isPending}>
-                    {mutation.isPending ? "Sending…" : "Send feedback"}
-                </button>
-                {message ? (
-                    <p
-                        role={mutation.isError ? "alert" : "status"}
-                        className={mutation.isError ? "error-text" : undefined}
-                    >
-                        {message}
-                    </p>
-                ) : null}
-            </form>
-        </details>
+        <div className="feedback-panel">
+            <button type="button" className="secondary" onClick={() => setOpen(true)}>
+                {label}
+            </button>
+            <Modal
+                open={open}
+                title={label}
+                onClose={() => setOpen(false)}
+                dismissible={!mutation.isPending}
+            >
+                <form className="form-grid" onSubmit={(event) => void submit(event)}>
+                    <label>
+                        Category
+                        <select
+                            value={category}
+                            onChange={(event) =>
+                                setCategory(event.target.value as CreateFeedbackBody["category"])
+                            }
+                        >
+                            {categories.map(([value, name]) => (
+                                <option key={value} value={value}>
+                                    {name}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                    <label>
+                        Feedback
+                        <textarea
+                            value={comment}
+                            onChange={(event) => setComment(event.target.value)}
+                            required
+                            maxLength={5000}
+                            rows={3}
+                        />
+                    </label>
+                    <button type="submit" disabled={mutation.isPending}>
+                        {mutation.isPending ? "Sending…" : "Send feedback"}
+                    </button>
+                    {message ? (
+                        <p
+                            role={mutation.isError ? "alert" : "status"}
+                            className={mutation.isError ? "error-text" : undefined}
+                        >
+                            {message}
+                        </p>
+                    ) : null}
+                </form>
+            </Modal>
+        </div>
     );
 }

@@ -12,15 +12,15 @@
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     color-scheme: light dark;
-    --ink: light-dark(#18201d, #eee8f5);
-    --muted: light-dark(#64706b, #b7abc8);
+    --ink: light-dark(#18201d, #cec6d8);
+    --muted: light-dark(#64706b, #ada1bd);
     --surface: light-dark(#fffdf8, #241d30);
     --accent: light-dark(#176b55, #bba0e3);
     --border: light-dark(#d8ddd7, #4c3e60);
     --input: light-dark(#ffffff, #1b1624);
     --on-accent: light-dark(#ffffff, #241633);
     --highlight: light-dark(#e7eee9, #372946);
-    --tag-ink: light-dark(#355647, #ddc9f4);
+    --tag-ink: light-dark(#355647, #cbb7e1);
 }
 
 :root[data-theme="light"] {
@@ -322,13 +322,42 @@ nav a {
     margin-top: 1.25rem;
     padding-top: 1rem;
 }
-.feedback-panel summary {
-    color: var(--accent);
-    cursor: pointer;
-    font-weight: 650;
+/* Shared dialog surface stays readable and scrollable on small screens. */
+.modal {
+    width: min(34rem, calc(100% - 2rem));
+    max-height: calc(100dvh - 2rem);
+    overflow: auto;
+    padding: clamp(1rem, 4vw, 1.5rem);
+    border: 1px solid var(--border);
+    border-radius: 0.9rem;
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 0 1.5rem 5rem #0006;
+    overflow-wrap: anywhere;
 }
-.feedback-panel form {
-    margin-top: 1rem;
+.modal::backdrop {
+    background: #100b1acc;
+}
+.modal-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+.modal-heading h2 {
+    margin: 0;
+    font-size: 1.3rem;
+}
+.modal-heading button {
+    flex-shrink: 0;
+}
+.modal p {
+    margin: 0;
+}
+.modal progress {
+    width: 100%;
+    accent-color: var(--accent);
 }
 .result-score {
     font-size: clamp(1.7rem, 5vw, 2.6rem);

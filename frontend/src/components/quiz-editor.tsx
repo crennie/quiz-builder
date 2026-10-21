@@ -28,7 +28,9 @@ export function QuizEditor({
     busy,
     submitLabel,
     onSave,
+    manageQuestions = true,
 }: {
+    manageQuestions?: boolean;
     initial?: QuizDetail;
     busy: boolean;
     submitLabel: string;
@@ -130,151 +132,157 @@ export function QuizEditor({
                     Show answers after completion
                 </label>
             </fieldset>
-            <section aria-label="Quiz questions">
-                <h2>Questions</h2>
-                <p className="muted small">Adding a question permanently locks its content.</p>
-                {questions.length ? (
-                    <ol className="quiz-question-list">
-                        {questions.map((question, index) => (
-                            <li className="question-card" key={`${question.questionId}-${index}`}>
-                                <strong>{question.prompt}</strong>
-                                <div className="filter-grid">
-                                    <label>
-                                        Points for question {index + 1}
+            {manageQuestions ? (
+                <section aria-label="Quiz questions">
+                    <h2>Questions</h2>
+                    <p className="muted small">Adding a question permanently locks its content.</p>
+                    {questions.length ? (
+                        <ol className="quiz-question-list">
+                            {questions.map((question, index) => (
+                                <li
+                                    className="question-card"
+                                    key={`${question.questionId}-${index}`}
+                                >
+                                    <strong>{question.prompt}</strong>
+                                    <div className="filter-grid">
+                                        <label>
+                                            Points for question {index + 1}
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="any"
+                                                value={question.points}
+                                                onChange={(event) =>
+                                                    updateQuestion(index, {
+                                                        points: Number(event.target.value),
+                                                    })
+                                                }
+                                                required
+                                            />
+                                        </label>
+                                        <label>
+                                            Time limit in seconds for question {index + 1}
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                step="1"
+                                                placeholder="No limit"
+                                                value={question.timeLimitSeconds ?? ""}
+                                                onChange={(event) =>
+                                                    updateQuestion(index, {
+                                                        timeLimitSeconds: event.target.value
+                                                            ? Number(event.target.value)
+                                                            : null,
+                                                    })
+                                                }
+                                            />
+                                        </label>
+                                    </div>
+                                    <label className="checkbox-row">
                                         <input
-                                            type="number"
-                                            min="0"
-                                            step="any"
-                                            value={question.points}
+                                            type="checkbox"
+                                            checked={question.required}
                                             onChange={(event) =>
                                                 updateQuestion(index, {
-                                                    points: Number(event.target.value),
-                                                })
-                                            }
-                                            required
-                                        />
-                                    </label>
-                                    <label>
-                                        Time limit in seconds for question {index + 1}
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            step="1"
-                                            placeholder="No limit"
-                                            value={question.timeLimitSeconds ?? ""}
-                                            onChange={(event) =>
-                                                updateQuestion(index, {
-                                                    timeLimitSeconds: event.target.value
-                                                        ? Number(event.target.value)
-                                                        : null,
+                                                    required: event.target.checked,
                                                 })
                                             }
                                         />
+                                        Required
                                     </label>
-                                </div>
-                                <label className="checkbox-row">
-                                    <input
-                                        type="checkbox"
-                                        checked={question.required}
-                                        onChange={(event) =>
-                                            updateQuestion(index, {
-                                                required: event.target.checked,
-                                            })
-                                        }
-                                    />
-                                    Required
-                                </label>
-                                <div className="quiz-actions">
-                                    <button
-                                        type="button"
-                                        className="secondary"
-                                        onClick={() => setPickerIndex(index)}
-                                    >
-                                        Change question
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="secondary"
-                                        disabled={index === 0}
-                                        onClick={() => {
-                                            setQuestions((previous) => {
-                                                const next = [...previous];
-                                                [next[index - 1], next[index]] = [
-                                                    next[index]!,
-                                                    next[index - 1]!,
-                                                ];
-                                                return next;
-                                            });
-                                        }}
-                                    >
-                                        Move up
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="secondary"
-                                        disabled={index === questions.length - 1}
-                                        onClick={() => {
-                                            setQuestions((previous) => {
-                                                const next = [...previous];
-                                                [next[index], next[index + 1]] = [
-                                                    next[index + 1]!,
-                                                    next[index]!,
-                                                ];
-                                                return next;
-                                            });
-                                        }}
-                                    >
-                                        Move down
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="secondary"
-                                        onClick={() =>
-                                            setQuestions((previous) =>
-                                                previous.filter(
-                                                    (_, position) => position !== index,
-                                                ),
-                                            )
-                                        }
-                                    >
-                                        Remove
-                                    </button>
-                                </div>
-                            </li>
-                        ))}
-                    </ol>
-                ) : (
-                    <p className="muted">No questions yet. Add one from the My questions.</p>
-                )}
-                <button
-                    type="button"
-                    className="secondary"
-                    onClick={() => setPickerIndex(questions.length)}
-                >
-                    Add question
-                </button>
-                {pickerIndex !== null ? (
-                    <QuestionPicker
-                        onClose={() => setPickerIndex(null)}
-                        onSelect={(selected) => {
-                            setQuestions((previous) => {
-                                const next = [...previous];
-                                if (pickerIndex === previous.length) next.push(selected);
-                                else
-                                    next[pickerIndex] = {
-                                        ...selected,
-                                        points: previous[pickerIndex]!.points,
-                                        required: previous[pickerIndex]!.required,
-                                        timeLimitSeconds: previous[pickerIndex]!.timeLimitSeconds,
-                                    };
-                                return next;
-                            });
-                            setPickerIndex(null);
-                            setMessage("");
-                        }}
-                    />
-                ) : null}
-            </section>
+                                    <div className="quiz-actions">
+                                        <button
+                                            type="button"
+                                            className="secondary"
+                                            onClick={() => setPickerIndex(index)}
+                                        >
+                                            Change question
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="secondary"
+                                            disabled={index === 0}
+                                            onClick={() => {
+                                                setQuestions((previous) => {
+                                                    const next = [...previous];
+                                                    [next[index - 1], next[index]] = [
+                                                        next[index]!,
+                                                        next[index - 1]!,
+                                                    ];
+                                                    return next;
+                                                });
+                                            }}
+                                        >
+                                            Move up
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="secondary"
+                                            disabled={index === questions.length - 1}
+                                            onClick={() => {
+                                                setQuestions((previous) => {
+                                                    const next = [...previous];
+                                                    [next[index], next[index + 1]] = [
+                                                        next[index + 1]!,
+                                                        next[index]!,
+                                                    ];
+                                                    return next;
+                                                });
+                                            }}
+                                        >
+                                            Move down
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="secondary"
+                                            onClick={() =>
+                                                setQuestions((previous) =>
+                                                    previous.filter(
+                                                        (_, position) => position !== index,
+                                                    ),
+                                                )
+                                            }
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                </li>
+                            ))}
+                        </ol>
+                    ) : (
+                        <p className="muted">No questions yet. Add one from the My questions.</p>
+                    )}
+                    <button
+                        type="button"
+                        className="secondary"
+                        onClick={() => setPickerIndex(questions.length)}
+                    >
+                        Add question
+                    </button>
+                    {pickerIndex !== null ? (
+                        <QuestionPicker
+                            onClose={() => setPickerIndex(null)}
+                            onSelect={(selected) => {
+                                setQuestions((previous) => {
+                                    const next = [...previous];
+                                    if (pickerIndex === previous.length) next.push(selected);
+                                    else
+                                        next[pickerIndex] = {
+                                            ...selected,
+                                            points: previous[pickerIndex]!.points,
+                                            required: previous[pickerIndex]!.required,
+                                            timeLimitSeconds:
+                                                previous[pickerIndex]!.timeLimitSeconds,
+                                        };
+                                    return next;
+                                });
+                                setPickerIndex(null);
+                                setMessage("");
+                            }}
+                        />
+                    ) : null}
+                </section>
+            ) : null}
             {message ? <p role="status">{message}</p> : null}
             <button type="submit" disabled={busy}>
                 {busy ? "Saving…" : submitLabel}
@@ -283,7 +291,7 @@ export function QuizEditor({
     );
 }
 
-function QuestionPicker({
+export function QuestionPicker({
     onClose,
     onSelect,
 }: {

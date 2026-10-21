@@ -1,0 +1,74 @@
+.layout {
+    display: grid;
+    grid-template-columns: 17rem minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.sidebar {
+    min-width: 0;
+}
+
+.sidebar ol {
+    display: grid;
+    gap: 0.65rem;
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0 0;
+}
+
+.sidebar button {
+    width: 100%;
+    display: grid;
+    justify-items: start;
+    gap: 0.4rem;
+    text-align: left;
+    background: transparent;
+    color: var(--ink);
+    border-color: var(--border);
+    overflow-wrap: anywhere;
+}
+
+.sidebar button[aria-pressed="true"] {
+    background: #e7eee9;
+    border-color: var(--accent);
+}
+
+.workspace {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.stats div {
+    padding: 1rem;
+    background: #e7eee9;
+    border-radius: 0.6rem;
+}
+
+.stats dt {
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.stats dd {
+    margin: 0.5rem 0 0;
+    font-size: 1.6rem;
+    font-weight: 700;
+}
+
+@media (max-width: 48rem) {
+    .layout {
+        grid-template-columns: 1fr;
+    }
+
+    .stats {
+        grid-template-columns: 1fr;
+    }
+}

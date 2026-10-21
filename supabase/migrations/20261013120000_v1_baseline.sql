@@ -327,3 +327,4 @@ ALTER TABLE public.quiz_attempt_questions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.question_batches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.question_batch_items ENABLE ROW LEVEL SECURITY;
+;

@@ -5,6 +5,12 @@ export type Database = {
 
   "public": {
           Tables: {
+            "course_imports": {
+                Row: { id: string; sponsor_id: string; import_key: string; artifact_sha256: string; course_id: string; lesson_ids: string[]; created_at: string }
+                Insert: { id?: string; sponsor_id: string; import_key: string; artifact_sha256: string; course_id: string; lesson_ids: string[]; created_at?: string }
+                Update: { id?: string; sponsor_id?: string; import_key?: string; artifact_sha256?: string; course_id?: string; lesson_ids?: string[]; created_at?: string }
+                Relationships: [{ foreignKeyName: "course_imports_sponsor_id_fkey"; columns: ["sponsor_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] }, { foreignKeyName: "course_imports_course_id_fkey"; columns: ["course_id"]; isOneToOne: false; referencedRelation: "courses"; referencedColumns: ["id"] }]
+            },
             "courses": {
                   Row: {
                     "created_at": string,"description": string | null,"id": string,"title": string,"updated_at": string
@@ -57,12 +63,14 @@ isOneToOne: false
                   ]
                 },"lesson_quizzes": {
                   Row: {
-                    "lesson_id": string,"position": number,"quiz_id": string
+                    "id": string,"lesson_id": string,"position": number,"quiz_id": string
                   }
                   Insert: {
+                    "id"?: string,
                     "lesson_id": string,"position": number,"quiz_id": string
                   }
                   Update: {
+                    "id"?: string,
                     "lesson_id"?: string,"position"?: number,"quiz_id"?: string
                   }
                   Relationships: [
@@ -227,15 +235,25 @@ isOneToOne: false
                   ]
                 },"quiz_attempts": {
                   Row: {
+                    "lesson_quiz_id": string | null,
                     "completed_at": string | null,"id": string,"quiz_id": string,"quiz_title_snapshot": string,"score_summary": Json | null,"settings_snapshot": NonNullable<Json>,"started_at": string,"status": Database["public"]['Enums']["quiz_attempt_status"],"user_id": string
                   }
                   Insert: {
+                    "lesson_quiz_id"?: string | null,
                     "completed_at"?: string | null,"id"?: string,"quiz_id": string,"quiz_title_snapshot": string,"score_summary"?: Json | null,"settings_snapshot": NonNullable<Json>,"started_at"?: string,"status"?: Database["public"]['Enums']["quiz_attempt_status"],"user_id": string
                   }
                   Update: {
+                    "lesson_quiz_id"?: string | null,
                     "completed_at"?: string | null,"id"?: string,"quiz_id"?: string,"quiz_title_snapshot"?: string,"score_summary"?: Json | null,"settings_snapshot"?: NonNullable<Json>,"started_at"?: string,"status"?: Database["public"]['Enums']["quiz_attempt_status"],"user_id"?: string
                   }
                   Relationships: [
+                    {
+                        foreignKeyName: "quiz_attempts_lesson_quiz_id_fkey"
+                        columns: ["lesson_quiz_id"]
+                        isOneToOne: false
+                        referencedRelation: "lesson_quizzes"
+                        referencedColumns: ["id"]
+                    },
                     {
       foreignKeyName: "quiz_attempts_quiz_id_fkey"
       columns: ["quiz_id"]

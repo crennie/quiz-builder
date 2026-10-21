@@ -67,10 +67,20 @@ async function mapAttempt(row: AttemptRow, database: QueryExecutor): Promise<Att
          WHERE aq.quiz_attempt_id = $1 ORDER BY aq.position`,
         [row.id],
     );
+    const context = row.lesson_quiz_id
+        ? await database.query<{ lesson_id: string; course_id: string }>(
+              `SELECT l.id AS lesson_id, l.course_id FROM public.lesson_quizzes lq
+         JOIN public.lessons l ON l.id=lq.lesson_id WHERE lq.id=$1`,
+              [row.lesson_quiz_id],
+          )
+        : null;
+    const origin = context?.rows[0];
     const completed = row.status === "completed";
     return attemptDetailSchema.parse({
         id: row.id,
         quizId: row.quiz_id,
+        lessonQuizId: row.lesson_quiz_id ?? null,
+        lessonContext: origin ? { lessonId: origin.lesson_id, courseId: origin.course_id } : null,
         quizTitle: row.quiz_title_snapshot,
         status: row.status,
         startedAt: iso(row.started_at),
@@ -141,6 +151,7 @@ export async function startAttemptInTransaction(
     quizId: string,
     userId: string,
     database: QueryExecutor,
+    lessonQuizId: string | null = null,
 ): Promise<AttemptDetail> {
     const quizzes = await database.query<{
         title: string;
@@ -154,6 +165,19 @@ export async function startAttemptInTransaction(
     if (!quiz) throw new AppError(404, "QUIZ_NOT_FOUND", "Quiz not found");
     if (quiz.archived_at)
         throw new AppError(409, "QUIZ_ARCHIVED", "Restore this quiz before starting a new attempt");
+    if (lessonQuizId) {
+        const context = await database.query(
+            `SELECT lq.id FROM public.lesson_quizzes lq JOIN public.quizzes q ON q.id=lq.quiz_id
+             WHERE lq.id=$1 AND lq.quiz_id=$2 AND q.visibility='public' FOR KEY SHARE OF lq`,
+            [lessonQuizId, quizId],
+        );
+        if (!context.rows[0])
+            throw new AppError(
+                400,
+                "INVALID_LESSON_CONTEXT",
+                "Lesson context does not match this quiz",
+            );
+    }
     const settings = settingsSnapshotSchema.parse(quiz.settings);
     const sources = await database.query<SourceQuestionRow>(
         `SELECT m.id,m.question_id,m.position,m.points,m.required,m.time_limit_seconds,
@@ -164,9 +188,9 @@ export async function startAttemptInTransaction(
     );
     if (sources.rows.length === 0) throw new AppError(409, "EMPTY_QUIZ", "Quiz has no questions");
     const attempts = await database.query<{ id: string }>(
-        `INSERT INTO public.quiz_attempts(quiz_id,user_id,quiz_title_snapshot,settings_snapshot)
-         VALUES($1,$2,$3,$4::jsonb) RETURNING id`,
-        [quizId, userId, quiz.title, JSON.stringify(settings)],
+        `INSERT INTO public.quiz_attempts(quiz_id,user_id,quiz_title_snapshot,settings_snapshot,lesson_quiz_id)
+         VALUES($1,$2,$3,$4::jsonb,$5) RETURNING id`,
+        [quizId, userId, quiz.title, JSON.stringify(settings), lessonQuizId],
     );
     const attemptId = attempts.rows[0]?.id;
     if (!attemptId) throw new Error("Attempt insertion returned no row");
@@ -209,8 +233,14 @@ export async function startAttemptInTransaction(
     return getAttempt(attemptId, userId, database);
 }
 
-export function startAttempt(quizId: string, userId: string): Promise<AttemptDetail> {
-    return withTransaction((client) => startAttemptInTransaction(quizId, userId, client));
+export function startAttempt(
+    quizId: string,
+    userId: string,
+    lessonQuizId: string | null = null,
+): Promise<AttemptDetail> {
+    return withTransaction((client) =>
+        startAttemptInTransaction(quizId, userId, client, lessonQuizId),
+    );
 }
 
 export async function submitAnswerInTransaction(

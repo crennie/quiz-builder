@@ -336,8 +336,16 @@ export const lessonSchema = courseSchema
         position: z.number().int().nonnegative(),
     })
     .meta({ id: "Lesson" });
+export const lessonLinkSchema = z.strictObject({ id: z.uuid(), title: z.string() });
+export const lessonDetailSchema = lessonSchema
+    .extend({
+        previousLesson: lessonLinkSchema.nullable(),
+        nextLesson: lessonLinkSchema.nullable(),
+    })
+    .meta({ id: "LessonDetail" });
 export const lessonQuizSchema = z
     .strictObject({
+        id: z.uuid(),
         lessonId: z.uuid(),
         quizId: z.uuid(),
         position: z.number().int().nonnegative(),
@@ -356,6 +364,46 @@ export const lessonQuizListResponseSchema = z.strictObject({
     items: z.array(lessonQuizSchema),
     nextOffset: z.number().int().nonnegative().nullable(),
 });
+// Array order determines lesson position; import files cannot attach quizzes.
+export const lessonImportContentSchema = z.strictObject({
+    title: z.string().trim().min(1).max(300),
+    description: z.string().trim().max(5000).nullable().default(null),
+    content: z
+        .string()
+        .min(1)
+        .max(200_000)
+        .refine((value) => value.trim().length > 0, "Lesson content cannot be blank"),
+});
+export const courseImportFileSchema = z.strictObject({
+    title: z.string().trim().min(1).max(300),
+    description: z.string().trim().max(5000).nullable().default(null),
+    lessons: z.array(lessonImportContentSchema).max(100).default([]),
+});
+export const lessonImportFileSchema = z.strictObject({
+    lessons: z.array(lessonImportContentSchema).min(1).max(100),
+});
+export const courseImportBodySchema = z.strictObject({
+    importKey: z.uuid(),
+    content: courseImportFileSchema,
+});
+export const lessonImportBodySchema = z.strictObject({
+    importKey: z.uuid(),
+    content: lessonImportFileSchema,
+});
+export const courseImportResultSchema = z.strictObject({
+    courseId: z.uuid(),
+    lessonIds: z.array(z.uuid()),
+});
+export type CourseImportFile = z.output<typeof courseImportFileSchema>;
+export type LessonImportFile = z.output<typeof lessonImportFileSchema>;
+export type CourseImportResult = z.output<typeof courseImportResultSchema>;
+
+export const startAttemptBodySchema = z
+    .strictObject({
+        lessonQuizId: z.uuid().nullable().default(null),
+    })
+    .default({ lessonQuizId: null });
+
 export type Tag = z.output<typeof tagSchema>;
 export type QuestionDetail = z.output<typeof questionDetailSchema>;
 export type QuizContent = z.output<typeof quizContentSchema>;
@@ -388,6 +436,9 @@ export const attemptDetailSchema = z.strictObject({
     id: z.uuid(),
     quizId: z.uuid(),
     quizTitle: z.string(),
+    // Optional when reading older cached payloads; the API always emits both nullable fields.
+    lessonQuizId: z.uuid().nullable().optional(),
+    lessonContext: z.strictObject({ lessonId: z.uuid(), courseId: z.uuid() }).nullable().optional(),
     status: attemptStatusSchema,
     startedAt: apiTimestampSchema,
     completedAt: apiTimestampSchema.nullable(),

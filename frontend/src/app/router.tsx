@@ -10,6 +10,9 @@ import { NewQuestionPage } from "../pages/new-question-page";
 import { QuestionDetailPage } from "../pages/question-detail-page";
 import { MyQuizzesPage } from "../pages/my-quizzes-page";
 import { CoursesPage } from "../pages/courses-page";
+import { CourseDetailPage } from "../pages/course-detail-page";
+import { LessonPage } from "../pages/lesson-page";
+import { ImportCoursePage, ImportLessonsPage } from "../pages/import-course-page";
 import { ImportQuizPage } from "../pages/import-quiz-page";
 import { NewQuizPage } from "../pages/new-quiz-page";
 import { QuizDetailPage } from "../pages/quiz-detail-page";
@@ -72,9 +75,33 @@ const quizListRoute = createRoute({
 const coursesRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/courses",
+    component: CoursesPage,
+});
+const courseDetailRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/courses/$courseId",
+    component: CourseDetailPage,
+});
+const lessonRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/courses/$courseId/lessons/$lessonId",
+    component: LessonPage,
+});
+const importCourseRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/courses/import",
     component: () => (
         <RequireAuth>
-            <CoursesPage />
+            <ImportCoursePage />
+        </RequireAuth>
+    ),
+});
+const importLessonsRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/courses/$courseId/import",
+    component: () => (
+        <RequireAuth>
+            <ImportLessonsPage />
         </RequireAuth>
     ),
 });
@@ -134,6 +161,10 @@ export const router = createRouter({
         questionDetailRoute,
         quizListRoute,
         coursesRoute,
+        courseDetailRoute,
+        lessonRoute,
+        importCourseRoute,
+        importLessonsRoute,
         newQuizRoute,
         importQuizRoute,
         quizDetailRoute,

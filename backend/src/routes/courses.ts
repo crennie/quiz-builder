@@ -1,7 +1,10 @@
 import {
     courseSchema,
+    courseImportBodySchema,
+    lessonImportBodySchema,
+    courseImportResultSchema,
     courseListResponseSchema,
-    lessonSchema,
+    lessonDetailSchema,
     lessonListResponseSchema,
     lessonQuizListResponseSchema,
 } from "@quiz-builder/contracts";
@@ -17,11 +20,38 @@ import {
     listCourses,
     getCourse,
     listCourseLessons,
-    getLesson,
+    getLessonDetail,
     listLessonQuizzes,
 } from "../db/courses.ts";
-import { optionalAuthentication } from "../middleware/authentication.ts";
+import { importCourseContent } from "../db/course-imports.ts";
+import { requireAuthentication, optionalAuthentication } from "../middleware/authentication.ts";
 export const courseRouter = Router();
+// Writes authenticate before public read middleware to avoid verifying tokens twice.
+courseRouter.post("/courses/import", requireAuthentication, async (req, res) => {
+    const { body } = validateRequest(req, { body: courseImportBodySchema });
+    const userId = req.authenticatedUser?.id;
+    if (!userId) throw new Error("Authenticated user is missing");
+    sendResponse(
+        res,
+        201,
+        courseImportResultSchema,
+        await importCourseContent(userId, body.importKey, body.content),
+    );
+});
+courseRouter.post("/courses/:courseId/lessons/import", requireAuthentication, async (req, res) => {
+    const { params, body } = validateRequest(req, {
+        params: courseParamsSchema,
+        body: lessonImportBodySchema,
+    });
+    const userId = req.authenticatedUser?.id;
+    if (!userId) throw new Error("Authenticated user is missing");
+    sendResponse(
+        res,
+        201,
+        courseImportResultSchema,
+        await importCourseContent(userId, body.importKey, body.content, params.courseId),
+    );
+});
 courseRouter.use(["/courses", "/lessons"], optionalAuthentication);
 courseRouter.get("/courses", async (req, res) => {
     const { query } = validateRequest(req, { query: contentListQuerySchema });
@@ -45,7 +75,7 @@ courseRouter.get("/courses/:courseId/lessons", async (req, res) => {
 });
 courseRouter.get("/lessons/:lessonId", async (req, res) => {
     const { params } = validateRequest(req, { params: lessonParamsSchema });
-    sendResponse(res, 200, lessonSchema, await getLesson(params.lessonId));
+    sendResponse(res, 200, lessonDetailSchema, await getLessonDetail(params.lessonId));
 });
 courseRouter.get("/lessons/:lessonId/quizzes", async (req, res) => {
     const { params, query } = validateRequest(req, {

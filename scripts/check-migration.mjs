@@ -10,6 +10,7 @@ export const applicationTables = [
     "quiz_attempts",
     "quiz_attempt_questions",
     "courses",
+    "course_imports",
     "lessons",
     "lesson_quizzes",
     "tags",

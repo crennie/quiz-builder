@@ -1,5 +1,6 @@
 // Generate the Supabase-compatible public types from an actual clean PostgreSQL catalog.
 // This fallback uses PGlite when Docker/Supabase is unavailable. Use db:types for Supabase parity.
+import { checkDatabaseTypeShape } from "./check-db-type-shape.mjs";
 import { PGlite } from "@electric-sql/pglite";
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 const db = new PGlite();
@@ -25,11 +26,13 @@ try {
  (SELECT array_agg(a.attname ORDER BY u.ord) FROM unnest(con.conkey) WITH ORDINALITY u(num,ord) JOIN pg_attribute a ON a.attrelid=con.conrelid AND a.attnum=u.num) AS columns,
  (SELECT array_agg(a.attname ORDER BY u.ord) FROM unnest(con.confkey) WITH ORDINALITY u(num,ord) JOIN pg_attribute a ON a.attrelid=con.confrelid AND a.attnum=u.num) AS targets,
  EXISTS(SELECT 1 FROM pg_constraint uq WHERE uq.conrelid=con.conrelid AND uq.contype IN ('u','p') AND uq.conkey=con.conkey) AS one
- FROM pg_constraint con JOIN pg_class src ON src.oid=con.conrelid JOIN pg_class dst ON dst.oid=con.confrelid JOIN pg_namespace n ON n.oid=src.relnamespace WHERE con.contype='f' AND n.nspname='public' ORDER BY con.conname`)
+ FROM pg_constraint con JOIN pg_class src ON src.oid=con.conrelid JOIN pg_class dst ON dst.oid=con.confrelid JOIN pg_namespace n ON n.oid=src.relnamespace WHERE con.contype='f' AND n.nspname='public' AND dst.relnamespace='public'::regnamespace ORDER BY con.conname`)
     ).rows;
     const tables = {};
     for (const c of cols) (tables[c.table_name] ??= []).push(c);
     function type(c) {
+        if (c.udt_name.startsWith("_"))
+            return `(${type({ ...c, udt_name: c.udt_name.slice(1) })})[]`;
         return enumNames.has(c.udt_name)
             ? `Database["public"]["Enums"]["${c.udt_name}"]`
             : c.udt_name === "jsonb"
@@ -59,7 +62,10 @@ try {
     out += "}; Views: { [_ in never]: never }; Functions: { [_ in never]: never }; Enums: {\n";
     for (const e of enums) out += `${e.typname}: ${e.labels.map(JSON.stringify).join(" | ")};\n`;
     out += "}; CompositeTypes: { [_ in never]: never }; }; };\n";
-    writeFileSync("shared/src/database.types.ts", out);
+    if (process.argv.includes("--check")) {
+        checkDatabaseTypeShape(out);
+        console.log("Committed database types match the migrated embedded catalog.");
+    } else writeFileSync("shared/src/database.types.ts", out);
     console.log(
         `Generated public types for ${Object.keys(tables).length} tables from a fresh V1 database.`,
     );

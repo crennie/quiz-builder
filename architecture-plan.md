@@ -27,7 +27,10 @@ See [ADR-010](docs/architecture/decisions/ADR-010-quiz-archiving.md).
 
 Courses are public. Each ordered lesson has exactly one course FK and plain text/Markdown content.
 `lesson_quizzes` associates public quizzes with lessons; a quiz can be reused across courses.
-Courses and lessons have read-only HTTP APIs. Controlled public authoring and permissions are deferred.
+Courses and lessons have public read APIs and signed-in JSON imports for new courses or appended
+lessons. All signed-in users may import into any course. Broader editing and permissions are deferred.
+Lesson quiz associations have stable IDs; attempts optionally retain an immutable association FK.
+See [ADR-011](docs/architecture/decisions/ADR-011-course-import-and-attempt-context.md).
 Owner-scoped tags, feedback, batch artifacts and mappings remain core entities.
 
 ## Durable invariants

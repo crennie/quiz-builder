@@ -1,6 +1,7 @@
 import {
     courseSchema,
     lessonSchema,
+    lessonDetailSchema,
     lessonQuizSchema,
     type Database,
 } from "@quiz-builder/contracts";
@@ -73,7 +74,12 @@ export async function listLessonQuizzes(
     database: QueryExecutor = pool,
 ) {
     await getLesson(lessonId, database);
-    const r = await database.query<{ lesson_id: string; quiz_id: string; position: number }>(
+    const r = await database.query<{
+        id: string;
+        lesson_id: string;
+        quiz_id: string;
+        position: number;
+    }>(
         `SELECT * FROM public.lesson_quizzes WHERE lesson_id=$1 ORDER BY position,quiz_id LIMIT $2 OFFSET $3`,
         [lessonId, page.limit + 1, page.offset],
     );
@@ -83,6 +89,7 @@ export async function listLessonQuizzes(
         if (!quiz) throw new Error("Lesson quiz is not public");
         items.push(
             lessonQuizSchema.parse({
+                id: row.id,
                 lessonId: row.lesson_id,
                 quizId: row.quiz_id,
                 position: row.position,
@@ -91,4 +98,21 @@ export async function listLessonQuizzes(
         );
     }
     return { items, nextOffset: r.rows.length > page.limit ? page.offset + page.limit : null };
+}
+
+export async function getLessonDetail(lessonId: string, database: QueryExecutor = pool) {
+    const lesson = await getLesson(lessonId, database);
+    const previous = await database.query<{ id: string; title: string }>(
+        `SELECT id,title FROM public.lessons WHERE course_id=$1 AND position<$2 ORDER BY position DESC LIMIT 1`,
+        [lesson.courseId, lesson.position],
+    );
+    const next = await database.query<{ id: string; title: string }>(
+        `SELECT id,title FROM public.lessons WHERE course_id=$1 AND position>$2 ORDER BY position LIMIT 1`,
+        [lesson.courseId, lesson.position],
+    );
+    return lessonDetailSchema.parse({
+        ...lesson,
+        previousLesson: previous.rows[0] ?? null,
+        nextLesson: next.rows[0] ?? null,
+    });
 }

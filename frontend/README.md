@@ -11,7 +11,8 @@ Start the backend separately. Vite proxies `/api/*` to localhost:3000; `/api/hea
 Copy `.env.example` to ignored `.env.local`, configuring the same Supabase URL/publishable key as the
 backend. `VITE_API_BASE_URL` defaults to `/api`. Browser environment values must contain no secrets.
 
-API clients attach the current Supabase access token and validate responses with shared Zod schemas.
+Protected API clients attach the current Supabase access token; public course reads are anonymous.
+All clients validate responses with shared Zod schemas.
 Query owns server state; local editing state lives in components. Routes share the app layout and
 query/error/loading states. Semantic HTML and native accessible controls remain the UI convention.
 
@@ -32,7 +33,23 @@ is a format identifier rather than an entity version. No review, queue or provid
 Choose personal questions by ID, or add an accessible public question using its known UUID. Preserve
 question ordering, repeat questions if desired, and set points/required/timing and display settings.
 Equivalent saves are harmless. A quiz with any attempt shows content read-only and a replacement
-creation link; tags remain editable. Public authoring and course editors are deferred.
+creation link; tags remain editable. Public quiz authoring and course editors are deferred.
+
+## Courses and lessons
+
+**Courses** is public and lists existing courses. Open a course for its ordered lesson outline,
+then read lessons with section links and previous/next navigation. The reading layout supports
+light/dark themes and narrow screens. There are no enrollment, completion, or quiz attachment controls.
+
+Signed-in users can choose **Import course**, or **Import lessons** on any course overview. Select a
+JSON file, expand lessons to preview their content, then import public content. Lessons append in
+file order; no existing content is overwritten. Failed requests can be retried on the same page
+without duplicates. Reselecting a file or reloading begins a new import.
+
+Download examples: [course](public/sample-course.json), [lessons](public/sample-lessons.json).
+Limits are 100 lessons and 256 KiB per import. Content supports plain text and basic Markdown
+(headings, flat lists, quotes, code, emphasis, and HTTP(S)/mailto links); HTML and images are not
+rendered. Full CommonMark and rich-media support are deferred.
 
 ## Practice and feedback
 

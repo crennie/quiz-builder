@@ -501,3 +501,56 @@ it("shows a loading state while attempt history is pending", async () => {
     renderAt("/attempts");
     expect(await screen.findByText("Loading attempts…")).toBeInTheDocument();
 });
+
+it("groups compact history rows by local day, newest first, with direct attempt links", async () => {
+    const today = new Date();
+    today.setHours(12, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const earlier = new Date(today);
+    earlier.setHours(9);
+    vi.mocked(attemptsApi.listAttempts).mockResolvedValue({
+        items: [
+            {
+                ...currentAttempt,
+                id: ids[0]!,
+                quizTitle: "Yesterday quiz",
+                startedAt: yesterday.toISOString(),
+            },
+            {
+                ...currentAttempt,
+                id: ids[1]!,
+                quizTitle: "Earlier quiz",
+                startedAt: earlier.toISOString(),
+            },
+            {
+                ...currentAttempt,
+                id: ids[2]!,
+                quizTitle: "Latest quiz",
+                startedAt: today.toISOString(),
+            },
+        ],
+        nextOffset: null,
+    });
+    renderAt("/attempts");
+    const region = await screen.findByRole("region", { name: "Attempts" });
+    expect(
+        within(region)
+            .getAllByRole("listitem")
+            .map((row) => row.textContent),
+    ).toEqual([
+        expect.stringContaining("Latest quiz"),
+        expect.stringContaining("Earlier quiz"),
+        expect.stringContaining("Yesterday quiz"),
+    ]);
+    expect(
+        within(region)
+            .getAllByRole("heading", { level: 2 })
+            .map((heading) => heading.textContent),
+    ).toEqual(["Today2 attempts", "Yesterday1 attempt"]);
+    expect(
+        within(region)
+            .getAllByRole("link", { name: "Resume" })
+            .map((link) => link.getAttribute("href")),
+    ).toEqual([`/attempts/${ids[2]}`, `/attempts/${ids[1]}`, `/attempts/${ids[0]}`]);
+});

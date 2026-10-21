@@ -16,7 +16,10 @@ export function AppLayout() {
         <div className={`app-shell${quizWorkspace ? " quiz-workspace" : ""}`}>
             <header className="site-header">
                 <Link className="brand" to="/">
-                    Quiz Builder
+                    <img src="/brand/quiz-builder.png" alt="" width="48" height="48" />
+                    <span className="brand-wordmark">
+                        Quiz <span>Builder</span>
+                    </span>
                 </Link>
                 <nav aria-label="Primary navigation">
                     <Link to="/">Home</Link>

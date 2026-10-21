@@ -130,10 +130,42 @@ a:focus-visible {
     flex-wrap: wrap;
 }
 .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
     color: var(--ink);
-    font-weight: 750;
     text-decoration: none;
-    letter-spacing: -0.02em;
+    flex-shrink: 0;
+}
+.brand img {
+    display: block;
+    object-fit: contain;
+}
+.brand-wordmark {
+    font-family: ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+    font-weight: 900;
+    letter-spacing: -0.045em;
+    line-height: 1.05;
+}
+.brand .brand-wordmark {
+    font-size: 1.5rem;
+}
+.brand-wordmark > span {
+    color: var(--accent);
+}
+.hero-brand {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+.hero-brand img {
+    width: clamp(6rem, 15vw, 10rem);
+    height: auto;
+}
+.hero-brand h1 {
+    margin: 0;
+    font-size: clamp(2.5rem, 7vw, 5rem);
 }
 nav a {
     text-underline-offset: 0.3rem;

@@ -10,6 +10,7 @@ import { NewQuestionPage } from "../pages/new-question-page";
 import { QuestionDetailPage } from "../pages/question-detail-page";
 import { MyQuizzesPage } from "../pages/my-quizzes-page";
 import { CoursesPage } from "../pages/courses-page";
+import { ImportQuizPage } from "../pages/import-quiz-page";
 import { NewQuizPage } from "../pages/new-quiz-page";
 import { QuizDetailPage } from "../pages/quiz-detail-page";
 import { AttemptHistoryPage } from "../pages/attempt-history-page";
@@ -86,6 +87,15 @@ const newQuizRoute = createRoute({
         </RequireAuth>
     ),
 });
+const importQuizRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/quizzes/import",
+    component: () => (
+        <RequireAuth>
+            <ImportQuizPage />
+        </RequireAuth>
+    ),
+});
 const quizDetailRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/quizzes/$quizId",
@@ -125,6 +135,7 @@ export const router = createRouter({
         quizListRoute,
         coursesRoute,
         newQuizRoute,
+        importQuizRoute,
         quizDetailRoute,
         attemptHistoryRoute,
         attemptRoute,

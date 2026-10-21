@@ -138,6 +138,14 @@ export function MyQuizzesPage() {
                     <h1>My Quizzes</h1>
                     <p className="muted">Pick a quiz to explore or practice.</p>
                 </div>
+                <div className="quiz-actions">
+                    <Link className="button" to="/quizzes/new">
+                        Create quiz
+                    </Link>
+                    <Link className="button" to="/quizzes/import">
+                        Import quiz
+                    </Link>
+                </div>
             </header>
             <div className={styles.layout}>
                 <QuizFilters

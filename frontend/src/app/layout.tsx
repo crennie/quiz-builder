@@ -1,4 +1,4 @@
-import { Link, Outlet } from "@tanstack/react-router";
+import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "../auth/auth-state";
@@ -6,9 +6,12 @@ import { supabase } from "../auth/client";
 
 export function AppLayout() {
     const { session } = useAuth();
+    const quizWorkspace = useRouterState({
+        select: (state) => /^\/quizzes(?:\/|$)/u.test(state.location.pathname),
+    });
     const queryClient = useQueryClient();
     return (
-        <div className="app-shell">
+        <div className={`app-shell${quizWorkspace ? " quiz-workspace" : ""}`}>
             <header className="site-header">
                 <Link className="brand" to="/">
                     Quiz Builder

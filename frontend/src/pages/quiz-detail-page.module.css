@@ -6,6 +6,12 @@
 }
 
 .sidebar {
+    position: sticky;
+    top: 1.5rem;
+    max-height: calc(100dvh - 3rem);
+    overflow-y: auto;
+    min-height: min(36rem, calc(100dvh - 3rem));
+    align-content: start;
     min-width: 0;
 }
 
@@ -64,11 +70,18 @@
 }
 
 @media (max-width: 48rem) {
+    .stats {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 56rem) {
     .layout {
         grid-template-columns: 1fr;
     }
-
-    .stats {
-        grid-template-columns: 1fr;
+    .sidebar {
+        position: static;
+        min-height: auto;
+        max-height: none;
     }
 }

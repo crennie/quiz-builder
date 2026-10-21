@@ -391,3 +391,21 @@ h1 {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
 }
+
+.quiz-workspace .site-header {
+    max-width: none;
+    padding: 1rem 1.5rem;
+}
+.quiz-workspace .page-content {
+    max-width: none;
+    padding: 1.5rem;
+}
+.quiz-workspace .page-heading h1 {
+    font-size: clamp(2rem, 4vw, 3rem);
+}
+@media (max-width: 36rem) {
+    .quiz-workspace .page-content,
+    .quiz-workspace .site-header {
+        padding: 1rem;
+    }
+}

@@ -1,6 +1,6 @@
 :root {
-    color: #18201d;
-    background: #f6f4ee;
+    color: var(--ink);
+    background: light-dark(#f6f4ee, #121a17);
     font-family:
         Inter,
         ui-sans-serif,
@@ -11,11 +11,24 @@
         sans-serif;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
-    --ink: #18201d;
-    --muted: #64706b;
-    --surface: #fffdf8;
-    --accent: #176b55;
-    --border: #d8ddd7;
+    color-scheme: light dark;
+    --ink: light-dark(#18201d, #e5ede8);
+    --muted: light-dark(#64706b, #a8b8af);
+    --surface: light-dark(#fffdf8, #1c2822);
+    --accent: light-dark(#176b55, #85d6b7);
+    --border: light-dark(#d8ddd7, #43564b);
+    --input: light-dark(#ffffff, #15201a);
+    --on-accent: light-dark(#ffffff, #10271e);
+    --highlight: light-dark(#e7eee9, #2a4034);
+    --tag-ink: light-dark(#355647, #c0e5ce);
+}
+
+:root[data-theme="light"] {
+    color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+    color-scheme: dark;
 }
 
 * {
@@ -45,7 +58,7 @@ textarea {
     border: 1px solid var(--border);
     border-radius: 0.55rem;
     padding: 0.7rem 0.8rem;
-    background: white;
+    background: var(--input);
 }
 textarea {
     resize: vertical;
@@ -63,7 +76,7 @@ button,
     border: 1px solid var(--accent);
     border-radius: 0.55rem;
     padding: 0.68rem 1rem;
-    color: white;
+    color: var(--on-accent);
     background: var(--accent);
     text-decoration: none;
     font-weight: 650;
@@ -103,6 +116,8 @@ a:focus-visible {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
     max-width: 72rem;
     margin: 0 auto;
     padding: 1.25rem clamp(1.25rem, 4vw, 3rem);
@@ -203,8 +218,8 @@ nav a {
     align-items: center;
     border-radius: 999px;
     padding: 0.25rem 0.65rem;
-    background: #e7eee9;
-    color: #355647;
+    background: var(--highlight);
+    color: var(--tag-ink);
     font-size: 0.78rem;
     font-weight: 700;
     text-transform: capitalize;
@@ -303,7 +318,7 @@ nav a {
     margin-top: 1rem;
 }
 .error-text {
-    color: #a43434;
+    color: light-dark(#a43434, #ffaaaa);
 }
 .sr-only {
     position: absolute;
@@ -371,7 +386,7 @@ h1 {
     padding: 0.7rem 1rem;
     border: 0;
     border-radius: 0.5rem;
-    color: white;
+    color: var(--on-accent);
     background: var(--accent);
     cursor: pointer;
 }
@@ -408,4 +423,15 @@ h1 {
     .quiz-workspace .site-header {
         padding: 1rem;
     }
+}
+
+.theme-control {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.88rem;
+}
+.theme-control select {
+    width: auto;
+    padding: 0.4rem;
 }

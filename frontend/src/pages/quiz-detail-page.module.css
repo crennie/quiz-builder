@@ -36,7 +36,7 @@
 }
 
 .sidebar button[aria-pressed="true"] {
-    background: #e7eee9;
+    background: var(--highlight);
     border-color: var(--accent);
 }
 
@@ -54,7 +54,7 @@
 
 .stats div {
     padding: 1rem;
-    background: #e7eee9;
+    background: var(--highlight);
     border-radius: 0.6rem;
 }
 

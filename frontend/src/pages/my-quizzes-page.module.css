@@ -1,11 +1,13 @@
 .layout {
     display: grid;
-    grid-template-columns: 15rem minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 15rem;
+    grid-template-areas: "results filters";
     gap: 1.5rem;
     align-items: start;
 }
 
 .filters {
+    grid-area: filters;
     position: sticky;
     top: 1.5rem;
     max-height: calc(100dvh - 3rem);
@@ -21,6 +23,7 @@
 }
 
 .results {
+    grid-area: results;
     min-width: 0;
 }
 
@@ -76,6 +79,7 @@
 @media (max-width: 56rem) {
     .layout {
         grid-template-columns: 1fr;
+        grid-template-areas: "filters" "results";
     }
     .filters {
         position: static;

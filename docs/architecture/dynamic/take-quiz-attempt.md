@@ -13,3 +13,10 @@ answers, and sums recorded numeric points. Concurrent submissions permit one ans
 Load and grade exclusively from snapshots. Answers/evaluation are hidden until completion, and
 correct answers/explanations obey the saved display setting. History is learner-only. Source edits,
 independent replacements and association changes cannot reconstruct or change historical evidence.
+
+The browser player presents one question at a time, with outlined choice cards or a text input.
+There is no countdown in the first iteration; snapshot timing does not limit answering. Submitting
+advances to the first unanswered question. Previous/Next allow read-only review of saved answers;
+all questions must be answered before the player offers final results (the API still requires only
+required answers). Failed submissions retain the current input for retry. In-app navigation and
+browser unload warn while an attempt is in progress; saved answers can be resumed from history.

@@ -10,6 +10,7 @@ export function AppLayout() {
     const quizWorkspace = useRouterState({
         select: (state) => /^\/quizzes(?:\/|$)/u.test(state.location.pathname),
     });
+    const pathname = useRouterState({ select: (state) => state.location.pathname });
     const queryClient = useQueryClient();
     return (
         <div className={`app-shell${quizWorkspace ? " quiz-workspace" : ""}`}>
@@ -27,6 +28,21 @@ export function AppLayout() {
                             className="text-button"
                             type="button"
                             onClick={() => {
+                                const attemptId = /^\/attempts\/([^/]+)$/u.exec(pathname)?.[1];
+                                const attempt = attemptId
+                                    ? queryClient.getQueryData<{ status: string }>([
+                                          "attempt",
+                                          session?.user.id,
+                                          attemptId,
+                                      ])
+                                    : undefined;
+                                if (
+                                    attempt?.status === "in_progress" &&
+                                    !window.confirm(
+                                        "Sign out and leave this quiz? Submitted answers are saved, but any unsubmitted answer will be lost.",
+                                    )
+                                )
+                                    return;
                                 void supabase?.auth.signOut().then(() => queryClient.clear());
                             }}
                         >

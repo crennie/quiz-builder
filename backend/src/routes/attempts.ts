@@ -2,6 +2,7 @@ import {
     attemptDetailSchema,
     attemptListResponseSchema,
     submitAnswerBodySchema,
+    startAttemptBodySchema,
 } from "@quiz-builder/contracts";
 import { Router, type Request } from "express";
 
@@ -34,12 +35,15 @@ attemptRouter.post(
     "/quizzes/:quizId/attempts",
     requireAuthentication,
     async (request, response) => {
-        const { params } = validateRequest(request, { params: quizParamsSchema });
+        const { params, body } = validateRequest(request, {
+            params: quizParamsSchema,
+            body: startAttemptBodySchema,
+        });
         sendResponse(
             response,
             201,
             attemptDetailSchema,
-            await startAttempt(params.quizId, userId(request)),
+            await startAttempt(params.quizId, userId(request), body.lessonQuizId),
         );
     },
 );

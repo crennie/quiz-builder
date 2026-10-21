@@ -1,10 +1,18 @@
 # Quiz Builder — Design Decisions and Architecture Notes
 
-**Status:** Design snapshot for future implementation work  
-**Updated:** 2026-10-19  
+**Status:** Design snapshot; data model and reading/import UI implemented by ADR-011
+
+**Updated:** 2026-10-21
+
 **Purpose:** Preserve agreed domain boundaries, UI direction, and deferred decisions for coding agents working on the Quiz Builder application.
 
 > This document describes *intended behavior and design decisions*, not a verified inventory of the repository. The course/lesson and quiz-domain migration has already been completed; agents must inspect the current code and schema before proposing changes. Do not recreate tables, endpoints, or migrations that already exist.
+
+Implementation note (2026-10-21): [ADR-011](ADR-011-course-import-and-attempt-context.md) implements
+stable association identity, persisted attempt context, public course/lesson reading, and signed-in
+JSON imports. Any signed-in user may import public courses or append lessons to existing courses.
+Quiz attachment and contextual player UI remain deferred; the following player flows are design
+direction rather than implemented behavior.
 
 ## 1. Product boundaries
 

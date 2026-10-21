@@ -3,7 +3,10 @@
 A verified learner can start an owned private or public quiz. The API locks the quiz parent and
 rejects an empty composition. Insert the attempt with immutable quiz title and settings, then
 snapshot ordered (or shuffled) question identity/content, answer/grading, points, required and timing.
-Repeated source questions receive separate attempt-question IDs. Commit the complete snapshot set.
+Repeated source questions receive separate attempt-question IDs. When supplied, validate and retain
+the matching public `lessonQuizId`; its immutable association and restrictive FK preserve origin.
+Commit the complete snapshot set. Attempt reloads return the originating lesson/course IDs alongside
+the nullable association ID. The lesson quiz player UI remains deferred.
 
 Each answer operation locks the learner's attempt. Require an in-progress attempt, matching
 attempt-question identity and a valid response type/choice. Evaluate snapshots synchronously and

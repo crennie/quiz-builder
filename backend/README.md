@@ -30,9 +30,9 @@ Supabase owns passwords/sessions; this API never issues tokens. RLS closes brows
 Signed tokens can remain valid until expiry; live revocation checks are outside the current boundary.
 
 Questions and quizzes permit owner/public reads, including anonymous public reads. Personal lists,
-mutations, tags, batches and attempts require verified identity. Creation is always private; public
-authoring, promotion and substantive public edits are unavailable. Public course/lesson reads have
-no mutation routes. Referenced content cannot be deleted through this API.
+mutations, tags, batches and attempts require verified identity. Question/quiz creation is private;
+public quiz authoring, promotion and substantive public edits are unavailable. Courses and lessons
+are public; any signed-in user can import a course or append lessons to any existing course. Referenced content cannot be deleted through this API.
 
 ## API surface
 
@@ -60,6 +60,21 @@ except owner tags (`tags`) and recent batches (`batches`).
 | POST/GET /question-batches; GET /question-batches/:batchId; POST /question-batches/:batchId/materialize | Retain then atomically create usable private questions                            |
 | GET /courses; GET /courses/:courseId; GET /courses/:courseId/lessons                                    | Public, ordered and paginated hierarchy                                           |
 | GET /lessons/:lessonId; GET /lessons/:lessonId/quizzes                                                  | Public content and ordered quiz reuse                                             |
+
+## Public course imports
+
+`POST /courses/import` accepts `{ importKey, content: { title, description?, lessons? } }`.
+`POST /courses/:courseId/lessons/import` accepts `{ importKey, content: { lessons } }`.
+Use a UUID `importKey` and lesson objects with `title`, optional `description`, and nonblank `content`.
+Array order determines position. Up to 100 lessons per request and 256 KiB per body are supported;
+quiz attachment fields are rejected. Both endpoints return `{ courseId, lessonIds }`. A retry with
+the same authenticated user, key, and content reuses the original result. All writes are atomic.
+
+Attempt creation accepts optional `{ lessonQuizId }`; omission preserves standalone behavior.
+The association must match the public quiz. Attempt responses retain `lessonQuizId` and
+`lessonContext: { lessonId, courseId }`, or null for standalone attempts.
+
+Apply `20261021130000_course_lesson_context.sql` before running these endpoints.
 
 ## Integrity and practice
 

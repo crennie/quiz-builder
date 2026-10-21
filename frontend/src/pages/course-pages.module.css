@@ -1,0 +1,248 @@
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+    gap: 1.25rem;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+.grid > li {
+    display: flex;
+}
+.card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: 0.9rem;
+    background: var(--surface);
+    color: var(--ink);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+.card:hover,
+.lessonCard:hover {
+    border-color: var(--accent);
+    background: var(--highlight);
+}
+.card h2 {
+    margin: 0.5rem 0;
+    font-size: 1.4rem;
+}
+.cardAction {
+    margin-top: auto;
+    padding-top: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    color: var(--accent);
+    font-weight: 650;
+}
+.excerpt {
+    color: var(--muted);
+    line-height: 1.65;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    white-space: pre-line;
+}
+.overview {
+    padding: clamp(1.5rem, 5vw, 3rem);
+    overflow-wrap: anywhere;
+}
+.overview h1 {
+    max-width: 24ch;
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.15;
+}
+.description {
+    max-width: 65ch;
+    font-size: 1.125rem;
+    line-height: 1.75;
+    color: var(--muted);
+    white-space: pre-line;
+}
+.lessonList {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.75rem;
+}
+.lessonCard {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.8rem;
+    color: var(--ink);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+.lessonCard h3 {
+    margin: 0 0 0.5rem;
+}
+.lessonCard p {
+    margin: 0 0 0.5rem;
+}
+.lessonNumber {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+}
+.breadcrumbs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+    overflow-wrap: anywhere;
+}
+.readingLayout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 13rem;
+    gap: 2rem;
+    align-items: start;
+}
+.article {
+    padding: clamp(1.25rem, 4vw, 3.5rem);
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.articleHeader {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1.5rem;
+    margin-bottom: 2rem;
+}
+.articleHeader h1 {
+    font-size: clamp(1.8rem, 4vw, 2.7rem);
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+}
+.prose {
+    max-width: 68ch;
+    margin-inline: auto;
+    font-size: 1.08rem;
+    line-height: 1.85;
+}
+.prose > :first-child {
+    margin-top: 0;
+}
+.prose p {
+    margin-block: 0 1.4em;
+    white-space: pre-line;
+}
+.prose :is(h2, h3, h4, h5, h6) {
+    line-height: 1.35;
+    margin: 2em 0 0.8em;
+    scroll-margin-top: 2rem;
+}
+.prose h2 {
+    font-size: 1.55em;
+}
+.prose h3 {
+    font-size: 1.25em;
+}
+.prose li {
+    padding-left: 0.25em;
+    margin-block: 0.5em;
+}
+.prose :is(ul, ol) {
+    padding-left: 1.6em;
+    margin-block: 1em 1.5em;
+}
+.prose blockquote {
+    border-left: 3px solid var(--accent);
+    background: var(--highlight);
+    padding: 1.2rem 1.5rem;
+    margin: 1.5em 0;
+    border-radius: 0 0.5rem 0.5rem 0;
+}
+.prose blockquote p {
+    margin: 0;
+}
+.prose code {
+    font-size: 0.88em;
+    background: var(--highlight);
+    border-radius: 0.25rem;
+    padding: 0.15em 0.3em;
+}
+.prose pre {
+    overflow-x: auto;
+    background: var(--highlight);
+    padding: 1.25rem;
+    border-radius: 0.6rem;
+    line-height: 1.6;
+}
+.prose pre code {
+    padding: 0;
+}
+.prose a {
+    text-underline-offset: 0.2em;
+}
+.readingAside {
+    position: sticky;
+    top: 2rem;
+    max-height: calc(100dvh - 4rem);
+    overflow-y: auto;
+    font-size: 0.9rem;
+    overflow-wrap: anywhere;
+}
+.readingAside h2 {
+    font-size: 0.95rem;
+    margin-top: 2rem;
+}
+.readingAside ul {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 0.8rem;
+}
+.readingAside a {
+    line-height: 1.5;
+}
+.lessonNavigation {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    border-top: 1px solid var(--border);
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+}
+.lessonNavigation a {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    text-decoration: none;
+}
+.lessonNavigation a:last-child {
+    text-align: right;
+}
+.preview {
+    max-height: 28rem;
+    overflow-y: auto;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 0.6rem;
+}
+@media (max-width: 56rem) {
+    .readingLayout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .readingAside {
+        position: static;
+        max-height: none;
+        grid-row: 1;
+    }
+    .readingAside nav {
+        display: none;
+    }
+    .readingAside > p {
+        display: none;
+    }
+}

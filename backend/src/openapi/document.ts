@@ -12,8 +12,12 @@ import {
     questionListResponseSchema,
     questionContentSchema,
     courseSchema,
+    courseImportBodySchema,
+    lessonImportBodySchema,
+    courseImportResultSchema,
+    startAttemptBodySchema,
     courseListResponseSchema,
-    lessonSchema,
+    lessonDetailSchema,
     lessonListResponseSchema,
     lessonQuizListResponseSchema,
     questionBatchArtifactSchema,
@@ -405,7 +409,13 @@ registry.registerPath({
     tags: ["Attempts"],
     summary: "Start an attempt from an accessible quiz",
     security: [{ BearerAuth: [] }],
-    request: { params: quizParamsSchema },
+    request: {
+        params: quizParamsSchema,
+        body: {
+            required: false,
+            content: { "application/json": { schema: apiSchema(startAttemptBodySchema) } },
+        },
+    },
     responses: {
         201: { description: "Started attempt with question snapshots.", content: attemptContent },
         ...commonErrors,
@@ -568,7 +578,7 @@ for (const [path, params, query, schema, summary] of [
         "/api/v1/lessons/{lessonId}",
         lessonParamsSchema,
         undefined,
-        lessonSchema,
+        lessonDetailSchema,
         "Get a public lesson",
     ],
     [
@@ -589,6 +599,43 @@ for (const [path, params, query, schema, summary] of [
             200: {
                 description: summary,
                 content: { "application/json": { schema: apiSchema(schema) } },
+            },
+            ...commonErrors,
+        },
+    });
+
+for (const [path, params, schema, summary] of [
+    [
+        "/api/v1/courses/import",
+        undefined,
+        courseImportBodySchema,
+        "Import a new public course and its ordered lessons",
+    ],
+    [
+        "/api/v1/courses/{courseId}/lessons/import",
+        courseParamsSchema,
+        lessonImportBodySchema,
+        "Append public lessons to an existing course",
+    ],
+] as const)
+    registry.registerPath({
+        method: "post",
+        path,
+        tags: ["Courses"],
+        summary,
+        security: [{ BearerAuth: [] }],
+        request: {
+            params,
+            body: {
+                required: true,
+                content: { "application/json": { schema: apiSchema(schema) } },
+            },
+        },
+        responses: {
+            201: {
+                description:
+                    "Atomic import result; retrying the same key and content reuses this result.",
+                content: { "application/json": { schema: apiSchema(courseImportResultSchema) } },
             },
             ...commonErrors,
         },

@@ -1,0 +1,16 @@
+{
+    "title": "Learning with curiosity",
+    "description": "A short introduction to asking better questions and making new ideas stick.",
+    "lessons": [
+        {
+            "title": "Start with a good question",
+            "description": "Turn curiosity into a clear learning goal.",
+            "content": "# Begin with curiosity\n\nLearning starts with a question you care about. A useful question is specific enough to explore, but open enough to lead somewhere new.\n\n## Try it yourself\n\n1. Choose a topic you want to understand.\n2. Write down what you already know.\n3. Ask one question that would move your understanding forward.\n\n> You do not need to know everything before you begin. You need a place to start.\n\n## A small example\n\nInstead of **\u201cLearn about plants\u201d**, try **\u201cHow do plants turn sunlight into energy?\u201d**\n\nKeep your question somewhere visible. You will return to it as you learn."
+        },
+        {
+            "title": "Make an idea your own",
+            "description": "Use explanation and reflection to deepen understanding.",
+            "content": "# Explain it simply\n\nAfter reading something new, pause and explain it in your own words. Imagine you are helping a curious friend.\n\n## A short reflection\n\n- What is the main idea?\n- Which example makes it clearer?\n- What would you like to understand next?\n\n**Try this:** write three sentences without looking back at your notes. Then reread the lesson and notice what you missed.\n\n## Keep exploring\n\nUnderstanding grows through practice. Return to a useful idea, connect it to something familiar, and ask your next question."
+        }
+    ]
+}

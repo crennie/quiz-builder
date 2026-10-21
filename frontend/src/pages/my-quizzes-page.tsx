@@ -3,17 +3,22 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import type { QuizDetail } from "@quiz-builder/contracts";
 
+import { ArchiveQuizButton } from "../components/archive-quiz-button";
 import { listQuizzes } from "../api/quizzes";
 import { useAuth } from "../auth/auth-state";
 import styles from "./my-quizzes-page.module.css";
 
 type SortOrder = "updated" | "title" | "questions";
 
-async function loadAvailableQuizzes() {
+async function loadAvailableQuizzes(archived: boolean) {
     const items: QuizDetail[] = [];
     let offset: number | null = 0;
     while (offset !== null) {
-        const page = await listQuizzes({ offset });
+        const page = await listQuizzes({
+            offset,
+            archived,
+            ...(archived ? { scope: "mine" as const } : {}),
+        });
         items.push(...page.items);
         offset = page.nextOffset;
     }
@@ -24,7 +29,7 @@ function QuizGrid({ quizzes }: { quizzes: QuizDetail[] }) {
     return (
         <ul className={styles.grid}>
             {quizzes.map((quiz) => (
-                <li key={quiz.id}>
+                <li key={quiz.id} className={styles.item}>
                     <Link
                         className={styles.card}
                         to="/quizzes/$quizId"
@@ -48,6 +53,7 @@ function QuizGrid({ quizzes }: { quizzes: QuizDetail[] }) {
                             <span>Open quiz →</span>
                         </div>
                     </Link>
+                    <ArchiveQuizButton quiz={quiz} />
                 </li>
             ))}
         </ul>
@@ -108,12 +114,13 @@ function QuizFilters({
 
 export function MyQuizzesPage() {
     const { session } = useAuth();
+    const [archived, setArchived] = useState(false);
     const [search, setSearch] = useState("");
     const [mineOnly, setMineOnly] = useState(false);
     const [sort, setSort] = useState<SortOrder>("updated");
     const quizzes = useQuery({
-        queryKey: ["quizzes", session?.user.id, "available-grid"],
-        queryFn: loadAvailableQuizzes,
+        queryKey: ["quizzes", session?.user.id, "available-grid", archived],
+        queryFn: () => loadAvailableQuizzes(archived),
     });
     const filtered = (quizzes.data ?? [])
         .filter(
@@ -147,6 +154,24 @@ export function MyQuizzesPage() {
                     </Link>
                 </div>
             </header>
+            <div className={styles.views} aria-label="Quiz views">
+                <button
+                    type="button"
+                    className="secondary"
+                    aria-pressed={!archived}
+                    onClick={() => setArchived(false)}
+                >
+                    Active quizzes
+                </button>
+                <button
+                    type="button"
+                    className="secondary"
+                    aria-pressed={archived}
+                    onClick={() => setArchived(true)}
+                >
+                    Archived quizzes
+                </button>
+            </div>
             <div className={styles.layout}>
                 <QuizFilters
                     search={search}
@@ -167,7 +192,9 @@ export function MyQuizzesPage() {
                     aria-busy={quizzes.isPending}
                 >
                     <div className="section-heading">
-                        <h2 id="available-quizzes-heading">Available quizzes</h2>
+                        <h2 id="available-quizzes-heading">
+                            {archived ? "Archived quizzes" : "Available quizzes"}
+                        </h2>
                         {quizzes.data ? (
                             <span className="muted small" role="status">
                                 {filtered.length} of {quizzes.data.length}
@@ -189,12 +216,18 @@ export function MyQuizzesPage() {
                         ) : (
                             <div className="message-panel">
                                 <h3>
-                                    {quizzes.data.length ? "No matching quizzes" : "No quizzes yet"}
+                                    {quizzes.data.length
+                                        ? "No matching quizzes"
+                                        : archived
+                                          ? "No archived quizzes"
+                                          : "No quizzes yet"}
                                 </h3>
                                 <p className="muted">
                                     {quizzes.data.length
                                         ? "Try another search or reset your filters."
-                                        : "Your available quizzes will appear here."}
+                                        : archived
+                                          ? "Archived quizzes stay here until you restore them. Attempt history is kept."
+                                          : "Your available quizzes will appear here."}
                                 </p>
                             </div>
                         )

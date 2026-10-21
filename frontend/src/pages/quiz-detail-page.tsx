@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useParams } from "@tanstack/react-router";
+import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { getQuiz, saveQuizContent } from "../api/quizzes";
 import { useAuth } from "../auth/auth-state";
 import { useState } from "react";
+import { ArchiveQuizButton } from "../components/archive-quiz-button";
 import { QuizQuestionList } from "../components/quiz-question-list";
 import { QuizOverview } from "../components/quiz-overview";
 import { QuizStartPanel } from "../components/quiz-start-panel";
@@ -18,6 +19,7 @@ export function QuizDetailPage() {
     const { quizId } = useParams({ from: "/quizzes/$quizId" });
     const { session } = useAuth();
     const client = useQueryClient();
+    const navigate = useNavigate();
     const [addingBusy, setAddingBusy] = useState(false);
     const [adding, setAdding] = useState(false);
     const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -76,6 +78,12 @@ export function QuizDetailPage() {
                     ) : null}
                 </div>
             </header>
+            {q.archivedAt ? (
+                <p className="message-panel">
+                    This quiz is archived. Restore it to start new attempts. Your previous attempts
+                    are still available.
+                </p>
+            ) : null}
             <QuizOverview quiz={q} />
             <div className={styles.layout}>
                 <aside
@@ -184,6 +192,11 @@ export function QuizDetailPage() {
                     )}
                 </div>
             </div>
+            <ArchiveQuizButton
+                quiz={q}
+                disabled={save.isPending || addingBusy}
+                onArchived={() => navigate({ to: "/quizzes" })}
+            />
         </div>
     );
 }

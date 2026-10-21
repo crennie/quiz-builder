@@ -302,13 +302,13 @@ isOneToOne: false
                   ]
                 },"quizzes": {
                   Row: {
-                    "created_at": string,"created_by": string,"description": string | null,"id": string,"settings": NonNullable<Json>,"title": string,"updated_at": string,"visibility": Database["public"]['Enums']["content_visibility"]
+                    "archived_at": string | null,"created_at": string,"created_by": string,"description": string | null,"id": string,"settings": NonNullable<Json>,"title": string,"updated_at": string,"visibility": Database["public"]['Enums']["content_visibility"]
                   }
                   Insert: {
-                    "created_at"?: string,"created_by": string,"description"?: string | null,"id"?: string,"settings": NonNullable<Json>,"title": string,"updated_at"?: string,"visibility"?: Database["public"]['Enums']["content_visibility"]
+                    "archived_at"?: string | null,"created_at"?: string,"created_by": string,"description"?: string | null,"id"?: string,"settings": NonNullable<Json>,"title": string,"updated_at"?: string,"visibility"?: Database["public"]['Enums']["content_visibility"]
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string,"description"?: string | null,"id"?: string,"settings"?: NonNullable<Json>,"title"?: string,"updated_at"?: string,"visibility"?: Database["public"]['Enums']["content_visibility"]
+                    "archived_at"?: string | null,"created_at"?: string,"created_by"?: string,"description"?: string | null,"id"?: string,"settings"?: NonNullable<Json>,"title"?: string,"updated_at"?: string,"visibility"?: Database["public"]['Enums']["content_visibility"]
                   }
                   Relationships: [
                     {

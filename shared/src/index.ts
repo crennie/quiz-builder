@@ -303,6 +303,7 @@ export const quizDetailSchema = z
         visibility: visibilitySchema,
         createdAt: apiTimestampSchema,
         updatedAt: apiTimestampSchema,
+        archivedAt: apiTimestampSchema.nullable().optional(),
         tags: z.array(tagSchema),
         isOwner: z.boolean(),
         canEditContent: z.boolean(),

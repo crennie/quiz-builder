@@ -4,6 +4,10 @@ The [Architecture & Implementation Plan](architecture-plan.md) defines the targe
 order. `frontend/` and `backend/` are the applications; `shared/` contains runtime domain contracts;
 `supabase/migrations/` is the source of database schema truth.
 
+Quiz archiving adds `20261021120000_quiz_archive.sql` after the V1 baseline. Apply pending
+migrations before running the updated API; do not rebuild application data for this change.
+It preserves quizzes, questions and attempt history, and supports restoring archived quizzes.
+
 The [architecture documentation](docs/architecture/README.md) maps the current system structure,
 runtime flows, decisions, and quality constraints.
 

@@ -1,0 +1,13 @@
+.container {
+    margin-top: 0.5rem;
+}
+
+.button {
+    gap: 0.35rem;
+    border: 0;
+    padding: 0.35rem 0.25rem;
+    background: transparent;
+    color: light-dark(#a43434, #ffaaaa);
+    font-size: 0.8rem;
+    font-weight: 500;
+}

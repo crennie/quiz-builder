@@ -9,8 +9,14 @@ import { authenticatedRequest } from "./client";
 
 const body = (value: unknown) => JSON.stringify(value);
 
-export async function listQuizzes(options: { tag?: string; scope?: "mine"; offset: number }) {
+export async function listQuizzes(options: {
+    tag?: string;
+    scope?: "mine";
+    archived?: boolean;
+    offset: number;
+}) {
     const query = new URLSearchParams({ limit: "50", offset: String(options.offset) });
+    if (options.archived) query.set("archived", "true");
     if (options.tag) query.set("tag", options.tag);
     if (options.scope) query.set("scope", options.scope);
     return quizListResponseSchema.parse(
@@ -50,4 +56,13 @@ export async function assignQuizTag(id: string, tagId: string): Promise<QuizDeta
 
 export async function removeQuizTag(id: string, tagId: string): Promise<void> {
     await authenticatedRequest(`/v1/quizzes/${id}/tags/${tagId}`, { method: "DELETE" });
+}
+
+export async function setQuizArchived(id: string, archived: boolean): Promise<QuizDetail> {
+    return quizDetailSchema.parse(
+        await authenticatedRequest(`/v1/quizzes/${id}/archive`, {
+            method: "PUT",
+            body: body({ archived }),
+        }),
+    );
 }

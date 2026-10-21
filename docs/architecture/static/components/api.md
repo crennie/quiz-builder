@@ -13,3 +13,8 @@ same integrity boundary for direct SQL. Deadlocks reject a transaction without w
 `evaluation/deterministic.ts` grades validated snapshots synchronously. Feedback recipient joins use
 attempt/quiz/question identities directly. Course reads use title/UUID or position ordering and
 pagination; hierarchy mutations have no HTTP routes. OpenAPI registers only active operations.
+
+Quiz archive/restore uses `PUT /quizzes/:quizId/archive` with `{ archived: boolean }` for owned
+private quizzes. `GET /quizzes?archived=true` returns only the authenticated owner's archived quizzes;
+default lists return active quizzes. Archive and new attempt creation serialize on the quiz row.
+Attempt answer saves replace earlier responses and re-evaluate them until the attempt is completed.

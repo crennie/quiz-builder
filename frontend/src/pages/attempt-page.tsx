@@ -78,6 +78,11 @@ function AttemptPlayer({ attemptId }: { attemptId: string }) {
     async function saveAnswer(questionId: string, response: UserResponse) {
         const updated = await answer.mutateAsync({ questionId, response });
         updateAttempt(updated);
+        setDrafts((previous) => {
+            const remaining = { ...previous };
+            delete remaining[questionId];
+            return remaining;
+        });
         const next = updated.questions.findIndex((question) => question.userResponse === null);
         setQuestionIndex(next >= 0 ? next : updated.questions.length);
     }
@@ -127,6 +132,10 @@ function AttemptPlayer({ attemptId }: { attemptId: string }) {
         (question) => question.userResponse !== null,
     ).length;
     const canComplete = answeredCount === current.questions.length;
+    const hasUnsavedChanges =
+        selected &&
+        drafts[selected.id] !== undefined &&
+        JSON.stringify(drafts[selected.id]) !== JSON.stringify(selected.userResponse);
 
     return (
         <div className={styles.player}>
@@ -147,32 +156,20 @@ function AttemptPlayer({ attemptId }: { attemptId: string }) {
                         <span>{answeredCount} answered</span>
                     </div>
                     <QuestionPrompt prompt={selected.prompt} />
-                    {selected.userResponse ? (
-                        <div className="message-panel">
-                            <p>
-                                <strong>Your saved answer:</strong> {responseText(selected)}
-                            </p>
-                            <p className="muted small">
-                                Submitted answers cannot be changed. Results appear after you finish
-                                the quiz.
-                            </p>
-                        </div>
-                    ) : (
-                        <AnswerForm
-                            question={selected}
-                            busy={busy}
-                            draft={drafts[selected.id]}
-                            onDraft={(draft) =>
-                                setDrafts((previous) => ({ ...previous, [selected.id]: draft }))
-                            }
-                            onSave={(response) => saveAnswer(selected.id, response)}
-                        />
-                    )}
+                    <AnswerForm
+                        question={selected}
+                        busy={busy}
+                        draft={drafts[selected.id] ?? selected.userResponse ?? undefined}
+                        onDraft={(draft) =>
+                            setDrafts((previous) => ({ ...previous, [selected.id]: draft }))
+                        }
+                        onSave={(response) => saveAnswer(selected.id, response)}
+                    />
                     <div className="pagination">
                         <button
                             type="button"
                             className="secondary"
-                            disabled={selectedIndex === 0 || busy}
+                            disabled={selectedIndex === 0 || busy || hasUnsavedChanges}
                             onClick={() => setQuestionIndex(selectedIndex - 1)}
                         >
                             Previous
@@ -180,7 +177,7 @@ function AttemptPlayer({ attemptId }: { attemptId: string }) {
                         <button
                             type="button"
                             className="secondary"
-                            disabled={!selected.userResponse || busy}
+                            disabled={!selected.userResponse || busy || hasUnsavedChanges}
                             onClick={() => setQuestionIndex(selectedIndex + 1)}
                         >
                             Next
@@ -340,11 +337,16 @@ function AnswerForm({
             )}
             <div className={styles.actions}>
                 <button type="submit" disabled={!canSubmit || busy}>
-                    {busy ? "Saving answer…" : "Submit answer"}
+                    {busy
+                        ? "Saving answer…"
+                        : question.userResponse
+                          ? "Save answer"
+                          : "Submit answer"}
                 </button>
             </div>
             <p className="muted small">
-                Submit to save your answer before moving to another question.
+                Save your answer before moving to another question. You can change it until you show
+                results.
             </p>
             {error ? (
                 <p role="alert" className="error-text">

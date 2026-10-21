@@ -142,12 +142,18 @@ export async function startAttemptInTransaction(
     userId: string,
     database: QueryExecutor,
 ): Promise<AttemptDetail> {
-    const quizzes = await database.query<{ title: string; settings: unknown }>(
-        `SELECT title,settings FROM public.quizzes WHERE id=$1 AND (created_by=$2 OR visibility='public') FOR UPDATE`,
+    const quizzes = await database.query<{
+        title: string;
+        settings: unknown;
+        archived_at: string | null;
+    }>(
+        `SELECT title,settings,archived_at FROM public.quizzes WHERE id=$1 AND (created_by=$2 OR visibility='public') FOR UPDATE`,
         [quizId, userId],
     );
     const quiz = quizzes.rows[0];
     if (!quiz) throw new AppError(404, "QUIZ_NOT_FOUND", "Quiz not found");
+    if (quiz.archived_at)
+        throw new AppError(409, "QUIZ_ARCHIVED", "Restore this quiz before starting a new attempt");
     const settings = settingsSnapshotSchema.parse(quiz.settings);
     const sources = await database.query<SourceQuestionRow>(
         `SELECT m.id,m.question_id,m.position,m.points,m.required,m.time_limit_seconds,
@@ -225,9 +231,6 @@ export async function submitAnswerInTransaction(
     const question = questions.rows[0];
     if (!question)
         throw new AppError(404, "ATTEMPT_QUESTION_NOT_FOUND", "Attempt question not found");
-    if (question.answered_at !== null) {
-        throw new AppError(409, "QUESTION_ALREADY_ANSWERED", "Question was already answered");
-    }
     const snapshots = attemptQuestionSnapshotsSchema.parse({
         question: question.question_snapshot,
         answer: question.answer_snapshot,

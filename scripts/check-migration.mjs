@@ -24,7 +24,11 @@ try {
     const migrations = readdirSync("supabase/migrations")
         .filter((n) => n.endsWith(".sql"))
         .sort();
-    assert.equal(migrations.length, 1, "V1 uses one clean baseline");
+    assert.equal(
+        migrations[0],
+        "20261013120000_v1_baseline.sql",
+        "V1 migrations start with the baseline",
+    );
     for (const name of migrations)
         await db.exec(readFileSync(`supabase/migrations/${name}`, "utf8"));
     const tables = (

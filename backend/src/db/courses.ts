@@ -80,7 +80,7 @@ export async function listLessonQuizzes(
         quiz_id: string;
         position: number;
     }>(
-        `SELECT * FROM public.lesson_quizzes WHERE lesson_id=$1 ORDER BY position,quiz_id LIMIT $2 OFFSET $3`,
+        `SELECT * FROM public.lesson_quizzes WHERE lesson_id=$1 AND removed_at IS NULL ORDER BY position,quiz_id LIMIT $2 OFFSET $3`,
         [lessonId, page.limit + 1, page.offset],
     );
     const items = [];

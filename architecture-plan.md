@@ -26,17 +26,20 @@ new attempts are blocked while archived, and existing attempts and content locks
 See [ADR-010](docs/architecture/decisions/ADR-010-quiz-archiving.md).
 
 Courses are public. Each ordered lesson has exactly one course FK and plain text/Markdown content.
-`lesson_quizzes` associates public quizzes with lessons; a quiz can be reused across courses.
+`lesson_quizzes` gives each lesson quiz exactly one lesson, with ordered active associations.
 Courses and lessons have public read APIs and signed-in JSON imports for new courses or appended
-lessons. All signed-in users may import into any course. Broader editing and permissions are deferred.
-Lesson quiz associations have stable IDs; attempts optionally retain an immutable association FK.
-See [ADR-011](docs/architecture/decisions/ADR-011-course-import-and-attempt-context.md).
+lessons. Any signed-in user may edit any lesson and import, edit, remove or reorder its quizzes.
+View is the default; editing uses an atomic save or local cancel. Lesson quizzes are created only
+by inline import in the lesson editor and use public questions. Edited quiz content creates a
+replacement record; removed associations remain for immutable historical attempt context.
+See [ADR-012](docs/architecture/decisions/ADR-012-lesson-quiz-editing.md).
 Owner-scoped tags, feedback, batch artifacts and mappings remain core entities.
 
 ## Durable invariants
 
-1. Ordinary creation always produces private content. Ordinary users cannot promote or
-   substantively edit public content. Reads permit ownership or public visibility.
+1. Personal creation produces private content. Lesson editor imports create public quizzes and
+   public questions; lesson edits replace quiz content without mutating locked originals. Other
+   public content APIs remain read-only. Reads permit ownership or public visibility.
 2. First quiz inclusion permanently sets a question's `content_locked_at`. Substantive content
    cannot change afterward, even after composition removal; tags remain owner-editable.
 3. Any quiz attempt freezes title, description, settings and composition. Every attempt status
@@ -78,7 +81,7 @@ local stack or approved development environment. CI runs shared, backend, fronte
 
 ## Deferred extensions
 
-Controlled course/editor authoring, privileged permissions, discovery, collaboration, analytics,
+Controlled course authoring, restrictive editor permissions, discovery, collaboration, analytics,
 manual/fuzzy grading, response/evaluation tables and organizations remain future work. Future
 orchestration may model `WorkItem → operation on Question / Quiz / Lesson / Course` additively.
 V1 contains no dormant work queue, agent, review, publication, lifecycle or version fields.

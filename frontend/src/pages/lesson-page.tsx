@@ -1,15 +1,51 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import type { Lesson, LessonQuiz } from "@quiz-builder/contracts";
+import { useAuth } from "../auth/auth-state";
+import { LessonEditor } from "../components/lesson-editor";
+import { LessonPractice } from "../components/lesson-practice";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
-import { getCourse, getLesson } from "../api/courses";
+import { getCourse, getLesson, listLessonQuizzes } from "../api/courses";
 import { LessonContent } from "../components/lesson-content";
 import { parseLessonContent } from "../components/lesson-markdown";
 import styles from "./course-pages.module.css";
 
 export function LessonPage() {
+    const { lessonId } = useParams({ from: "/courses/$courseId/lessons/$lessonId" });
+    const { session } = useAuth();
+    return <LessonPageContent key={`${lessonId}:${session?.user.id ?? "anonymous"}`} />;
+}
+function LessonPageContent() {
+    const { session } = useAuth();
+    const client = useQueryClient();
+    const [editing, setEditing] = useState<{ lesson: Lesson; quizzes: LessonQuiz[] } | null>(null);
+    const [playing, setPlaying] = useState(false);
     const { courseId, lessonId } = useParams({ from: "/courses/$courseId/lessons/$lessonId" });
-    const lesson = useQuery({ queryKey: ["lesson", lessonId], queryFn: () => getLesson(lessonId) });
+    const lesson = useQuery({
+        queryKey: ["lesson", lessonId],
+        queryFn: () => getLesson(lessonId),
+        enabled: !editing && !playing,
+    });
     const course = useQuery({ queryKey: ["course", courseId], queryFn: () => getCourse(courseId) });
+    const quizzes = useQuery({
+        queryKey: ["lesson-quizzes", lessonId, lesson.data?.updatedAt],
+        queryFn: () => listLessonQuizzes(lessonId),
+        enabled: !!lesson.data && !editing && !playing,
+    });
     const data = lesson.data;
+    if (editing)
+        return (
+            <LessonEditor
+                lesson={editing.lesson}
+                quizzes={editing.quizzes}
+                onDone={() => {
+                    setEditing(null);
+                    void client.invalidateQueries({ queryKey: ["lesson", lessonId] });
+                    void client.invalidateQueries({ queryKey: ["lesson-quizzes", lessonId] });
+                    void client.invalidateQueries({ queryKey: ["course-lessons", courseId] });
+                }}
+            />
+        );
     if (lesson.isPending) return <p role="status">Loading lesson…</p>;
     if (lesson.isError)
         return (
@@ -41,6 +77,19 @@ export function LessonPage() {
                 <span aria-hidden="true">/</span>
                 <span aria-current="page">Lesson {data.position + 1}</span>
             </nav>
+            {session ? (
+                <button
+                    type="button"
+                    disabled={playing || !quizzes.data || quizzes.isFetching || lesson.isFetching}
+                    onClick={() => {
+                        if (quizzes.data) setEditing({ lesson: data, quizzes: quizzes.data });
+                    }}
+                >
+                    Edit lesson
+                </button>
+            ) : (
+                <p className="muted small">Sign in to edit this lesson.</p>
+            )}
             <div className={styles.readingLayout}>
                 <article className={`panel ${styles.article}`} aria-labelledby="lesson-title">
                     <header className={styles.articleHeader}>
@@ -54,6 +103,22 @@ export function LessonPage() {
                         ) : null}
                     </header>
                     <LessonContent content={data.content} headingIdPrefix="lesson" />
+                    {quizzes.isPending ? <p role="status">Loading quizzes…</p> : null}
+                    {quizzes.isError ? (
+                        <div role="alert">
+                            <p>{quizzes.error.message}</p>
+                            <button onClick={() => void quizzes.refetch()}>
+                                Retry loading quizzes
+                            </button>
+                        </div>
+                    ) : null}
+                    {quizzes.data ? (
+                        <LessonPractice
+                            lessonId={lessonId}
+                            quizzes={quizzes.data}
+                            onPlaying={setPlaying}
+                        />
+                    ) : null}
                     <nav className={styles.lessonNavigation} aria-label="Lesson navigation">
                         {data.previousLesson ? (
                             <Link

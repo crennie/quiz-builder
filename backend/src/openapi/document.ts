@@ -14,6 +14,7 @@ import {
     courseSchema,
     courseImportBodySchema,
     lessonImportBodySchema,
+    saveLessonBodySchema,
     courseImportResultSchema,
     startAttemptBodySchema,
     courseListResponseSchema,
@@ -640,6 +641,28 @@ for (const [path, params, schema, summary] of [
             ...commonErrors,
         },
     });
+
+registry.registerPath({
+    method: "put",
+    path: "/api/v1/lessons/{lessonId}",
+    tags: ["Courses"],
+    summary: "Save lesson content and ordered imported quizzes atomically (any signed-in user)",
+    security: [{ BearerAuth: [] }],
+    request: {
+        params: lessonParamsSchema,
+        body: {
+            required: true,
+            content: { "application/json": { schema: apiSchema(saveLessonBodySchema) } },
+        },
+    },
+    responses: {
+        200: {
+            description: "Saved lesson",
+            content: { "application/json": { schema: apiSchema(lessonDetailSchema) } },
+        },
+        ...commonErrors,
+    },
+});
 
 export function createOpenApiDocument() {
     const generator = new OpenApiGeneratorV31(registry.definitions);

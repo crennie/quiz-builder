@@ -6,7 +6,8 @@ snapshot ordered (or shuffled) question identity/content, answer/grading, points
 Repeated source questions receive separate attempt-question IDs. When supplied, validate and retain
 the matching public `lessonQuizId`; its immutable association and restrictive FK preserve origin.
 Commit the complete snapshot set. Attempt reloads return the originating lesson/course IDs alongside
-the nullable association ID. The lesson quiz player UI remains deferred.
+the nullable association ID. The lesson View embeds the existing player, with start/retry and paginated lesson attempt history.
+Edit mode has no attempt controls and cannot be entered while the embedded player is open.
 
 Each answer operation locks the learner's attempt. Require an in-progress attempt, matching
 attempt-question identity and a valid response type/choice. Evaluate snapshots synchronously and
@@ -29,4 +30,5 @@ Completed results show points, percentage, and a display-only letter grade based
 percentage: A+/A/A− at 97/93/90, B+/B/B− at 87/83/80, C+/C/C− at 77/73/70, D+/D/D− at
 67/63/60, and F below 60. Zero possible points have no percentage or letter grade. Question review
 uses expandable rows, initially collapsed for correct answers and expanded for incorrect or
-unanswered questions. Quiz titles link back to the quiz detail page.
+unanswered questions. Standalone quiz titles link back to quiz details. Lesson results return to the originating lesson
+and its retry controls. Standalone attempt URLs also offer a link to their persisted lesson context.

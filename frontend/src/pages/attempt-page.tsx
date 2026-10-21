@@ -45,7 +45,13 @@ export function AttemptPage() {
     return <AttemptPlayer key={attemptId} attemptId={attemptId} />;
 }
 
-function AttemptPlayer({ attemptId }: { attemptId: string }) {
+export function AttemptPlayer({
+    attemptId,
+    onClose,
+}: {
+    attemptId: string;
+    onClose?: (() => void) | undefined;
+}) {
     const { session } = useAuth();
     const queryClient = useQueryClient();
     const [questionIndex, setQuestionIndex] = useState<number | null>(null);
@@ -102,16 +108,28 @@ function AttemptPlayer({ attemptId }: { attemptId: string }) {
             <div className="message-panel" role="alert">
                 <h1>Attempt unavailable</h1>
                 <p>{attempt.error.message}</p>
-                <Link to="/attempts">Return to history</Link>
+                {onClose ? (
+                    <button type="button" onClick={onClose}>
+                        Return to lesson
+                    </button>
+                ) : (
+                    <Link to="/attempts">Return to history</Link>
+                )}
             </div>
         );
 
     const current = attempt.data;
-    if (current.status === "completed") return <ResultView attempt={current} />;
+    if (current.status === "completed") return <ResultView attempt={current} onClose={onClose} />;
     if (current.status !== "in_progress")
         return (
             <div className="page-stack narrow">
-                <Link to="/attempts">← Attempt history</Link>
+                {onClose ? (
+                    <button type="button" onClick={onClose}>
+                        Return to lesson
+                    </button>
+                ) : (
+                    <AttemptOrigin attempt={current} />
+                )}
                 <h1>{current.quizTitle}</h1>
                 <div className="message-panel">
                     <p>This attempt is {current.status} and cannot be continued.</p>
@@ -141,7 +159,27 @@ function AttemptPlayer({ attemptId }: { attemptId: string }) {
         <div className={styles.player}>
             <header className={styles.header}>
                 <h1>{current.quizTitle}</h1>
-                <Link to="/attempts">Leave quiz</Link>
+                {onClose ? (
+                    <button
+                        type="button"
+                        className="secondary"
+                        disabled={busy}
+                        onClick={() => {
+                            if (
+                                window.confirm(
+                                    "Return to the lesson? Submitted answers are saved; unsubmitted answers will be discarded.",
+                                )
+                            )
+                                onClose();
+                        }}
+                    >
+                        Return to lesson
+                    </button>
+                ) : current.lessonContext ? (
+                    <AttemptOrigin attempt={current} />
+                ) : (
+                    <Link to="/attempts">Leave quiz</Link>
+                )}
             </header>
             {selected ? (
                 <section
@@ -375,7 +413,23 @@ function letterGrade(percentage: number): string {
     return scale.find(([minimum]) => percentage >= minimum)?.[1] ?? "F";
 }
 
-function ResultView({ attempt }: { attempt: AttemptDetail }) {
+function AttemptOrigin({ attempt }: { attempt: AttemptDetail }) {
+    return attempt.lessonContext ? (
+        <Link to="/courses/$courseId/lessons/$lessonId" params={attempt.lessonContext}>
+            ← Return to lesson
+        </Link>
+    ) : (
+        <Link to="/attempts">← Attempt history</Link>
+    );
+}
+
+function ResultView({
+    attempt,
+    onClose,
+}: {
+    attempt: AttemptDetail;
+    onClose?: (() => void) | undefined;
+}) {
     const score = attempt.scoreSummary;
     const percentage =
         score && score.pointsPossible > 0
@@ -384,13 +438,23 @@ function ResultView({ attempt }: { attempt: AttemptDetail }) {
     const showAnswers = attempt.settings.showAnswersAfterCompletion;
     return (
         <div className="page-stack narrow">
-            <Link to="/attempts">← Attempt history</Link>
+            {onClose ? (
+                <button type="button" className="secondary" onClick={onClose}>
+                    Return to lesson quizzes / retry
+                </button>
+            ) : (
+                <AttemptOrigin attempt={attempt} />
+            )}
             <div>
                 <p className="eyebrow">Completed attempt</p>
                 <h1>
-                    <Link to="/quizzes/$quizId" params={{ quizId: attempt.quizId }}>
-                        {attempt.quizTitle}
-                    </Link>
+                    {attempt.lessonContext ? (
+                        attempt.quizTitle
+                    ) : (
+                        <Link to="/quizzes/$quizId" params={{ quizId: attempt.quizId }}>
+                            {attempt.quizTitle}
+                        </Link>
+                    )}
                 </h1>
             </div>
             <section className="panel" aria-label="Result summary">

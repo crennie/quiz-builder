@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useParams } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { Link, useBlocker, useParams } from "@tanstack/react-router";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { AttemptDetail, UserResponse } from "@quiz-builder/contracts";
 
 import { completeAttempt, getAttempt, submitAnswer } from "../api/attempts";
 import { useAuth } from "../auth/auth-state";
 import { FeedbackForm } from "../components/feedback-form";
+import styles from "./attempt-page.module.css";
 
 type AttemptQuestion = AttemptDetail["questions"][number];
 
@@ -41,10 +42,15 @@ function correctAnswerText(question: AttemptQuestion): string | null {
 
 export function AttemptPage() {
     const { attemptId } = useParams({ from: "/attempts/$attemptId" });
+    return <AttemptPlayer key={attemptId} attemptId={attemptId} />;
+}
+
+function AttemptPlayer({ attemptId }: { attemptId: string }) {
     const { session } = useAuth();
     const queryClient = useQueryClient();
     const [questionIndex, setQuestionIndex] = useState<number | null>(null);
     const [actionError, setActionError] = useState("");
+    const [drafts, setDrafts] = useState<Record<string, UserResponse>>({});
     const queryKey = ["attempt", session?.user.id, attemptId] as const;
     const attempt = useQuery({ queryKey, queryFn: () => getAttempt(attemptId) });
     const answer = useMutation({
@@ -52,6 +58,17 @@ export function AttemptPage() {
             submitAnswer(attemptId, questionId, response),
     });
     const complete = useMutation({ mutationFn: () => completeAttempt(attemptId) });
+    const inProgress = attempt.data?.status === "in_progress";
+    const busy = answer.isPending || complete.isPending;
+    useBlocker({
+        shouldBlockFn: ({ current, next }) =>
+            current.pathname !== next.pathname &&
+            !window.confirm(
+                "Leave this quiz? Submitted answers are saved, but any unsubmitted answer will be lost.",
+            ),
+        disabled: !inProgress,
+        enableBeforeUnload: inProgress,
+    });
 
     function updateAttempt(updated: AttemptDetail) {
         queryClient.setQueryData(queryKey, updated);
@@ -108,50 +125,42 @@ export function AttemptPage() {
     const answeredCount = current.questions.filter(
         (question) => question.userResponse !== null,
     ).length;
-    const canComplete = current.questions.every(
-        (question) => !question.required || question.userResponse !== null,
-    );
+    const canComplete = answeredCount === current.questions.length;
 
     return (
-        <div className="page-stack narrow">
-            <div className="page-heading">
-                <div>
-                    <p className="eyebrow">In progress</p>
-                    <h1>{current.quizTitle}</h1>
-                </div>
-                <Link to="/attempts">Attempt history</Link>
-            </div>
-            <p className="muted" role="status">
-                {answeredCount} of {current.questions.length} answered. Your saved answers are
-                available after a refresh.
-            </p>
+        <div className={styles.player}>
+            <header className={styles.header}>
+                <h1>{current.quizTitle}</h1>
+                <Link to="/attempts">Leave quiz</Link>
+            </header>
             {selected ? (
-                <section className="panel" aria-label={`Question ${selectedIndex + 1}`}>
-                    <p className="eyebrow">
-                        Question {selectedIndex + 1} of {current.questions.length}
-                    </p>
-                    <h2>{selected.prompt}</h2>
-                    <p className="muted small">
-                        {selected.pointsPossible} points ·{" "}
-                        {selected.required ? "Required" : "Optional"}
-                        {selected.timeLimitSeconds
-                            ? ` · Suggested time ${selected.timeLimitSeconds} seconds`
-                            : ""}
-                    </p>
+                <section className={styles.stage} aria-label={`Question ${selectedIndex + 1}`}>
+                    <div className={styles.progress}>
+                        <span>
+                            Question {selectedIndex + 1} of {current.questions.length}
+                        </span>
+                        <span>{answeredCount} answered</span>
+                    </div>
+                    <QuestionPrompt key={selected.id} prompt={selected.prompt} />
                     {selected.userResponse ? (
                         <div className="message-panel">
                             <p>
                                 <strong>Your saved answer:</strong> {responseText(selected)}
                             </p>
                             <p className="muted small">
-                                Scores and review appear after completion.
+                                Submitted answers cannot be changed. Results appear after you finish
+                                the quiz.
                             </p>
                         </div>
                     ) : (
                         <AnswerForm
                             key={selected.id}
                             question={selected}
-                            busy={answer.isPending}
+                            busy={busy}
+                            draft={drafts[selected.id]}
+                            onDraft={(draft) =>
+                                setDrafts((previous) => ({ ...previous, [selected.id]: draft }))
+                            }
                             onSave={(response) => saveAnswer(selected.id, response)}
                         />
                     )}
@@ -159,66 +168,74 @@ export function AttemptPage() {
                         <button
                             type="button"
                             className="secondary"
-                            disabled={selectedIndex === 0 || answer.isPending}
+                            disabled={selectedIndex === 0 || busy}
                             onClick={() => setQuestionIndex(selectedIndex - 1)}
                         >
                             Previous
                         </button>
-                        <span>
-                            {selectedIndex + 1} / {current.questions.length}
-                        </span>
                         <button
                             type="button"
                             className="secondary"
                             disabled={
-                                selectedIndex === current.questions.length - 1 || answer.isPending
+                                !selected.userResponse ||
+                                selectedIndex === current.questions.length - 1 ||
+                                busy
                             }
                             onClick={() => setQuestionIndex(selectedIndex + 1)}
                         >
                             Next
                         </button>
                     </div>
-                    <FeedbackForm
-                        target={{ quizAttemptQuestionId: selected.id }}
-                        label={`Send feedback about question ${selectedIndex + 1}`}
-                    />
                 </section>
             ) : null}
-            <section className="panel">
-                <h2>Finish attempt</h2>
-                <p className="muted small">
-                    Required questions must be answered. Optional questions may be left blank.
-                    Completion records your result.
-                </p>
-                <button
-                    type="button"
-                    disabled={!canComplete || answer.isPending || complete.isPending}
-                    onClick={() => void finish()}
-                >
-                    {complete.isPending ? "Completing…" : "Complete quiz"}
-                </button>
-                {actionError ? (
-                    <p role="alert" className="error-text">
-                        {actionError}
+            {canComplete ? (
+                <section className="panel" aria-label="Finish quiz">
+                    <h2>All questions answered</h2>
+                    <p className="muted">
+                        Review your saved answers, or finish to see your total result.
                     </p>
-                ) : null}
-            </section>
+                    <button type="button" disabled={busy} onClick={() => void finish()}>
+                        {complete.isPending ? "Completing…" : "Show results"}
+                    </button>
+                    {actionError ? (
+                        <p role="alert" className="error-text">
+                            {actionError}
+                        </p>
+                    ) : null}
+                </section>
+            ) : null}
         </div>
+    );
+}
+
+function QuestionPrompt({ prompt }: { prompt: string }) {
+    const heading = useRef<HTMLHeadingElement>(null);
+    useEffect(() => {
+        heading.current?.focus();
+    }, []);
+    return (
+        <h2 ref={heading} tabIndex={-1} className={styles.prompt}>
+            {prompt}
+        </h2>
     );
 }
 
 function AnswerForm({
     question,
     busy,
+    draft,
+    onDraft,
     onSave,
 }: {
     question: AttemptQuestion;
     busy: boolean;
+    draft: UserResponse | undefined;
+    onDraft: (response: UserResponse) => void;
     onSave: (response: UserResponse) => Promise<void>;
 }) {
-    const [text, setText] = useState("");
-    const [single, setSingle] = useState("");
-    const [multiple, setMultiple] = useState<string[]>([]);
+    const text = draft?.questionType === "exact_text" ? draft.text : "";
+    const single = draft?.questionType === "multiple_choice_single" ? draft.optionId : "";
+    const multiple = draft?.questionType === "multiple_choice_multi" ? draft.optionIds : [];
     const [error, setError] = useState("");
     const canSubmit =
         question.questionType === "exact_text"
@@ -229,7 +246,7 @@ function AnswerForm({
 
     async function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        if (!canSubmit) return;
+        if (!canSubmit || busy) return;
         const response: UserResponse =
             question.questionType === "exact_text"
                 ? { questionType: "exact_text", text }
@@ -245,65 +262,76 @@ function AnswerForm({
     }
 
     return (
-        <form className="form-grid" onSubmit={(event) => void submit(event)}>
+        <form className={styles.form} onSubmit={(event) => void submit(event)}>
             {question.questionType === "exact_text" ? (
-                <label>
+                <label className={styles.textAnswer}>
                     Your answer
                     <input
                         type="text"
                         value={text}
-                        onChange={(event) => setText(event.target.value)}
+                        onChange={(event) =>
+                            onDraft({ questionType: "exact_text", text: event.target.value })
+                        }
                         required
                         autoComplete="off"
+                        disabled={busy}
                     />
                 </label>
             ) : (
-                <fieldset className="quiz-fieldset">
+                <fieldset className={styles.answers} disabled={busy}>
                     <legend>
                         {question.questionType === "multiple_choice_single"
                             ? "Choose one answer"
                             : "Choose all that apply"}
                     </legend>
-                    {question.options?.map((option) => (
-                        <label className="checkbox-row" key={option.id}>
-                            <input
-                                type={
-                                    question.questionType === "multiple_choice_single"
-                                        ? "radio"
-                                        : "checkbox"
-                                }
-                                name={
-                                    question.questionType === "multiple_choice_single"
-                                        ? "answer"
-                                        : undefined
-                                }
-                                value={option.id}
-                                checked={
-                                    question.questionType === "multiple_choice_single"
-                                        ? single === option.id
-                                        : multiple.includes(option.id)
-                                }
-                                onChange={(event) => {
-                                    if (question.questionType === "multiple_choice_single")
-                                        setSingle(option.id);
-                                    else {
-                                        const checked = event.target.checked;
-                                        setMultiple((previous) =>
-                                            checked
-                                                ? [...previous, option.id]
-                                                : previous.filter((id) => id !== option.id),
-                                        );
+                    <div className={styles.grid}>
+                        {question.options?.map((option) => (
+                            <label className={styles.choice} key={option.id}>
+                                <input
+                                    type={
+                                        question.questionType === "multiple_choice_single"
+                                            ? "radio"
+                                            : "checkbox"
                                     }
-                                }}
-                            />
-                            {option.text}
-                        </label>
-                    ))}
+                                    name={
+                                        question.questionType === "multiple_choice_single"
+                                            ? "answer"
+                                            : undefined
+                                    }
+                                    value={option.id}
+                                    checked={
+                                        question.questionType === "multiple_choice_single"
+                                            ? single === option.id
+                                            : multiple.includes(option.id)
+                                    }
+                                    onChange={(event) => {
+                                        if (question.questionType === "multiple_choice_single")
+                                            onDraft({
+                                                questionType: "multiple_choice_single",
+                                                optionId: option.id,
+                                            });
+                                        else {
+                                            const checked = event.target.checked;
+                                            onDraft({
+                                                questionType: "multiple_choice_multi",
+                                                optionIds: checked
+                                                    ? [...multiple, option.id]
+                                                    : multiple.filter((id) => id !== option.id),
+                                            });
+                                        }
+                                    }}
+                                />
+                                <span>{option.text}</span>
+                            </label>
+                        ))}
+                    </div>
                 </fieldset>
             )}
-            <button type="submit" disabled={!canSubmit || busy}>
-                {busy ? "Saving answer…" : "Submit answer"}
-            </button>
+            <div className={styles.actions}>
+                <button type="submit" disabled={!canSubmit || busy}>
+                    {busy ? "Saving answer…" : "Submit answer"}
+                </button>
+            </div>
             <p className="muted small">
                 Submit to save your answer before moving to another question.
             </p>
@@ -316,11 +344,29 @@ function AnswerForm({
     );
 }
 
+function letterGrade(percentage: number): string {
+    const scale: [number, string][] = [
+        [97, "A+"],
+        [93, "A"],
+        [90, "A−"],
+        [87, "B+"],
+        [83, "B"],
+        [80, "B−"],
+        [77, "C+"],
+        [73, "C"],
+        [70, "C−"],
+        [67, "D+"],
+        [63, "D"],
+        [60, "D−"],
+    ];
+    return scale.find(([minimum]) => percentage >= minimum)?.[1] ?? "F";
+}
+
 function ResultView({ attempt }: { attempt: AttemptDetail }) {
     const score = attempt.scoreSummary;
     const percentage =
         score && score.pointsPossible > 0
-            ? Math.round((score.pointsAwarded / score.pointsPossible) * 100)
+            ? (score.pointsAwarded / score.pointsPossible) * 100
             : null;
     const showAnswers = attempt.settings.showAnswersAfterCompletion;
     return (
@@ -328,59 +374,95 @@ function ResultView({ attempt }: { attempt: AttemptDetail }) {
             <Link to="/attempts">← Attempt history</Link>
             <div>
                 <p className="eyebrow">Completed attempt</p>
-                <h1>{attempt.quizTitle}</h1>
+                <h1>
+                    <Link to="/quizzes/$quizId" params={{ quizId: attempt.quizId }}>
+                        {attempt.quizTitle}
+                    </Link>
+                </h1>
             </div>
             <section className="panel" aria-label="Result summary">
-                <h2>Result</h2>
+                <p className="muted small">
+                    Submitted{" "}
+                    {attempt.completedAt ? new Date(attempt.completedAt).toLocaleString() : "—"}
+                </p>
                 <p className="result-score">
                     {score
                         ? `${score.pointsAwarded} / ${score.pointsPossible} points`
                         : "Score unavailable"}
                 </p>
-                {percentage !== null ? <p>{percentage}%</p> : null}
-                <p className="muted small">
-                    Completed{" "}
-                    {attempt.completedAt ? new Date(attempt.completedAt).toLocaleString() : ""}
+                <p className={styles.percentage}>
+                    {percentage !== null
+                        ? `${Number(percentage.toFixed(2))}%`
+                        : "Percentage unavailable"}
                 </p>
-                <Link to="/quizzes/$quizId" params={{ quizId: attempt.quizId }}>
-                    Quiz details
-                </Link>
+                <p className={styles.grade}>
+                    <span className="sr-only">Letter grade: </span>
+                    {percentage !== null ? letterGrade(percentage) : "Not graded"}
+                </p>
             </section>
             <section aria-label="Question review">
                 <h2>Question review</h2>
                 {!showAnswers ? (
                     <p className="muted">Correct answers are hidden for this quiz.</p>
                 ) : null}
-                <ol className="quiz-question-list">
+                <ol className={styles.reviewList}>
                     {attempt.questions.map((question, index) => (
-                        <li className="question-card" key={question.id}>
-                            <h3>{question.prompt}</h3>
-                            <p>
-                                <strong>Your answer:</strong> {responseText(question)}
-                            </p>
-                            <p>
-                                <strong>Result:</strong>{" "}
-                                {question.evaluationResult
-                                    ? question.evaluationResult.isCorrect
-                                        ? "Correct"
-                                        : "Incorrect"
-                                    : "Not answered"}{" "}
-                                · {question.pointsAwarded ?? 0} / {question.pointsPossible} points
-                            </p>
-                            {showAnswers && question.correctAnswer ? (
-                                <p>
-                                    <strong>Correct answer:</strong> {correctAnswerText(question)}
-                                </p>
-                            ) : null}
-                            {showAnswers && question.explanation ? (
-                                <p>
-                                    <strong>Explanation:</strong> {question.explanation}
-                                </p>
-                            ) : null}
-                            <FeedbackForm
-                                target={{ quizAttemptQuestionId: question.id }}
-                                label={`Send feedback about question ${index + 1}`}
-                            />
+                        <li key={question.id}>
+                            <details
+                                className={styles.reviewItem}
+                                open={!question.evaluationResult?.isCorrect}
+                            >
+                                <summary>
+                                    <span
+                                        className={styles.reviewIcon}
+                                        data-correct={question.evaluationResult?.isCorrect ?? false}
+                                    >
+                                        <span aria-hidden="true">
+                                            {question.evaluationResult?.isCorrect ? "✓" : "✕"}
+                                        </span>
+                                        <span className="sr-only">
+                                            {question.evaluationResult?.isCorrect
+                                                ? "Correct"
+                                                : question.evaluationResult
+                                                  ? "Incorrect"
+                                                  : "Not answered"}
+                                        </span>
+                                    </span>
+                                    <span>
+                                        {index + 1}. {question.prompt}
+                                    </span>
+                                </summary>
+                                <div className={styles.reviewBody}>
+                                    <p>
+                                        <strong>Your answer:</strong> {responseText(question)}
+                                    </p>
+                                    <p>
+                                        <strong>Result:</strong>{" "}
+                                        {question.evaluationResult
+                                            ? question.evaluationResult.isCorrect
+                                                ? "Correct"
+                                                : "Incorrect"
+                                            : "Not answered"}{" "}
+                                        · {question.pointsAwarded ?? 0} / {question.pointsPossible}{" "}
+                                        points
+                                    </p>
+                                    {showAnswers && question.correctAnswer ? (
+                                        <p>
+                                            <strong>Correct answer:</strong>{" "}
+                                            {correctAnswerText(question)}
+                                        </p>
+                                    ) : null}
+                                    {showAnswers && question.explanation ? (
+                                        <p>
+                                            <strong>Explanation:</strong> {question.explanation}
+                                        </p>
+                                    ) : null}
+                                    <FeedbackForm
+                                        target={{ quizAttemptQuestionId: question.id }}
+                                        label={`Send feedback about question ${index + 1}`}
+                                    />
+                                </div>
+                            </details>
                         </li>
                     ))}
                 </ol>

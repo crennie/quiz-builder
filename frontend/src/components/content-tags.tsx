@@ -8,10 +8,12 @@ export function ContentTags({
     id,
     kind,
     tags,
+    compact = false,
 }: {
     id: string;
     kind: "question" | "quiz";
     tags: Tag[];
+    compact?: boolean;
 }) {
     const { session } = useAuth();
     const client = useQueryClient();
@@ -36,11 +38,15 @@ export function ContentTags({
         },
     });
     return (
-        <section className="panel">
-            <h2>Tags</h2>
+        <section
+            className={compact ? "content-tags compact" : "panel content-tags"}
+            aria-label="Tags"
+        >
+            {!compact ? <h2>Tags</h2> : null}
             <div className="tag-row">
                 {tags.map((t) => (
                     <button
+                        className="tag removable"
                         key={t.id}
                         type="button"
                         disabled={mutation.isPending}
@@ -51,26 +57,31 @@ export function ContentTags({
                     </button>
                 ))}
             </div>
-            <label>
-                Tag to add
-                <select value={selected} onChange={(e) => setSelected(e.target.value)}>
-                    <option value="">Choose a tag</option>
-                    {available.data
-                        ?.filter((t) => !tags.some((a) => a.id === t.id))
-                        .map((t) => (
-                            <option key={t.id} value={t.id}>
-                                {t.name}
-                            </option>
-                        ))}
-                </select>
-            </label>
-            <button
-                type="button"
-                disabled={!selected || mutation.isPending}
-                onClick={() => mutation.mutate({ tagId: selected, remove: false })}
-            >
-                Add tag
-            </button>
+            <details open={compact ? undefined : true}>
+                <summary>Add tags</summary>
+                <div className="tag-controls">
+                    <label>
+                        Tag to add
+                        <select value={selected} onChange={(e) => setSelected(e.target.value)}>
+                            <option value="">Choose a tag</option>
+                            {available.data
+                                ?.filter((t) => !tags.some((a) => a.id === t.id))
+                                .map((t) => (
+                                    <option key={t.id} value={t.id}>
+                                        {t.name}
+                                    </option>
+                                ))}
+                        </select>
+                    </label>
+                    <button
+                        type="button"
+                        disabled={!selected || mutation.isPending}
+                        onClick={() => mutation.mutate({ tagId: selected, remove: false })}
+                    >
+                        Add tag
+                    </button>
+                </div>
+            </details>
             {available.isError ? <p role="alert">{available.error.message}</p> : null}
             {mutation.isError ? <p role="alert">{mutation.error.message}</p> : null}
         </section>

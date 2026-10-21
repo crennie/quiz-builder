@@ -42,7 +42,14 @@ export function AttemptHistoryPage() {
                         <ul className="card-list">
                             {attempts.data.items.map((attempt) => (
                                 <li className="question-card" key={attempt.id}>
-                                    <h2>{attempt.quizTitle}</h2>
+                                    <h2>
+                                        <Link
+                                            to="/quizzes/$quizId"
+                                            params={{ quizId: attempt.quizId }}
+                                        >
+                                            {attempt.quizTitle}
+                                        </Link>
+                                    </h2>
                                     <p className="muted small">
                                         Started {new Date(attempt.startedAt).toLocaleString()} ·{" "}
                                         {attempt.status.replaceAll("_", " ")}
@@ -61,12 +68,6 @@ export function AttemptHistoryPage() {
                                                 : attempt.status === "completed"
                                                   ? "View results"
                                                   : "View attempt"}
-                                        </Link>
-                                        <Link
-                                            to="/quizzes/$quizId"
-                                            params={{ quizId: attempt.quizId }}
-                                        >
-                                            Quiz details
                                         </Link>
                                     </div>
                                 </li>

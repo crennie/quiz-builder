@@ -6,10 +6,12 @@ import { RouterProvider } from "@tanstack/react-router";
 import { AppErrorBoundary } from "./app/app-error-boundary";
 import { createQueryClient } from "./app/query-client";
 import { router } from "./app/router";
+import { applyTheme, readTheme } from "./app/theme";
 import { AuthProvider } from "./auth/auth-context";
 import "./styles.css";
 
 const rootElement = document.getElementById("root");
+applyTheme(readTheme());
 
 if (!rootElement) throw new Error("Application root element was not found.");
 

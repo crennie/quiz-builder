@@ -124,10 +124,6 @@ export function QuestionBankPage() {
                                     >
                                         {q.prompt}
                                     </Link>
-                                    <p className="muted small">
-                                        {q.questionType.replaceAll("_", " ")} · {q.visibility} ·{" "}
-                                        {q.contentLockedAt ? "Locked" : "Unused"}
-                                    </p>
                                     <div className="tag-row">
                                         {q.tags.map((t) => (
                                             <span className="tag" key={t.id}>
@@ -135,6 +131,10 @@ export function QuestionBankPage() {
                                             </span>
                                         ))}
                                     </div>
+                                    <p className="muted small">
+                                        {q.questionType.replaceAll("_", " ")} · {q.visibility} ·{" "}
+                                        {q.contentLockedAt ? "Locked" : "Unused"}
+                                    </p>
                                 </li>
                             ))}
                         </ul>

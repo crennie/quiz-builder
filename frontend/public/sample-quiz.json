@@ -1,0 +1,12 @@
+{
+    "title": "General knowledge",
+    "description": "A simple two-question quiz.",
+    "questions": [
+        { "prompt": "What is the capital of France?", "answer": "Paris" },
+        {
+            "prompt": "How many sides does a triangle have?",
+            "answer": "3",
+            "explanation": "A triangle has three sides."
+        }
+    ]
+}

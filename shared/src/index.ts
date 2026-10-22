@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+// UTF-8 bytes, including the complete normalized request envelope.
+export const COURSE_CONTENT_MAX_BYTES = 1024 * 1024;
+
 export type { Database } from "./database.types.ts";
 
 export const visibilitySchema = z.enum(["private", "public"]);

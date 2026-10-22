@@ -1,3 +1,4 @@
+import { COURSE_CONTENT_MAX_BYTES } from "@quiz-builder/contracts";
 import express from "express";
 
 import { errorHandler, notFoundHandler } from "./middleware/errors.ts";
@@ -14,6 +15,10 @@ import { quizRouter } from "./routes/quizzes.ts";
 export const app = express();
 
 app.use(requestLogger);
+// Parse larger course content before applying the default limit to other requests.
+const courseContentJson = express.json({ limit: COURSE_CONTENT_MAX_BYTES });
+app.post(["/api/v1/courses/import", "/api/v1/courses/:courseId/lessons/import"], courseContentJson);
+app.put("/api/v1/lessons/:lessonId", courseContentJson);
 app.use(express.json({ limit: "256kb" }));
 app.use(healthRouter);
 app.use("/api/v1", currentUserRouter);

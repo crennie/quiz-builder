@@ -43,9 +43,14 @@ export const errorHandler: ErrorRequestHandler = (error: unknown, request, respo
             cause: error,
         });
     } else if (isPayloadTooLargeError(error)) {
-        appError = new AppError(413, "PAYLOAD_TOO_LARGE", "Request body exceeds 256 KiB", {
-            cause: error,
-        });
+        appError = new AppError(
+            413,
+            "PAYLOAD_TOO_LARGE",
+            "Request body exceeds the size limit for this endpoint",
+            {
+                cause: error,
+            },
+        );
     } else {
         appError = new AppError(500, "INTERNAL_SERVER_ERROR", "An unexpected error occurred", {
             cause: error,

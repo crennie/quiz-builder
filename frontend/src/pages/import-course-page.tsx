@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+    COURSE_CONTENT_MAX_BYTES,
     courseImportFileSchema,
     lessonImportFileSchema,
     type CourseImportFile,
@@ -44,8 +45,8 @@ export function ImportCoursePage({ courseId }: { courseId?: string }) {
         }
         setReading(true);
         try {
-            if (file.size > 256 * 1024)
-                throw new Error("Choose a JSON file no larger than 256 KiB.");
+            if (file.size > COURSE_CONTENT_MAX_BYTES)
+                throw new Error("Choose a JSON file no larger than 1 MiB.");
             const value: unknown = JSON.parse(await file.text());
             const parsed = courseId
                 ? lessonImportFileSchema.safeParse(value)
@@ -59,11 +60,10 @@ export function ImportCoursePage({ courseId }: { courseId?: string }) {
             const key = crypto.randomUUID();
             if (
                 new TextEncoder().encode(JSON.stringify({ importKey: key, content: parsed.data }))
-                    .length >
-                256 * 1024
+                    .length > COURSE_CONTENT_MAX_BYTES
             )
                 throw new Error(
-                    "This file exceeds the import request limit. Shorten the content or split it into smaller imports.",
+                    "The expanded JSON exceeds the 1 MiB import request limit. Shorten the content or split it into smaller imports.",
                 );
             if (version === readVersion.current) {
                 importKey.current = key;
@@ -146,7 +146,7 @@ export function ImportCoursePage({ courseId }: { courseId?: string }) {
                 <h2>Choose a file</h2>
                 <p className="muted">
                     {courseId ? "Import 1–100 lessons" : "Import a course with up to 100 lessons"}{" "}
-                    from a JSON file up to 256 KiB. Lessons support plain text and basic Markdown:
+                    from a JSON file up to 1 MiB. Lessons support plain text and basic Markdown:
                     headings, paragraphs, lists, quotes, links, emphasis, and code blocks. Each
                     lesson may include a quizzes array using the same JSON formats as quiz import.
                 </p>

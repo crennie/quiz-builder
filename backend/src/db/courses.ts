@@ -13,7 +13,7 @@ type CourseRow = Database["public"]["Tables"]["courses"]["Row"];
 type LessonRow = Database["public"]["Tables"]["lessons"]["Row"];
 type Page = { limit: number; offset: number };
 const iso = (value: string | Date) => new Date(value).toISOString();
-const mapCourse = (r: CourseRow) =>
+export const mapCourse = (r: CourseRow) =>
     courseSchema.parse({
         archivedAt: r.archived_at ? iso(r.archived_at) : null,
         id: r.id,

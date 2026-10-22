@@ -39,6 +39,11 @@ replacement record; removed associations remain for immutable historical attempt
 See [ADR-012](docs/architecture/decisions/ADR-012-lesson-quiz-editing.md).
 Owner-scoped tags, feedback, batch artifacts and mappings remain core entities.
 
+Learners explicitly enroll in courses and manually mark lessons complete or incomplete. Course quiz
+starts require enrollment; standalone quiz access is unchanged. My Courses lists the learner's
+enrollments and lesson completion counts, including preserved archived progress. Public reading
+remains available. See [ADR-014](docs/architecture/decisions/ADR-014-course-enrollment-and-progress.md).
+
 ## Durable invariants
 
 1. Personal creation produces private content. Lesson editor imports create public quizzes and

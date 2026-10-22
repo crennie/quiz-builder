@@ -1,7 +1,9 @@
 # Take a quiz attempt
 
 A verified learner can start an owned private or public quiz. The API locks the quiz parent and
-rejects an empty composition. Insert the attempt with immutable quiz title and settings, then
+rejects an empty composition. Course quizzes also require an active course and enrollment of the
+verified learner in that course. The SQL insert guard checks the quiz's actual association, so
+omitting context cannot bypass enrollment. Existing attempts remain accessible. Insert the attempt with immutable quiz title and settings, then
 snapshot ordered (or shuffled) question identity/content, answer/grading, points, required and timing.
 Repeated source questions receive separate attempt-question IDs. When supplied, validate and retain
 the matching public `lessonQuizId`; its immutable association and restrictive FK preserve origin.

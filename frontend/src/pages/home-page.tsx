@@ -15,6 +15,9 @@ export function HomePage() {
                 <Link className="button" to="/quizzes">
                     My Quizzes
                 </Link>{" "}
+                <Link className="button" to="/courses/mine">
+                    My Courses
+                </Link>{" "}
                 <Link className="button" to="/courses">
                     Courses
                 </Link>

@@ -134,6 +134,21 @@
             "file": "backend/tests/integration/postgres-transactions.integration.test.ts",
             "name": "accepts only one concurrent answer to the same attempt question",
             "ids": ["SC-05"]
+        },
+        {
+            "file": "backend/tests/integration/course-progress.database.test.ts",
+            "name": "stores idempotent enrollment and manual completion independently for each user",
+            "ids": ["CR-03"]
+        },
+        {
+            "file": "frontend/src/pages/course-learning.test.tsx",
+            "name": "requires enrollment for quizzes and persists manual completion and undo",
+            "ids": ["CR-03"]
+        },
+        {
+            "file": "backend/tests/integration/course-progress.database.test.ts",
+            "name": "requires enrollment for course quiz starts and SQL inserts, while personal quizzes still work",
+            "ids": ["CR-04"]
         }
     ]
 }

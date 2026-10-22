@@ -20,7 +20,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
         return (
             <section className="message-panel">
                 <h1>Sign in to continue</h1>
-                <p>Your questions, quizzes, and attempts are tied to your account.</p>
+                <p>Your courses, questions, quizzes, and attempts are tied to your account.</p>
                 <Link className="button" to="/sign-in">
                     Sign in
                 </Link>

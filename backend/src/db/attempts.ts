@@ -17,6 +17,7 @@ import {
 
 import { evaluateAnswer } from "../evaluation/deterministic.ts";
 import { AppError } from "../errors/app-error.ts";
+import { assertCourseEnrollment } from "./course-progress.ts";
 import { assertCourseActive } from "./courses.ts";
 import { pool } from "./index.ts";
 import type { QueryExecutor } from "./question-bank.ts";
@@ -193,6 +194,7 @@ export async function startAttemptInTransaction(
                 "Lesson context does not match this quiz",
             );
         await assertCourseActive(context.rows[0].course_id, database);
+        await assertCourseEnrollment(context.rows[0].course_id, userId, database);
     }
     const settings = settingsSnapshotSchema.parse(quiz.settings);
     const sources = await database.query<SourceQuestionRow>(

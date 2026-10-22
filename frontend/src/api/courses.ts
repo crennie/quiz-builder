@@ -1,4 +1,8 @@
 import {
+    courseEnrollmentSchema,
+    courseProgressSchema,
+    enrolledCourseListResponseSchema,
+    lessonProgressSchema,
     COURSE_CONTENT_MAX_BYTES,
     lessonQuizListResponseSchema,
     type SaveLessonBody,
@@ -83,6 +87,30 @@ export async function setCourseArchived(id: string, archived: boolean) {
         await authenticatedRequest(`/v1/courses/${id}/archive`, {
             method: "PUT",
             body: JSON.stringify({ archived }),
+        }),
+    );
+}
+
+export async function getCourseProgress(courseId: string) {
+    return courseProgressSchema.parse(
+        await authenticatedRequest(`/v1/courses/${courseId}/progress`),
+    );
+}
+export async function enrollInCourse(courseId: string) {
+    return courseEnrollmentSchema.parse(
+        await authenticatedRequest(`/v1/courses/${courseId}/enrollment`, { method: "PUT" }),
+    );
+}
+export async function listEnrolledCourses(offset: number) {
+    return enrolledCourseListResponseSchema.parse(
+        await authenticatedRequest(`/v1/me/courses?limit=50&offset=${offset}`),
+    );
+}
+export async function setLessonProgress(lessonId: string, completed: boolean) {
+    return lessonProgressSchema.parse(
+        await authenticatedRequest(`/v1/lessons/${lessonId}/progress`, {
+            method: "PUT",
+            body: JSON.stringify({ completed }),
         }),
     );
 }

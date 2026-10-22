@@ -20,6 +20,8 @@ in [the restructure plan](plans/v1-domain-restructure.md). Public editors/orches
 - [x] **BT-02 · Rule** Rollback every imported question/tag/mapping on a later failure.
 - [x] **CR-01 · Rule** Ordered lessons, movement, quiz reuse and public relationship integrity.
 - [x] **CR-02 · API** Public hierarchy reads without mutation routes.
+- [x] **CR-03 · UI/API** Enroll in courses, list My Courses, and manually complete or reopen lessons.
+- [x] **CR-04 · Rule** Require course enrollment for new course quiz attempts while preserving prior attempts.
 - [x] **SC-01 · API** Reject legacy/public creation and remove obsolete HTTP operations.
 - [x] **SC-02 · Rule** Retain exact established Auth/profile through targeted rebuild.
 - [x] **SC-03 · Rule** Serialize question editing against first use in real PostgreSQL.

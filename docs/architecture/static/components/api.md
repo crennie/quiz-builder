@@ -41,3 +41,20 @@ Unchanged entries retain IDs; edited entries create replacement quizzes and ques
 replaced associations retire without deleting attempts. Stale lesson saves return 409 and all
 writes roll back on failure. `GET /attempts?lessonId=...` filters the authenticated learner's
 history before pagination, including retired associations.
+
+### JSON size limits
+
+Course imports, appended lesson imports, and lesson saves accept up to **1 MiB
+(1,048,576 UTF-8 bytes)** per request. Other endpoints retain the **256 KiB** JSON
+body limit. The frontend checks both the course/lesson file size and the complete
+normalized import request (including embedded quizzes and the import key); expansion
+can make a file below the file limit exceed the request limit. Lesson saves use the
+same shared byte limit so larger imported lessons can be edited. Oversized requests
+return HTTP 413.
+
+The 1 MiB cap is a starting operational budget for synchronous, transactional imports,
+not a throughput guarantee. Existing schema limits still apply: 100 lessons per import,
+100 quizzes per lesson, 200 questions per quiz, and 200,000 characters of lesson content.
+For larger courses, append lessons in separate imports. Revisit the byte and aggregate
+content-count limits using measured import latency and concurrent memory/database load
+before increasing them further.

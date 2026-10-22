@@ -1,4 +1,5 @@
 import {
+    COURSE_CONTENT_MAX_BYTES,
     lessonQuizListResponseSchema,
     type SaveLessonBody,
     type LessonQuiz,
@@ -65,9 +66,9 @@ export async function listLessonQuizzes(id: string): Promise<LessonQuiz[]> {
 }
 export async function saveLesson(id: string, content: SaveLessonBody) {
     const body = JSON.stringify(content);
-    if (new TextEncoder().encode(body).byteLength > 256 * 1024)
+    if (new TextEncoder().encode(body).byteLength > COURSE_CONTENT_MAX_BYTES)
         throw new Error(
-            "Lesson and quizzes exceed the 256 KiB save limit. Reduce the content before saving.",
+            "Lesson and quizzes exceed the 1 MiB save limit. Reduce the content before saving.",
         );
     return lessonDetailSchema.parse(
         await authenticatedRequest(`/v1/lessons/${id}`, {

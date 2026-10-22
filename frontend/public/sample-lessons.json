@@ -3,7 +3,19 @@
         {
             "title": "Make an idea your own",
             "description": "Use explanation and reflection to deepen understanding.",
-            "content": "# Explain it simply\n\nAfter reading something new, pause and explain it in your own words. Imagine you are helping a curious friend.\n\n## A short reflection\n\n- What is the main idea?\n- Which example makes it clearer?\n- What would you like to understand next?\n\n**Try this:** write three sentences without looking back at your notes. Then reread the lesson and notice what you missed.\n\n## Keep exploring\n\nUnderstanding grows through practice. Return to a useful idea, connect it to something familiar, and ask your next question."
+            "content": "# Explain it simply\n\nAfter reading something new, pause and explain it in your own words. Imagine you are helping a curious friend.\n\n## A short reflection\n\n- What is the main idea?\n- Which example makes it clearer?\n- What would you like to understand next?\n\n**Try this:** write three sentences without looking back at your notes. Then reread the lesson and notice what you missed.\n\n## Keep exploring\n\nUnderstanding grows through practice. Return to a useful idea, connect it to something familiar, and ask your next question.",
+            "quizzes": [
+                {
+                    "title": "Quick reflection",
+                    "questions": [
+                        {
+                            "prompt": "What starts learning?",
+                            "answer": "A question",
+                            "explanation": "Begin with a question you care about."
+                        }
+                    ]
+                }
+            ]
         }
     ]
 }

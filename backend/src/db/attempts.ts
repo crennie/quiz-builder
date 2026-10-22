@@ -17,6 +17,7 @@ import {
 
 import { evaluateAnswer } from "../evaluation/deterministic.ts";
 import { AppError } from "../errors/app-error.ts";
+import { assertCourseActive } from "./courses.ts";
 import { pool } from "./index.ts";
 import type { QueryExecutor } from "./question-bank.ts";
 import { withTransaction } from "./transaction.ts";
@@ -179,8 +180,9 @@ export async function startAttemptInTransaction(
             "Start this quiz from its lesson; removed quizzes cannot be started",
         );
     if (lessonQuizId) {
-        const context = await database.query(
-            `SELECT lq.id FROM public.lesson_quizzes lq JOIN public.quizzes q ON q.id=lq.quiz_id
+        const context = await database.query<{ id: string; course_id: string }>(
+            `SELECT lq.id,l.course_id FROM public.lesson_quizzes lq JOIN public.quizzes q ON q.id=lq.quiz_id
+             JOIN public.lessons l ON l.id=lq.lesson_id
              WHERE lq.id=$1 AND lq.quiz_id=$2 AND q.visibility='public' AND lq.removed_at IS NULL FOR KEY SHARE OF lq`,
             [lessonQuizId, quizId],
         );
@@ -190,6 +192,7 @@ export async function startAttemptInTransaction(
                 "INVALID_LESSON_CONTEXT",
                 "Lesson context does not match this quiz",
             );
+        await assertCourseActive(context.rows[0].course_id, database);
     }
     const settings = settingsSnapshotSchema.parse(quiz.settings);
     const sources = await database.query<SourceQuestionRow>(

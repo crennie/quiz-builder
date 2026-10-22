@@ -15,6 +15,7 @@ type Page = { limit: number; offset: number };
 const iso = (value: string | Date) => new Date(value).toISOString();
 const mapCourse = (r: CourseRow) =>
     courseSchema.parse({
+        archivedAt: r.archived_at ? iso(r.archived_at) : null,
         id: r.id,
         title: r.title,
         description: r.description,
@@ -23,15 +24,22 @@ const mapCourse = (r: CourseRow) =>
     });
 const mapLesson = (r: LessonRow) =>
     lessonSchema.parse({
-        ...mapCourse(r),
+        id: r.id,
+        title: r.title,
+        description: r.description,
+        createdAt: iso(r.created_at),
+        updatedAt: iso(r.updated_at),
         courseId: r.course_id,
         content: r.content,
         position: r.position,
     });
-export async function listCourses(page: Page, database: QueryExecutor = pool) {
+export async function listCourses(
+    page: Page & { archived?: boolean },
+    database: QueryExecutor = pool,
+) {
     const r = await database.query<CourseRow>(
-        `SELECT * FROM public.courses ORDER BY title,id LIMIT $1 OFFSET $2`,
-        [page.limit + 1, page.offset],
+        `SELECT * FROM public.courses WHERE (archived_at IS NOT NULL)=$3 ORDER BY title,id LIMIT $1 OFFSET $2`,
+        [page.limit + 1, page.offset, page.archived ?? false],
     );
     return {
         items: r.rows.slice(0, page.limit).map(mapCourse),
@@ -115,4 +123,33 @@ export async function getLessonDetail(lessonId: string, database: QueryExecutor 
         previousLesson: previous.rows[0] ?? null,
         nextLesson: next.rows[0] ?? null,
     });
+}
+
+export async function setCourseArchived(
+    courseId: string,
+    archived: boolean,
+    database: QueryExecutor = pool,
+) {
+    const result = await database.query<CourseRow>(
+        `UPDATE public.courses SET archived_at=CASE WHEN $2::boolean THEN COALESCE(archived_at, now()) ELSE NULL END,
+         updated_at=CASE WHEN (archived_at IS NOT NULL)=$2::boolean THEN updated_at ELSE now() END
+         WHERE id=$1 RETURNING *`,
+        [courseId, archived],
+    );
+    if (!result.rows[0]) throw new AppError(404, "COURSE_NOT_FOUND", "Course not found");
+    return mapCourse(result.rows[0]);
+}
+
+export async function assertCourseActive(courseId: string, database: QueryExecutor) {
+    const result = await database.query<CourseRow>(
+        "SELECT * FROM public.courses WHERE id=$1 FOR SHARE",
+        [courseId],
+    );
+    if (!result.rows[0]) throw new AppError(404, "COURSE_NOT_FOUND", "Course not found");
+    if (result.rows[0].archived_at)
+        throw new AppError(
+            409,
+            "COURSE_ARCHIVED",
+            "Restore this course before editing or starting a new attempt",
+        );
 }

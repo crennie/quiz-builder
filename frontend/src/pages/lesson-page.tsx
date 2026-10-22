@@ -77,10 +77,22 @@ function LessonPageContent() {
                 <span aria-hidden="true">/</span>
                 <span aria-current="page">Lesson {data.position + 1}</span>
             </nav>
+            {course.data?.archivedAt ? (
+                <p role="status">
+                    This course is archived. Existing attempts and results remain available.
+                </p>
+            ) : null}
             {session ? (
                 <button
                     type="button"
-                    disabled={playing || !quizzes.data || quizzes.isFetching || lesson.isFetching}
+                    disabled={
+                        !course.data ||
+                        !!course.data.archivedAt ||
+                        playing ||
+                        !quizzes.data ||
+                        quizzes.isFetching ||
+                        lesson.isFetching
+                    }
                     onClick={() => {
                         if (quizzes.data) setEditing({ lesson: data, quizzes: quizzes.data });
                     }}
@@ -114,6 +126,7 @@ function LessonPageContent() {
                     ) : null}
                     {quizzes.data ? (
                         <LessonPractice
+                            archived={!course.data || !!course.data.archivedAt}
                             lessonId={lessonId}
                             quizzes={quizzes.data}
                             onPlaying={setPlaying}

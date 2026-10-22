@@ -12,9 +12,11 @@ import {
 } from "@quiz-builder/contracts";
 import { apiRequest, authenticatedRequest } from "./client";
 
-export async function listCourses(offset: number) {
+export async function listCourses(offset: number, archived = false) {
     return courseListResponseSchema.parse(
-        await apiRequest(`/v1/courses?limit=50&offset=${offset}`),
+        await (archived ? authenticatedRequest : apiRequest)(
+            `/v1/courses?limit=50&offset=${offset}&archived=${archived}`,
+        ),
     );
 }
 export async function getCourse(id: string) {
@@ -71,6 +73,15 @@ export async function saveLesson(id: string, content: SaveLessonBody) {
         await authenticatedRequest(`/v1/lessons/${id}`, {
             method: "PUT",
             body,
+        }),
+    );
+}
+
+export async function setCourseArchived(id: string, archived: boolean) {
+    return courseSchema.parse(
+        await authenticatedRequest(`/v1/courses/${id}/archive`, {
+            method: "PUT",
+            body: JSON.stringify({ archived }),
         }),
     );
 }

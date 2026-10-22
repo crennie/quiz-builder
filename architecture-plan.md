@@ -25,12 +25,16 @@ Private quizzes support reversible archiving through `archived_at`; active lists
 new attempts are blocked while archived, and existing attempts and content locks are preserved.
 See [ADR-010](docs/architecture/decisions/ADR-010-quiz-archiving.md).
 
-Courses are public. Each ordered lesson has exactly one course FK and plain text/Markdown content.
+Courses are public and support reversible archiving by any signed-in user. Active lists exclude
+archives; archived courses remain readable, while edits, imports and new attempts require restoration.
+See [ADR-013](docs/architecture/decisions/ADR-013-course-archive-and-quiz-import.md). Each ordered
+lesson has exactly one course FK and plain text/Markdown content.
 `lesson_quizzes` gives each lesson quiz exactly one lesson, with ordered active associations.
 Courses and lessons have public read APIs and signed-in JSON imports for new courses or appended
 lessons. Any signed-in user may edit any lesson and import, edit, remove or reorder its quizzes.
-View is the default; editing uses an atomic save or local cancel. Lesson quizzes are created only
-by inline import in the lesson editor and use public questions. Edited quiz content creates a
+View is the default; editing uses an atomic save or local cancel. Lesson quizzes are created by
+inline import in the lesson editor or optional per-lesson quiz JSON in course/lesson imports, and
+use public questions. Edited quiz content creates a
 replacement record; removed associations remain for immutable historical attempt context.
 See [ADR-012](docs/architecture/decisions/ADR-012-lesson-quiz-editing.md).
 Owner-scoped tags, feedback, batch artifacts and mappings remain core entities.

@@ -6,10 +6,12 @@ import { useAuth } from "../auth/auth-state";
 import { AttemptPlayer } from "../pages/attempt-page";
 
 export function LessonPractice({
+    archived = false,
     lessonId,
     quizzes,
     onPlaying,
 }: {
+    archived?: boolean;
     lessonId: string;
     quizzes: LessonQuiz[];
     onPlaying: (value: boolean) => void;
@@ -147,7 +149,7 @@ export function LessonPractice({
                                         <p>{entry.quiz.questions.length} questions</p>
                                         <button
                                             type="button"
-                                            disabled={!session || starting}
+                                            disabled={archived || !session || starting}
                                             onClick={() => void start(entry)}
                                         >
                                             {starting ? "Starting…" : "Start / retry quiz"}

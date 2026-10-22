@@ -8,6 +8,7 @@ practice attempts, immutable historical results, tags, feedback and retained bat
 - Behavior: [question editing](dynamic/edit-question.md), [quiz saving](dynamic/save-quiz.md),
   [attempts](dynamic/take-quiz-attempt.md), [batch import](dynamic/ingest-question-batch.md).
 - Decisions: [direct V1 domain](decisions/ADR-009-direct-v1-domain.md),
+  [course archiving and embedded quiz import](decisions/ADR-013-course-archive-and-quiz-import.md),
   [quiz archiving](decisions/ADR-010-quiz-archiving.md),
   [lesson quiz editing](decisions/ADR-012-lesson-quiz-editing.md),
   [course import and attempt context](decisions/ADR-011-course-import-and-attempt-context.md),

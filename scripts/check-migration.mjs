@@ -11,6 +11,8 @@ export const applicationTables = [
     "quiz_attempt_questions",
     "courses",
     "course_imports",
+    "course_enrollments",
+    "lesson_progress",
     "lessons",
     "lesson_quizzes",
     "tags",

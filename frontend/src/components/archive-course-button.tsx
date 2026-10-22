@@ -20,6 +20,7 @@ export function ArchiveCourseButton({
             await onArchived?.();
             client.setQueryData(["course", course.id], updated);
             await client.invalidateQueries({ queryKey: ["courses"] });
+            await client.invalidateQueries({ queryKey: ["my-courses"] });
         },
     });
     return (

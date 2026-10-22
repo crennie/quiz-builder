@@ -413,6 +413,30 @@ export const courseListResponseSchema = z.strictObject({
     items: z.array(courseSchema),
     nextOffset: z.number().int().nonnegative().nullable(),
 });
+export const courseEnrollmentSchema = z.strictObject({
+    courseId: z.uuid(),
+    enrolledAt: apiTimestampSchema,
+});
+export const lessonProgressSchema = z.strictObject({
+    lessonId: z.uuid(),
+    completedAt: apiTimestampSchema.nullable(),
+});
+export const setLessonProgressBodySchema = z.strictObject({ completed: z.boolean() });
+export const courseProgressSchema = z.strictObject({
+    enrollment: courseEnrollmentSchema.nullable(),
+    completedLessons: z.array(lessonProgressSchema),
+});
+export const enrolledCourseSchema = z.strictObject({
+    course: courseSchema,
+    enrolledAt: apiTimestampSchema,
+    completedLessons: z.number().int().nonnegative(),
+    totalLessons: z.number().int().nonnegative(),
+});
+export const enrolledCourseListResponseSchema = z.strictObject({
+    items: z.array(enrolledCourseSchema),
+    nextOffset: z.number().int().nonnegative().nullable(),
+});
+export type CourseProgress = z.output<typeof courseProgressSchema>;
 export const lessonListResponseSchema = z.strictObject({
     items: z.array(lessonSchema),
     nextOffset: z.number().int().nonnegative().nullable(),

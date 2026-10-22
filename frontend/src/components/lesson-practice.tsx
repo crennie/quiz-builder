@@ -7,11 +7,13 @@ import { AttemptPlayer } from "../pages/attempt-page";
 
 export function LessonPractice({
     archived = false,
+    enrolled,
     lessonId,
     quizzes,
     onPlaying,
 }: {
     archived?: boolean;
+    enrolled: boolean;
     lessonId: string;
     quizzes: LessonQuiz[];
     onPlaying: (value: boolean) => void;
@@ -126,6 +128,7 @@ export function LessonPractice({
     return (
         <section className="page-stack" aria-label="Lesson quizzes">
             <h2>Practice quizzes</h2>
+            {session && !enrolled ? <p>Enroll in this course to take quizzes.</p> : null}
             {attemptId ? (
                 <AttemptPlayer key={attemptId} attemptId={attemptId} onClose={close} />
             ) : (
@@ -149,7 +152,7 @@ export function LessonPractice({
                                         <p>{entry.quiz.questions.length} questions</p>
                                         <button
                                             type="button"
-                                            disabled={archived || !session || starting}
+                                            disabled={archived || !session || !enrolled || starting}
                                             onClick={() => void start(entry)}
                                         >
                                             {starting ? "Starting…" : "Start / retry quiz"}

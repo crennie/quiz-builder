@@ -9,6 +9,7 @@ import { QuestionBankPage } from "../pages/question-bank-page";
 import { NewQuestionPage } from "../pages/new-question-page";
 import { QuestionDetailPage } from "../pages/question-detail-page";
 import { MyQuizzesPage } from "../pages/my-quizzes-page";
+import { MyCoursesPage } from "../pages/my-courses-page";
 import { CoursesPage } from "../pages/courses-page";
 import { CourseDetailPage } from "../pages/course-detail-page";
 import { LessonPage } from "../pages/lesson-page";
@@ -69,6 +70,15 @@ const quizListRoute = createRoute({
     component: () => (
         <RequireAuth>
             <MyQuizzesPage />
+        </RequireAuth>
+    ),
+});
+const myCoursesRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/courses/mine",
+    component: () => (
+        <RequireAuth>
+            <MyCoursesPage />
         </RequireAuth>
     ),
 });
@@ -161,6 +171,7 @@ export const router = createRouter({
         questionDetailRoute,
         quizListRoute,
         coursesRoute,
+        myCoursesRoute,
         courseDetailRoute,
         lessonRoute,
         importCourseRoute,

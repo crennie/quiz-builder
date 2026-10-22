@@ -26,6 +26,7 @@ export function AppLayout() {
                 <nav aria-label="Primary navigation">
                     <Link to="/">Home</Link>
                     <Link to="/quizzes">My Quizzes</Link>
+                    <Link to="/courses/mine">My Courses</Link>
                     <Link to="/courses">Courses</Link>
                     <ThemeToggle />
                     {session ? (

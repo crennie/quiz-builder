@@ -1,3 +1,6 @@
+import { useCourseProgress } from "../api/use-course-progress";
+import { CourseEnrollment } from "../components/course-enrollment";
+import { LessonCompletion } from "../components/lesson-completion";
 import { useState } from "react";
 import type { Lesson, LessonQuiz } from "@quiz-builder/contracts";
 import { useAuth } from "../auth/auth-state";
@@ -21,6 +24,7 @@ function LessonPageContent() {
     const [editing, setEditing] = useState<{ lesson: Lesson; quizzes: LessonQuiz[] } | null>(null);
     const [playing, setPlaying] = useState(false);
     const { courseId, lessonId } = useParams({ from: "/courses/$courseId/lessons/$lessonId" });
+    const progress = useCourseProgress(courseId);
     const lesson = useQuery({
         queryKey: ["lesson", lessonId],
         queryFn: () => getLesson(lessonId),
@@ -115,6 +119,13 @@ function LessonPageContent() {
                         ) : null}
                     </header>
                     <LessonContent content={data.content} headingIdPrefix="lesson" />
+                    {course.data ? <CourseEnrollment course={course.data} /> : null}
+                    <LessonCompletion
+                        key={lessonId}
+                        courseId={courseId}
+                        lessonId={lessonId}
+                        archived={!course.data || !!course.data.archivedAt}
+                    />
                     {quizzes.isPending ? <p role="status">Loading quizzes…</p> : null}
                     {quizzes.isError ? (
                         <div role="alert">
@@ -126,6 +137,7 @@ function LessonPageContent() {
                     ) : null}
                     {quizzes.data ? (
                         <LessonPractice
+                            enrolled={!!progress.data?.enrollment && !progress.isError}
                             archived={!course.data || !!course.data.archivedAt}
                             lessonId={lessonId}
                             quizzes={quizzes.data}

@@ -5,6 +5,18 @@ export type Database = {
 
   "public": {
           Tables: {
+            "course_enrollments": {
+                Row: { user_id: string; course_id: string; enrolled_at: string }
+                Insert: { user_id: string; course_id: string; enrolled_at?: string }
+                Update: { user_id?: string; course_id?: string; enrolled_at?: string }
+                Relationships: [{ foreignKeyName: "course_enrollments_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] }, { foreignKeyName: "course_enrollments_course_id_fkey"; columns: ["course_id"]; isOneToOne: false; referencedRelation: "courses"; referencedColumns: ["id"] }]
+            },
+            "lesson_progress": {
+                Row: { user_id: string; course_id: string; lesson_id: string; completed_at: string }
+                Insert: { user_id: string; course_id: string; lesson_id: string; completed_at?: string }
+                Update: { user_id?: string; course_id?: string; lesson_id?: string; completed_at?: string }
+                Relationships: [{ foreignKeyName: "lesson_progress_user_id_course_id_fkey"; columns: ["user_id", "course_id"]; isOneToOne: false; referencedRelation: "course_enrollments"; referencedColumns: ["user_id", "course_id"] }, { foreignKeyName: "lesson_progress_lesson_id_course_id_fkey"; columns: ["lesson_id", "course_id"]; isOneToOne: false; referencedRelation: "lessons"; referencedColumns: ["id", "course_id"] }]
+            },
             "course_imports": {
                 Row: { id: string; sponsor_id: string; import_key: string; artifact_sha256: string; course_id: string; lesson_ids: string[]; created_at: string }
                 Insert: { id?: string; sponsor_id: string; import_key: string; artifact_sha256: string; course_id: string; lesson_ids: string[]; created_at?: string }

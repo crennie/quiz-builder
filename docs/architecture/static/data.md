@@ -17,8 +17,10 @@ The baseline and subsequent SQL migrations in `supabase/migrations/` are authori
 | feedback                                | Exactly one question/quiz/attempt-question target, category/comment/triage                                         |
 | question_batches / question_batch_items | Immutable sponsor artifact/digest/key and direct question mappings                                                 |
 | course_imports                          | Immutable sponsor/key/digest receipt with created course and lesson IDs                                            |
+| course_enrollments                      | Unique user/course enrollment with original enrollment timestamp                                                  |
+| lesson_progress                         | Unique user/lesson completion timestamp; composite FKs require enrollment in the lesson's course                   |
 
-All 16 tables enable RLS without Data API policies. Referenced content uses restrictive FKs.
+All 18 tables enable RLS without Data API policies. Referenced content uses restrictive FKs.
 Unique parent/position constraints govern composition and lesson ordering. SQL triggers enforce
 question/quiz immutability and visibility relationships on writes and invalidating updates.
 Numeric points are finite/nonnegative; optional timing is positive. JSONB shape checks complement
@@ -36,3 +38,9 @@ Course imports optionally materialize each lesson's ordered quizzes in the same 
 the lesson editor's quiz materializer. Course archiving preserves all descendants and attempt history.
 API edits/imports and attempt starts lock the course and reject archived courses; a SQL insert guard
 also serializes new attempts with archive changes. Existing attempts remain usable.
+
+Course enrollments are explicit and user-scoped. Manual lesson completion is independent of quiz
+attempts; absence of a progress row means incomplete. Undo removes the completion row. Composite
+FKs prevent cross-course progress and moving completed lessons to a different course. My Courses
+counts current lessons and completions, preserving archived enrollments. New course quiz attempts
+require enrollment through both Express checks and a SQL insert guard.

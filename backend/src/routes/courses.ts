@@ -1,4 +1,9 @@
 import {
+    courseEnrollmentSchema,
+    courseProgressSchema,
+    enrolledCourseListResponseSchema,
+    lessonProgressSchema,
+    setLessonProgressBodySchema,
     saveLessonBodySchema,
     courseSchema,
     courseImportBodySchema,
@@ -31,7 +36,51 @@ import { importCourseContent } from "../db/course-imports.ts";
 import { requireAuthentication, optionalAuthentication } from "../middleware/authentication.ts";
 import { AppError } from "../errors/app-error.ts";
 import { saveLesson } from "../db/lesson-editing.ts";
+import {
+    enrollInCourse,
+    getCourseProgress,
+    listEnrolledCourses,
+    setLessonProgress,
+} from "../db/course-progress.ts";
 export const courseRouter = Router();
+courseRouter.get("/me/courses", requireAuthentication, async (req, res) => {
+    const { query } = validateRequest(req, { query: contentListQuerySchema });
+    const userId = req.authenticatedUser?.id;
+    if (!userId) throw new Error("Authenticated user is missing");
+    sendResponse(
+        res,
+        200,
+        enrolledCourseListResponseSchema,
+        await listEnrolledCourses(userId, query),
+    );
+});
+courseRouter.get("/courses/:courseId/progress", requireAuthentication, async (req, res) => {
+    const { params } = validateRequest(req, { params: courseParamsSchema });
+    const userId = req.authenticatedUser?.id;
+    if (!userId) throw new Error("Authenticated user is missing");
+    sendResponse(res, 200, courseProgressSchema, await getCourseProgress(params.courseId, userId));
+});
+courseRouter.put("/courses/:courseId/enrollment", requireAuthentication, async (req, res) => {
+    const { params } = validateRequest(req, { params: courseParamsSchema });
+    const userId = req.authenticatedUser?.id;
+    if (!userId) throw new Error("Authenticated user is missing");
+    sendResponse(res, 200, courseEnrollmentSchema, await enrollInCourse(params.courseId, userId));
+});
+courseRouter.put("/lessons/:lessonId/progress", requireAuthentication, async (req, res) => {
+    const { params, body } = validateRequest(req, {
+        params: lessonParamsSchema,
+        body: setLessonProgressBodySchema,
+    });
+    const userId = req.authenticatedUser?.id;
+    if (!userId) throw new Error("Authenticated user is missing");
+    sendResponse(
+        res,
+        200,
+        lessonProgressSchema,
+        await setLessonProgress(params.lessonId, userId, body.completed),
+    );
+});
+
 // Writes authenticate before public read middleware to avoid verifying tokens twice.
 courseRouter.post("/courses/import", requireAuthentication, async (req, res) => {
     const { body } = validateRequest(req, { body: courseImportBodySchema });

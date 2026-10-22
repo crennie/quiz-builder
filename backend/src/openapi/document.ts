@@ -11,6 +11,11 @@ import {
     questionDetailSchema,
     questionListResponseSchema,
     questionContentSchema,
+    courseEnrollmentSchema,
+    courseProgressSchema,
+    enrolledCourseListResponseSchema,
+    lessonProgressSchema,
+    setLessonProgressBodySchema,
     courseSchema,
     courseImportBodySchema,
     lessonImportBodySchema,
@@ -684,6 +689,71 @@ registry.registerPath({
         ...commonErrors,
     },
 });
+
+for (const [method, path, params, query, body, schema, summary] of [
+    [
+        "get",
+        "/api/v1/me/courses",
+        undefined,
+        contentListQuerySchema,
+        undefined,
+        enrolledCourseListResponseSchema,
+        "List my enrolled courses, including archives, with manual lesson progress",
+    ],
+    [
+        "get",
+        "/api/v1/courses/{courseId}/progress",
+        courseParamsSchema,
+        undefined,
+        undefined,
+        courseProgressSchema,
+        "Get my enrollment and completed lessons",
+    ],
+    [
+        "put",
+        "/api/v1/courses/{courseId}/enrollment",
+        courseParamsSchema,
+        undefined,
+        undefined,
+        courseEnrollmentSchema,
+        "Enroll myself in an active course (idempotent)",
+    ],
+    [
+        "put",
+        "/api/v1/lessons/{lessonId}/progress",
+        lessonParamsSchema,
+        undefined,
+        setLessonProgressBodySchema,
+        lessonProgressSchema,
+        "Mark my lesson complete or incomplete (requires enrollment and an active course)",
+    ],
+] as const)
+    registry.registerPath({
+        method,
+        path,
+        tags: ["Courses"],
+        summary,
+        security: [{ BearerAuth: [] }],
+        request: {
+            params,
+            query,
+            ...(body
+                ? {
+                      body: {
+                          required: true,
+                          content: { "application/json": { schema: apiSchema(body) } },
+                      },
+                  }
+                : {}),
+        },
+        responses: {
+            200: {
+                description: summary,
+                content: { "application/json": { schema: apiSchema(schema) } },
+            },
+            ...commonErrors,
+        },
+    });
 
 export function createOpenApiDocument() {
     const generator = new OpenApiGeneratorV31(registry.definitions);

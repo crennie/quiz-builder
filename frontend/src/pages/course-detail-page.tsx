@@ -1,3 +1,5 @@
+import { useCourseProgress } from "../api/use-course-progress";
+import { CourseEnrollment } from "../components/course-enrollment";
 import { ArchiveCourseButton } from "../components/archive-course-button";
 import type { Lesson } from "@quiz-builder/contracts";
 import { listLessonAttempts } from "../api/attempts";
@@ -18,6 +20,7 @@ export function CourseDetailPage() {
         getNextPageParam: (page) => page.nextOffset ?? undefined,
         enabled: course.isSuccess,
     });
+    const progress = useCourseProgress(courseId);
     const items = lessons.data?.pages.flatMap((page) => page.items) ?? [];
     return (
         <div className="page-stack">
@@ -40,6 +43,7 @@ export function CourseDetailPage() {
                                 attempts.
                             </p>
                         ) : null}
+                        <CourseEnrollment course={course.data} />
                         {session ? <ArchiveCourseButton course={course.data} /> : null}
                         {course.data.description ? (
                             <p className={styles.description}>{course.data.description}</p>
@@ -102,6 +106,15 @@ export function CourseDetailPage() {
                                                 )}{" "}
                                                 min read
                                             </span>
+                                            {progress.data?.enrollment ? (
+                                                <p className="small">
+                                                    {progress.data.completedLessons.some(
+                                                        (item) => item.lessonId === lesson.id,
+                                                    )
+                                                        ? "✓ Lesson complete"
+                                                        : "Lesson not completed"}
+                                                </p>
+                                            ) : null}
                                             <LessonQuizProgress lesson={lesson} />
                                         </div>
                                         <span aria-hidden="true">→</span>

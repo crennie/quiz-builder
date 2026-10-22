@@ -1,3 +1,4 @@
+import { CourseEnrollment } from "../components/course-enrollment";
 import { useState } from "react";
 import { ArchiveCourseButton } from "../components/archive-course-button";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -78,6 +79,7 @@ export function CoursesPage() {
                                 Explore course <span aria-hidden="true">→</span>
                             </span>
                         </Link>
+                        <CourseEnrollment course={course} />
                         {session ? <ArchiveCourseButton course={course} /> : null}
                     </li>
                 ))}

@@ -15,6 +15,17 @@ export async function listAttempts(offset: number, lessonId?: string) {
     );
 }
 
+export async function listLessonAttempts(lessonId: string): Promise<AttemptDetail[]> {
+    const items: AttemptDetail[] = [];
+    let offset: number | null = 0;
+    do {
+        const page = await listAttempts(offset, lessonId);
+        items.push(...page.items);
+        offset = page.nextOffset;
+    } while (offset !== null);
+    return items;
+}
+
 export async function getAttempt(id: string): Promise<AttemptDetail> {
     return attemptDetailSchema.parse(await authenticatedRequest<unknown>(`/v1/attempts/${id}`));
 }

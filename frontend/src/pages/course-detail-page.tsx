@@ -1,6 +1,8 @@
+import type { Lesson } from "@quiz-builder/contracts";
+import { listLessonAttempts } from "../api/attempts";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
-import { getCourse, listCourseLessons } from "../api/courses";
+import { getCourse, listCourseLessons, listLessonQuizzes } from "../api/courses";
 import { useAuth } from "../auth/auth-state";
 import styles from "./course-pages.module.css";
 
@@ -92,6 +94,7 @@ export function CourseDetailPage() {
                                                 )}{" "}
                                                 min read
                                             </span>
+                                            <LessonQuizProgress lesson={lesson} />
                                         </div>
                                         <span aria-hidden="true">→</span>
                                     </Link>
@@ -111,5 +114,41 @@ export function CourseDetailPage() {
                 </>
             ) : null}
         </div>
+    );
+}
+
+function LessonQuizProgress({ lesson }: { lesson: Lesson }) {
+    const { session } = useAuth();
+    const quizzes = useQuery({
+        queryKey: ["lesson-quizzes", lesson.id, lesson.updatedAt],
+        queryFn: () => listLessonQuizzes(lesson.id),
+    });
+    const attempts = useQuery({
+        queryKey: ["attempts", session?.user.id, "lesson", lesson.id, "all"],
+        queryFn: () => listLessonAttempts(lesson.id),
+        enabled: !!session,
+    });
+    if (quizzes.isError || (session && attempts.isError))
+        return <p className="muted small">Quiz progress unavailable</p>;
+    if (quizzes.isPending || (session && attempts.isPending))
+        return <p className="muted small">Loading quiz progress…</p>;
+    const total = quizzes.data.length;
+    if (!session)
+        return <p className="muted small">{total} quizzes · Sign in to see your progress</p>;
+    const completedIds = new Set(
+        attempts.data
+            ?.filter((attempt) => attempt.status === "completed")
+            .map((attempt) => attempt.lessonQuizId),
+    );
+    const completed = quizzes.data.filter((quiz) => completedIds.has(quiz.id)).length;
+    return (
+        <p
+            className={
+                total > 0 && completed === total ? "lesson-quiz-completed small" : "muted small"
+            }
+        >
+            {total > 0 && completed === total ? <span aria-hidden="true">✓ </span> : null}
+            {completed} / {total} quizzes completed
+        </p>
     );
 }

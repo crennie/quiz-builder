@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
-import type { LessonQuiz } from "@quiz-builder/contracts";
-import { listAttempts, startAttempt } from "../api/attempts";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { AttemptDetail, LessonQuiz } from "@quiz-builder/contracts";
+import { listLessonAttempts, startAttempt } from "../api/attempts";
 import { useAuth } from "../auth/auth-state";
 import { AttemptPlayer } from "../pages/attempt-page";
 
@@ -19,14 +19,12 @@ export function LessonPractice({
     const [attemptId, setAttemptId] = useState<string | null>(null);
     const [starting, setStarting] = useState(false);
     const [error, setError] = useState("");
-    const history = useInfiniteQuery({
-        queryKey: ["attempts", session?.user.id, "lesson", lessonId],
-        initialPageParam: 0,
-        queryFn: ({ pageParam }) => listAttempts(pageParam, lessonId),
-        getNextPageParam: (page) => page.nextOffset ?? undefined,
+    const history = useQuery({
+        queryKey: ["attempts", session?.user.id, "lesson", lessonId, "all"],
+        queryFn: () => listLessonAttempts(lessonId),
         enabled: !!session,
     });
-    const attempts = history.data?.pages.flatMap((page) => page.items) ?? [];
+    const attempts = history.data ?? [];
     const previousQuizzes = Array.from(
         new Map(
             attempts
@@ -34,23 +32,49 @@ export function LessonPractice({
                 .map((attempt) => [attempt.lessonQuizId ?? attempt.quizId, attempt]),
         ).values(),
     );
-    function renderAttempts(lessonQuizId: string | null | undefined, quizId: string) {
-        const matching = attempts.filter((attempt) =>
+    function quizAttempts(lessonQuizId: string | null | undefined, quizId: string) {
+        return attempts.filter((attempt) =>
             lessonQuizId ? attempt.lessonQuizId === lessonQuizId : attempt.quizId === quizId,
         );
+    }
+    function renderProgress(lessonQuizId: string | null | undefined, quizId: string) {
+        if (!session) return null;
+        if (history.isPending) return <span className="muted small"> · Loading progress…</span>;
+        if (history.isError) return <span className="muted small"> · Progress unavailable</span>;
+        const matching = quizAttempts(lessonQuizId, quizId);
+        const completed = matching.filter((attempt) => attempt.status === "completed");
+        const best = completed.reduce<AttemptDetail["scoreSummary"]>((best, attempt) => {
+            const score = attempt.scoreSummary;
+            if (!score) return best;
+            if (!best) return score;
+            const ratio = (value: NonNullable<typeof score>) =>
+                value.pointsPossible > 0 ? value.pointsAwarded / value.pointsPossible : 0;
+            return ratio(score) > ratio(best) ? score : best;
+        }, null);
+        return (
+            <span className="muted small">
+                {" · "}
+                {matching.length} {matching.length === 1 ? "attempt" : "attempts"}
+                {completed.length ? (
+                    <span className="lesson-quiz-completed">
+                        {" "}
+                        · <span aria-hidden="true">✓</span> Completed
+                    </span>
+                ) : (
+                    " · Not completed"
+                )}
+                {best ? ` · Best: ${best.pointsAwarded} / ${best.pointsPossible} points` : ""}
+            </span>
+        );
+    }
+    function renderAttempts(lessonQuizId: string | null | undefined, quizId: string) {
+        const matching = quizAttempts(lessonQuizId, quizId);
         return (
             <details className="lesson-accordion">
-                <summary>
-                    Your attempts ({matching.length}
-                    {history.hasNextPage ? "+" : ""})
-                </summary>
+                <summary>Your attempts ({matching.length})</summary>
                 {history.isPending ? <p role="status">Loading attempts…</p> : null}
                 {!history.isPending && !history.isError && matching.length === 0 ? (
-                    <p>
-                        {history.hasNextPage
-                            ? "No attempts in the loaded history. Load more lesson attempts below."
-                            : "No attempts yet."}
-                    </p>
+                    <p>No attempts yet.</p>
                 ) : null}
                 <ul className="card-list">
                     {matching.map((attempt) => (
@@ -115,6 +139,7 @@ export function LessonPractice({
                                                 {" "}
                                                 · {entry.quiz.questions.length} questions
                                             </span>
+                                            {renderProgress(entry.id, entry.quizId)}
                                         </summary>
                                         {entry.quiz.description ? (
                                             <p>{entry.quiz.description}</p>
@@ -149,7 +174,13 @@ export function LessonPractice({
                                                 key={quiz.lessonQuizId ?? quiz.quizId}
                                             >
                                                 <details className="lesson-accordion">
-                                                    <summary>{quiz.quizTitle}</summary>
+                                                    <summary>
+                                                        {quiz.quizTitle}
+                                                        {renderProgress(
+                                                            quiz.lessonQuizId,
+                                                            quiz.quizId,
+                                                        )}
+                                                    </summary>
                                                     <p>
                                                         This quiz has been removed or replaced in
                                                         the lesson.
@@ -168,17 +199,6 @@ export function LessonPractice({
                                         Retry loading attempts
                                     </button>
                                 </div>
-                            ) : null}
-                            {history.hasNextPage ? (
-                                <button
-                                    type="button"
-                                    disabled={starting || history.isFetching}
-                                    onClick={() => void history.fetchNextPage()}
-                                >
-                                    {history.isFetchingNextPage
-                                        ? "Loading attempts…"
-                                        : "Load more lesson attempts"}
-                                </button>
                             ) : null}
                         </>
                     )}

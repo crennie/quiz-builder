@@ -5,7 +5,14 @@ export function HomePage() {
         <section className="hero">
             <p className="eyebrow">Study with purpose</p>
             <div className="hero-brand">
-                <img src="/brand/quiz-builder.png" alt="" width="160" height="160" />
+                <div className="hero-mascot" aria-hidden="true">
+                    <div className="hero-mascot-shadow" />
+                    <div className="hero-mascot-opening">
+                        <div className="hero-mascot-rise">
+                            <img src="/brand/quiz-builder.png" alt="" width="160" height="160" />
+                        </div>
+                    </div>
+                </div>
                 <h1 className="brand-wordmark">
                     Quiz <span>Builder</span>
                 </h1>

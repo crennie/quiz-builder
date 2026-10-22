@@ -35,6 +35,8 @@ import {
 import { z } from "zod";
 
 import {
+    courseArchiveBodySchema,
+    courseListQuerySchema,
     courseParamsSchema,
     lessonParamsSchema,
     contentListQuerySchema,
@@ -557,9 +559,9 @@ for (const [path, params, query, schema, summary] of [
     [
         "/api/v1/courses",
         undefined,
-        contentListQuerySchema,
+        courseListQuerySchema,
         courseListResponseSchema,
-        "List public courses",
+        "List active public courses, or archived courses when signed in",
     ],
     [
         "/api/v1/courses/{courseId}",
@@ -659,6 +661,25 @@ registry.registerPath({
         200: {
             description: "Saved lesson",
             content: { "application/json": { schema: apiSchema(lessonDetailSchema) } },
+        },
+        ...commonErrors,
+    },
+});
+
+registry.registerPath({
+    method: "put",
+    path: "/api/v1/courses/{courseId}/archive",
+    tags: ["Courses"],
+    summary: "Archive or restore a course (any signed-in user)",
+    security: [{ BearerAuth: [] }],
+    request: {
+        params: courseParamsSchema,
+        body: { content: { "application/json": { schema: apiSchema(courseArchiveBodySchema) } } },
+    },
+    responses: {
+        200: {
+            description: "Updated course.",
+            content: { "application/json": { schema: apiSchema(courseSchema) } },
         },
         ...commonErrors,
     },

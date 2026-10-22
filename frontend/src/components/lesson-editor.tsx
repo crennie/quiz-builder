@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { useBlocker } from "@tanstack/react-router";
 import {
-    lessonQuizContentSchema,
+    parseLessonQuizFile,
     saveLessonBodySchema,
     type Lesson,
     type LessonQuiz,
     type LessonQuizContent,
 } from "@quiz-builder/contracts";
 import { saveLesson } from "../api/courses";
-import { parseQuizFile } from "../import/quiz-file";
 import { QuestionEditor } from "./question-editor";
 
 type DraftQuiz = { key: string; id?: string; content: LessonQuizContent };
@@ -66,23 +65,7 @@ export function LessonEditor({
         try {
             if (file.size > 256_000) throw new Error("Choose a JSON file smaller than 256 KB.");
             const value: unknown = JSON.parse(await file.text());
-            const document = lessonQuizContentSchema.safeParse(value);
-            const imported = document.success
-                ? document.data
-                : (() => {
-                      const parsed = parseQuizFile(value);
-                      return lessonQuizContentSchema.parse({
-                          title: parsed.artifact.topic,
-                          description: parsed.description,
-                          settings: { shuffleQuestions: false, showAnswersAfterCompletion: true },
-                          questions: parsed.artifact.questions.map((q) => ({
-                              content: q.content,
-                              points: 1,
-                              required: true,
-                              timeLimitSeconds: null,
-                          })),
-                      });
-                  })();
+            const imported = parseLessonQuizFile(value);
             setDrafts((items) => [...items, { key: crypto.randomUUID(), content: imported }]);
         } catch (caught) {
             setError(caught instanceof Error ? caught.message : "Could not import quiz.");

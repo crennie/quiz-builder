@@ -13,11 +13,14 @@ import { Router } from "express";
 import { validateRequest } from "../api/request.ts";
 import { sendResponse } from "../api/response.ts";
 import {
+    courseListQuerySchema,
+    courseArchiveBodySchema,
     courseParamsSchema,
     lessonParamsSchema,
     contentListQuerySchema,
 } from "../api/schemas/courses.ts";
 import {
+    setCourseArchived,
     listCourses,
     getCourse,
     listCourseLessons,
@@ -26,6 +29,7 @@ import {
 } from "../db/courses.ts";
 import { importCourseContent } from "../db/course-imports.ts";
 import { requireAuthentication, optionalAuthentication } from "../middleware/authentication.ts";
+import { AppError } from "../errors/app-error.ts";
 import { saveLesson } from "../db/lesson-editing.ts";
 export const courseRouter = Router();
 // Writes authenticate before public read middleware to avoid verifying tokens twice.
@@ -63,9 +67,18 @@ courseRouter.put("/lessons/:lessonId", requireAuthentication, async (req, res) =
     if (!userId) throw new Error("Authenticated user is missing");
     sendResponse(res, 200, lessonDetailSchema, await saveLesson(params.lessonId, userId, body));
 });
+courseRouter.put("/courses/:courseId/archive", requireAuthentication, async (req, res) => {
+    const { params, body } = validateRequest(req, {
+        params: courseParamsSchema,
+        body: courseArchiveBodySchema,
+    });
+    sendResponse(res, 200, courseSchema, await setCourseArchived(params.courseId, body.archived));
+});
 courseRouter.use(["/courses", "/lessons"], optionalAuthentication);
 courseRouter.get("/courses", async (req, res) => {
-    const { query } = validateRequest(req, { query: contentListQuerySchema });
+    const { query } = validateRequest(req, { query: courseListQuerySchema });
+    if (query.archived && !req.authenticatedUser)
+        throw new AppError(401, "UNAUTHORIZED", "A valid access token is required");
     sendResponse(res, 200, courseListResponseSchema, await listCourses(query));
 });
 courseRouter.get("/courses/:courseId", async (req, res) => {

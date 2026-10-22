@@ -1,55 +1,15 @@
 import { isDeepStrictEqual } from "node:util";
-import {
-    lessonQuizContentSchema,
-    type LessonQuizContent,
-    type SaveLessonBody,
-} from "@quiz-builder/contracts";
+import { lessonQuizContentSchema, type SaveLessonBody } from "@quiz-builder/contracts";
 import { AppError } from "../errors/app-error.ts";
-import { getLessonDetail, listLessonQuizzes } from "./courses.ts";
+import { assertCourseActive, getLessonDetail, listLessonQuizzes } from "./courses.ts";
 import { withTransaction } from "./transaction.ts";
-import type { QueryExecutor } from "./question-bank.ts";
-
-async function importQuiz(db: QueryExecutor, userId: string, content: LessonQuizContent) {
-    const result = await db.query<{ id: string }>(
-        `INSERT INTO public.quizzes(created_by,visibility,title,description,settings)
-         VALUES($1,'public',$2,$3,$4::jsonb) RETURNING id`,
-        [userId, content.title, content.description, JSON.stringify(content.settings)],
-    );
-    const quizId = result.rows[0].id;
-    for (const [position, member] of content.questions.entries()) {
-        const q = member.content;
-        const question = await db.query<{ id: string }>(
-            `INSERT INTO public.questions(created_by,visibility,prompt,question_type,answer_config,grading_config,explanation)
-             VALUES($1,'public',$2,$3,$4::jsonb,$5::jsonb,$6) RETURNING id`,
-            [
-                userId,
-                q.prompt,
-                q.questionType,
-                JSON.stringify(q.answerConfig),
-                JSON.stringify(q.gradingConfig),
-                q.explanation,
-            ],
-        );
-        await db.query(
-            `INSERT INTO public.quiz_questions(quiz_id,question_id,position,points,required,time_limit_seconds)
-             VALUES($1,$2,$3,$4,$5,$6)`,
-            [
-                quizId,
-                question.rows[0].id,
-                position,
-                member.points,
-                member.required,
-                member.timeLimitSeconds,
-            ],
-        );
-    }
-    return quizId;
-}
+import { importLessonQuiz } from "./lesson-quiz-import.ts";
 
 export function saveLesson(lessonId: string, userId: string, body: SaveLessonBody) {
     return withTransaction(async (db) => {
         await db.query("SELECT id FROM public.lessons WHERE id=$1 FOR UPDATE", [lessonId]);
         const lesson = await getLessonDetail(lessonId, db);
+        await assertCourseActive(lesson.courseId, db);
         if (lesson.updatedAt !== body.expectedUpdatedAt)
             throw new AppError(
                 409,
@@ -100,7 +60,7 @@ export function saveLesson(lessonId: string, userId: string, body: SaveLessonBod
                 );
             } else {
                 // Replacement preserves locked sources and all historical attempts.
-                const quizId = await importQuiz(db, userId, content);
+                const quizId = await importLessonQuiz(db, userId, content);
                 await db.query(
                     "INSERT INTO public.lesson_quizzes(lesson_id,quiz_id,position) VALUES($1,$2,$3)",
                     [lessonId, quizId, position],

@@ -139,12 +139,16 @@ export function ImportCoursePage({ courseId }: { courseId?: string }) {
                     <button onClick={() => void course.refetch()}>Try again</button>
                 </div>
             ) : null}
+            {course.data?.archivedAt ? (
+                <p role="status">Restore this course before importing lessons.</p>
+            ) : null}
             <section className="panel form-grid">
                 <h2>Choose a file</h2>
                 <p className="muted">
                     {courseId ? "Import 1–100 lessons" : "Import a course with up to 100 lessons"}{" "}
                     from a JSON file up to 256 KiB. Lessons support plain text and basic Markdown:
-                    headings, paragraphs, lists, quotes, links, emphasis, and code blocks.
+                    headings, paragraphs, lists, quotes, links, emphasis, and code blocks. Each
+                    lesson may include a quizzes array using the same JSON formats as quiz import.
                 </p>
                 <a
                     href={`${import.meta.env.BASE_URL}sample-${courseId ? "lessons" : "course"}.json`}
@@ -185,10 +189,17 @@ export function ImportCoursePage({ courseId }: { courseId?: string }) {
                             {preview.lessons.map((lesson, index) => (
                                 <li key={index}>
                                     <details>
-                                        <summary>{lesson.title}</summary>
+                                        <summary>
+                                            {lesson.title} · {lesson.quizzes?.length ?? 0} quizzes
+                                        </summary>
                                         {lesson.description ? <p>{lesson.description}</p> : null}
                                         <div className={styles.preview}>
                                             <LessonContent content={lesson.content} />
+                                            {lesson.quizzes?.map((quiz, quizIndex) => (
+                                                <p key={quizIndex}>
+                                                    {quiz.title} · {quiz.questions.length} questions
+                                                </p>
+                                            ))}
                                         </div>
                                     </details>
                                 </li>
@@ -199,7 +210,7 @@ export function ImportCoursePage({ courseId }: { courseId?: string }) {
                     )}
                     <button
                         type="button"
-                        disabled={busy || reading}
+                        disabled={busy || reading || !!course.data?.archivedAt}
                         onClick={() => void importContent()}
                     >
                         {busy ? "Importing…" : `Import public ${noun}`}

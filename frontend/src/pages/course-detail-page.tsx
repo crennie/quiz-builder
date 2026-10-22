@@ -1,3 +1,4 @@
+import { ArchiveCourseButton } from "../components/archive-course-button";
 import type { Lesson } from "@quiz-builder/contracts";
 import { listLessonAttempts } from "../api/attempts";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
@@ -33,6 +34,13 @@ export function CourseDetailPage() {
                     <header className={`panel ${styles.overview}`}>
                         <p className="eyebrow">Course overview</p>
                         <h1>{course.data.title}</h1>
+                        {course.data.archivedAt ? (
+                            <p role="status">
+                                This course is archived. Restore it to edit lessons or start new
+                                attempts.
+                            </p>
+                        ) : null}
+                        {session ? <ArchiveCourseButton course={course.data} /> : null}
                         {course.data.description ? (
                             <p className={styles.description}>{course.data.description}</p>
                         ) : null}
@@ -49,7 +57,7 @@ export function CourseDetailPage() {
                     <section className="page-stack" aria-labelledby="course-lessons-title">
                         <div className="section-heading">
                             <h2 id="course-lessons-title">Lessons</h2>
-                            {session ? (
+                            {session && !course.data.archivedAt ? (
                                 <Link to="/courses/$courseId/import" params={{ courseId }}>
                                     Import lessons
                                 </Link>

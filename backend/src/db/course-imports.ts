@@ -5,6 +5,8 @@ import type {
     LessonImportFile,
 } from "@quiz-builder/contracts";
 import { AppError } from "../errors/app-error.ts";
+import { assertCourseActive } from "./courses.ts";
+import { importLessonQuiz } from "./lesson-quiz-import.ts";
 import { withTransaction } from "./transaction.ts";
 
 export function importCourseContent(
@@ -45,6 +47,7 @@ export function importCourseContent(
                 targetId,
             ]);
             if (!course.rows[0]) throw new AppError(404, "COURSE_NOT_FOUND", "Course not found");
+            await assertCourseActive(targetId, db);
         } else {
             if (!("title" in content)) throw new Error("Course title is required");
             const course = await db.query<{ id: string }>(
@@ -70,7 +73,15 @@ export function importCourseContent(
                     positions.rows[0].next_position + index,
                 ],
             );
-            lessonIds.push(result.rows[0].id);
+            const lessonId = result.rows[0].id;
+            lessonIds.push(lessonId);
+            for (const [position, quiz] of (lesson.quizzes ?? []).entries()) {
+                const quizId = await importLessonQuiz(db, sponsorId, quiz);
+                await db.query(
+                    "INSERT INTO public.lesson_quizzes(lesson_id,quiz_id,position) VALUES($1,$2,$3)",
+                    [lessonId, quizId, position],
+                );
+            }
         }
         await db.query(
             `INSERT INTO public.course_imports(sponsor_id,import_key,artifact_sha256,course_id,lesson_ids)

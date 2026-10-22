@@ -271,6 +271,58 @@ export const questionBatchListSchema = z.strictObject({
     batches: z.array(questionBatchSummarySchema),
 });
 export type QuestionBatchArtifact = z.output<typeof questionBatchArtifactSchema>;
+
+export type QuizImport = { artifact: QuestionBatchArtifact; description: string | null };
+
+function object(value: unknown): Record<string, unknown> {
+    if (value === null || typeof value !== "object" || Array.isArray(value))
+        throw new Error("Expected a JSON object.");
+    return value as Record<string, unknown>;
+}
+
+export function parseQuizFile(value: unknown): QuizImport {
+    const document = object(value);
+    if ("schemaVersion" in document) {
+        return { artifact: questionBatchArtifactSchema.parse(document), description: null };
+    }
+    if (typeof document.title !== "string" || !Array.isArray(document.questions))
+        throw new Error(
+            "Include a title and a questions array. Download the example for the expected format.",
+        );
+    if (document.description !== undefined && typeof document.description !== "string")
+        throw new Error("Description must be text.");
+    const artifact = questionBatchArtifactSchema.parse({
+        schemaVersion: 1,
+        batchKey: crypto.randomUUID(),
+        topic: document.title.trim(),
+        source: { kind: "human", label: "Quiz file upload" },
+        tags: [],
+        questions: document.questions.map((value: unknown, index: number) => {
+            const question = object(value);
+            if (typeof question.answer !== "string" || !question.answer.trim())
+                throw new Error(`Question ${index + 1} needs a nonempty text answer.`);
+            return {
+                key: `question-${index + 1}`,
+                content: {
+                    prompt: question.prompt,
+                    questionType: "exact_text",
+                    answerConfig: {
+                        questionType: "exact_text",
+                        acceptedAnswers: [question.answer.trim()],
+                    },
+                    gradingConfig: {
+                        questionType: "exact_text",
+                        caseSensitive: false,
+                        trimWhitespace: true,
+                    },
+                    explanation: question.explanation ?? null,
+                },
+            };
+        }),
+    });
+    return { artifact, description: document.description?.trim() || null };
+}
+
 export type QuestionBatch = z.output<typeof questionBatchSchema>;
 
 export const createTagBodySchema = z.strictObject({
@@ -328,8 +380,10 @@ export const courseSchema = z
         createdAt: apiTimestampSchema,
         updatedAt: apiTimestampSchema,
     })
+    .extend({ archivedAt: apiTimestampSchema.nullable().optional() })
     .meta({ id: "Course" });
 export const lessonSchema = courseSchema
+    .omit({ archivedAt: true })
     .extend({
         courseId: z.uuid(),
         content: z.string(),
@@ -364,16 +418,6 @@ export const lessonQuizListResponseSchema = z.strictObject({
     items: z.array(lessonQuizSchema),
     nextOffset: z.number().int().nonnegative().nullable(),
 });
-// Array order determines lesson position; import files cannot attach quizzes.
-export const lessonImportContentSchema = z.strictObject({
-    title: z.string().trim().min(1).max(300),
-    description: z.string().trim().max(5000).nullable().default(null),
-    content: z
-        .string()
-        .min(1)
-        .max(200_000)
-        .refine((value) => value.trim().length > 0, "Lesson content cannot be blank"),
-});
 // Lesson quiz documents are imported inline; existing quizzes can be edited by association ID.
 export const lessonQuizContentSchema = z.strictObject({
     title: z.string().trim().min(1).max(300),
@@ -390,6 +434,63 @@ export const lessonQuizContentSchema = z.strictObject({
         )
         .min(1)
         .max(200),
+});
+export function parseLessonQuizFile(value: unknown): LessonQuizContent {
+    const document = lessonQuizContentSchema.safeParse(value);
+    if (document.success) return document.data;
+    const parsed = parseQuizFile(value);
+    return lessonQuizContentSchema.parse({
+        title: parsed.artifact.topic,
+        description: parsed.description,
+        settings: { shuffleQuestions: false, showAnswersAfterCompletion: true },
+        questions: parsed.artifact.questions.map((q) => ({
+            content: q.content,
+            points: 1,
+            required: true,
+            timeLimitSeconds: null,
+        })),
+    });
+}
+const lessonQuizImportSchema = z.union([
+    lessonQuizContentSchema,
+    questionBatchArtifactSchema.transform(parseLessonQuizFile),
+    z
+        .object({
+            title: z.string().trim().min(1).max(200),
+            description: z.string().optional(),
+            questions: z
+                .array(
+                    z.object({
+                        prompt: z.string().trim().min(1),
+                        answer: z.string().trim().min(1),
+                        explanation: z.string().nullable().optional(),
+                    }),
+                )
+                .min(1)
+                .max(20),
+        })
+        .transform((value, ctx) => {
+            try {
+                return parseLessonQuizFile(value);
+            } catch (error) {
+                ctx.addIssue({
+                    code: "custom",
+                    message: error instanceof Error ? error.message : "Invalid quiz",
+                });
+                return z.NEVER;
+            }
+        }),
+]);
+// Array order determines lesson and quiz positions.
+export const lessonImportContentSchema = z.strictObject({
+    quizzes: z.array(lessonQuizImportSchema).max(100).optional(),
+    title: z.string().trim().min(1).max(300),
+    description: z.string().trim().max(5000).nullable().default(null),
+    content: z
+        .string()
+        .min(1)
+        .max(200_000)
+        .refine((value) => value.trim().length > 0, "Lesson content cannot be blank"),
 });
 export const saveLessonBodySchema = lessonImportContentSchema
     .extend({

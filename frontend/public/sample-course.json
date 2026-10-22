@@ -5,7 +5,19 @@
         {
             "title": "Start with a good question",
             "description": "Turn curiosity into a clear learning goal.",
-            "content": "# Begin with curiosity\n\nLearning starts with a question you care about. A useful question is specific enough to explore, but open enough to lead somewhere new.\n\n## Try it yourself\n\n1. Choose a topic you want to understand.\n2. Write down what you already know.\n3. Ask one question that would move your understanding forward.\n\n> You do not need to know everything before you begin. You need a place to start.\n\n## A small example\n\nInstead of **\u201cLearn about plants\u201d**, try **\u201cHow do plants turn sunlight into energy?\u201d**\n\nKeep your question somewhere visible. You will return to it as you learn."
+            "content": "# Begin with curiosity\n\nLearning starts with a question you care about. A useful question is specific enough to explore, but open enough to lead somewhere new.\n\n## Try it yourself\n\n1. Choose a topic you want to understand.\n2. Write down what you already know.\n3. Ask one question that would move your understanding forward.\n\n> You do not need to know everything before you begin. You need a place to start.\n\n## A small example\n\nInstead of **“Learn about plants”**, try **“How do plants turn sunlight into energy?”**\n\nKeep your question somewhere visible. You will return to it as you learn.",
+            "quizzes": [
+                {
+                    "title": "Quick reflection",
+                    "questions": [
+                        {
+                            "prompt": "What starts learning?",
+                            "answer": "A question",
+                            "explanation": "Begin with a question you care about."
+                        }
+                    ]
+                }
+            ]
         },
         {
             "title": "Make an idea your own",

@@ -13,13 +13,13 @@ export type Database = {
             },
             "courses": {
                   Row: {
-                    "created_at": string,"description": string | null,"id": string,"title": string,"updated_at": string
+                    "archived_at": string | null,"created_at": string,"description": string | null,"id": string,"title": string,"updated_at": string
                   }
                   Insert: {
-                    "created_at"?: string,"description"?: string | null,"id"?: string,"title": string,"updated_at"?: string
+                    "archived_at"?: string | null,"created_at"?: string,"description"?: string | null,"id"?: string,"title": string,"updated_at"?: string
                   }
                   Update: {
-                    "created_at"?: string,"description"?: string | null,"id"?: string,"title"?: string,"updated_at"?: string
+                    "archived_at"?: string | null,"created_at"?: string,"description"?: string | null,"id"?: string,"title"?: string,"updated_at"?: string
                   }
                   Relationships: [
 

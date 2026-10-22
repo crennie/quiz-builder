@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { ArchiveCourseButton } from "../components/archive-course-button";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { listCourses } from "../api/courses";
@@ -6,9 +8,11 @@ import styles from "./course-pages.module.css";
 
 export function CoursesPage() {
     const { session } = useAuth();
+    const [showArchived, setShowArchived] = useState(false);
+    const archived = !!session && showArchived;
     const courses = useInfiniteQuery({
-        queryKey: ["courses"],
-        queryFn: ({ pageParam }) => listCourses(pageParam),
+        queryKey: ["courses", session?.user.id, archived],
+        queryFn: ({ pageParam }) => listCourses(pageParam, archived),
         initialPageParam: 0,
         getNextPageParam: (page) => page.nextOffset ?? undefined,
     });
@@ -29,6 +33,16 @@ export function CoursesPage() {
                     </Link>
                 ) : null}
             </header>
+            {session ? (
+                <label>
+                    <input
+                        type="checkbox"
+                        checked={archived}
+                        onChange={(event) => setShowArchived(event.target.checked)}
+                    />{" "}
+                    Show archived courses
+                </label>
+            ) : null}
             {courses.isPending ? <p role="status">Loading courses…</p> : null}
             {courses.isError ? (
                 <div className="message-panel" role="alert">
@@ -39,7 +53,11 @@ export function CoursesPage() {
             {courses.isSuccess && !items.length ? (
                 <div className="message-panel">
                     <h2>A place for your next discovery</h2>
-                    <p>No courses yet. Import a course to share something worth learning.</p>
+                    <p>
+                        {archived
+                            ? "No archived courses."
+                            : "No courses yet. Import a course to share something worth learning."}
+                    </p>
                     {!session ? <Link to="/sign-in">Sign in to import a course</Link> : null}
                 </div>
             ) : null}
@@ -60,6 +78,7 @@ export function CoursesPage() {
                                 Explore course <span aria-hidden="true">→</span>
                             </span>
                         </Link>
+                        {session ? <ArchiveCourseButton course={course} /> : null}
                     </li>
                 ))}
             </ul>

@@ -591,3 +591,8 @@ h1 {
     outline: 2px solid var(--accent);
     outline-offset: 4px;
 }
+
+.lesson-quiz-completed {
+    color: var(--accent);
+    font-weight: 600;
+}

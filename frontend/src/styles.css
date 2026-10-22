@@ -576,3 +576,18 @@ h1 {
         transition: none;
     }
 }
+
+.lesson-accordion > summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+.lesson-accordion[open] > summary {
+    margin-bottom: 1rem;
+}
+.lesson-accordion > .lesson-accordion {
+    margin-top: 1rem;
+}
+.lesson-accordion > summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+}

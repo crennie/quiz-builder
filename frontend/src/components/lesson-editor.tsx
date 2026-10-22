@@ -166,183 +166,199 @@ export function LessonEditor({
                 />
             </label>
             {drafts.map((draft, index) => (
-                <fieldset className="form-grid" key={draft.key} disabled={busy}>
-                    <legend>Quiz {index + 1}</legend>
-                    <label>
-                        Quiz title
-                        <input
-                            value={draft.content.title}
-                            onChange={(e) => update(draft.key, { title: e.target.value })}
-                        />
-                    </label>
-                    <label>
-                        Quiz description
-                        <textarea
-                            value={draft.content.description ?? ""}
-                            onChange={(e) =>
-                                update(draft.key, { description: e.target.value || null })
-                            }
-                        />
-                    </label>
-                    <label className="checkbox-row">
-                        <input
-                            type="checkbox"
-                            checked={draft.content.settings.shuffleQuestions}
-                            onChange={(e) =>
-                                update(draft.key, {
-                                    settings: {
-                                        ...draft.content.settings,
-                                        shuffleQuestions: e.target.checked,
-                                    },
-                                })
-                            }
-                        />
-                        Shuffle questions
-                    </label>
-                    <label className="checkbox-row">
-                        <input
-                            type="checkbox"
-                            checked={draft.content.settings.showAnswersAfterCompletion}
-                            onChange={(e) =>
-                                update(draft.key, {
-                                    settings: {
-                                        ...draft.content.settings,
-                                        showAnswersAfterCompletion: e.target.checked,
-                                    },
-                                })
-                            }
-                        />
-                        Show answers after completion
-                    </label>
-                    <ol className="card-list">
-                        {draft.content.questions.map((q, qi) => (
-                            <li key={qi} className="panel">
-                                <p>{q.content.prompt}</p>
-                                {questionEdit?.key === draft.key && questionEdit.index === qi ? (
-                                    <>
-                                        <QuestionEditor
-                                            initial={q.content}
-                                            busy={busy}
-                                            submitLabel="Apply to draft"
-                                            onSave={(updated) => {
-                                                update(draft.key, {
-                                                    questions: draft.content.questions.map(
-                                                        (item, i) =>
-                                                            i === qi
-                                                                ? { ...item, content: updated }
-                                                                : item,
-                                                    ),
-                                                });
-                                                setQuestionEdit(null);
-                                                return Promise.resolve();
-                                            }}
-                                        />
-                                        <button
-                                            type="button"
-                                            className="secondary"
-                                            onClick={() => setQuestionEdit(null)}
-                                        >
-                                            Cancel question edit
-                                        </button>
-                                    </>
-                                ) : (
-                                    <>
-                                        <label>
-                                            Points
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                step="any"
-                                                value={q.points}
-                                                onChange={(e) =>
+                <details className="lesson-accordion panel" key={draft.key}>
+                    <summary>
+                        Quiz {index + 1}: {draft.content.title || "Untitled quiz"}
+                        <span className="muted small">
+                            {" "}
+                            · {draft.content.questions.length} questions
+                        </span>
+                    </summary>
+                    <fieldset className="form-grid" disabled={busy}>
+                        <legend>Quiz {index + 1}</legend>
+                        <label>
+                            Quiz title
+                            <input
+                                value={draft.content.title}
+                                onChange={(e) => update(draft.key, { title: e.target.value })}
+                            />
+                        </label>
+                        <label>
+                            Quiz description
+                            <textarea
+                                value={draft.content.description ?? ""}
+                                onChange={(e) =>
+                                    update(draft.key, { description: e.target.value || null })
+                                }
+                            />
+                        </label>
+                        <label className="checkbox-row">
+                            <input
+                                type="checkbox"
+                                checked={draft.content.settings.shuffleQuestions}
+                                onChange={(e) =>
+                                    update(draft.key, {
+                                        settings: {
+                                            ...draft.content.settings,
+                                            shuffleQuestions: e.target.checked,
+                                        },
+                                    })
+                                }
+                            />
+                            Shuffle questions
+                        </label>
+                        <label className="checkbox-row">
+                            <input
+                                type="checkbox"
+                                checked={draft.content.settings.showAnswersAfterCompletion}
+                                onChange={(e) =>
+                                    update(draft.key, {
+                                        settings: {
+                                            ...draft.content.settings,
+                                            showAnswersAfterCompletion: e.target.checked,
+                                        },
+                                    })
+                                }
+                            />
+                            Show answers after completion
+                        </label>
+                        <ol className="card-list">
+                            {draft.content.questions.map((q, qi) => (
+                                <li key={qi} className="panel">
+                                    <p>{q.content.prompt}</p>
+                                    {questionEdit?.key === draft.key &&
+                                    questionEdit.index === qi ? (
+                                        <>
+                                            <QuestionEditor
+                                                initial={q.content}
+                                                busy={busy}
+                                                submitLabel="Apply to draft"
+                                                onSave={(updated) => {
                                                     update(draft.key, {
                                                         questions: draft.content.questions.map(
                                                             (item, i) =>
                                                                 i === qi
-                                                                    ? {
-                                                                          ...item,
-                                                                          points: Number(
-                                                                              e.target.value,
-                                                                          ),
-                                                                      }
+                                                                    ? { ...item, content: updated }
                                                                     : item,
                                                         ),
-                                                    })
-                                                }
-                                            />
-                                        </label>
-                                        <div className="quiz-actions">
-                                            <button
-                                                type="button"
-                                                disabled={!!questionEdit}
-                                                onClick={() =>
-                                                    setQuestionEdit({ key: draft.key, index: qi })
-                                                }
-                                            >
-                                                Edit question
-                                            </button>
-                                            <button
-                                                type="button"
-                                                disabled={!!questionEdit || qi === 0}
-                                                onClick={() => {
-                                                    const questions = [...draft.content.questions];
-                                                    [questions[qi - 1], questions[qi]] = [
-                                                        questions[qi]!,
-                                                        questions[qi - 1]!,
-                                                    ];
-                                                    update(draft.key, { questions });
+                                                    });
+                                                    setQuestionEdit(null);
+                                                    return Promise.resolve();
                                                 }}
-                                            >
-                                                Move question up
-                                            </button>
+                                            />
                                             <button
                                                 type="button"
-                                                disabled={
-                                                    !!questionEdit ||
-                                                    draft.content.questions.length === 1
-                                                }
-                                                onClick={() =>
-                                                    update(draft.key, {
-                                                        questions: draft.content.questions.filter(
-                                                            (_, i) => i !== qi,
-                                                        ),
-                                                    })
-                                                }
+                                                className="secondary"
+                                                onClick={() => setQuestionEdit(null)}
                                             >
-                                                Remove question
+                                                Cancel question edit
                                             </button>
-                                        </div>
-                                    </>
-                                )}
-                            </li>
-                        ))}
-                    </ol>
-                    <div className="quiz-actions">
-                        <button
-                            type="button"
-                            disabled={!!questionEdit || index === 0}
-                            onClick={() => move(index, -1)}
-                        >
-                            Move quiz up
-                        </button>
-                        <button
-                            type="button"
-                            disabled={!!questionEdit || index === drafts.length - 1}
-                            onClick={() => move(index, 1)}
-                        >
-                            Move quiz down
-                        </button>
-                        <button
-                            type="button"
-                            disabled={!!questionEdit}
-                            onClick={() =>
-                                setDrafts((items) => items.filter((q) => q.key !== draft.key))
-                            }
-                        >
-                            Remove quiz
-                        </button>
-                    </div>
-                </fieldset>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <label>
+                                                Points
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    step="any"
+                                                    value={q.points}
+                                                    onChange={(e) =>
+                                                        update(draft.key, {
+                                                            questions: draft.content.questions.map(
+                                                                (item, i) =>
+                                                                    i === qi
+                                                                        ? {
+                                                                              ...item,
+                                                                              points: Number(
+                                                                                  e.target.value,
+                                                                              ),
+                                                                          }
+                                                                        : item,
+                                                            ),
+                                                        })
+                                                    }
+                                                />
+                                            </label>
+                                            <div className="quiz-actions">
+                                                <button
+                                                    type="button"
+                                                    disabled={!!questionEdit}
+                                                    onClick={() =>
+                                                        setQuestionEdit({
+                                                            key: draft.key,
+                                                            index: qi,
+                                                        })
+                                                    }
+                                                >
+                                                    Edit question
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={!!questionEdit || qi === 0}
+                                                    onClick={() => {
+                                                        const questions = [
+                                                            ...draft.content.questions,
+                                                        ];
+                                                        [questions[qi - 1], questions[qi]] = [
+                                                            questions[qi]!,
+                                                            questions[qi - 1]!,
+                                                        ];
+                                                        update(draft.key, { questions });
+                                                    }}
+                                                >
+                                                    Move question up
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={
+                                                        !!questionEdit ||
+                                                        draft.content.questions.length === 1
+                                                    }
+                                                    onClick={() =>
+                                                        update(draft.key, {
+                                                            questions:
+                                                                draft.content.questions.filter(
+                                                                    (_, i) => i !== qi,
+                                                                ),
+                                                        })
+                                                    }
+                                                >
+                                                    Remove question
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
+                                </li>
+                            ))}
+                        </ol>
+                        <div className="quiz-actions">
+                            <button
+                                type="button"
+                                disabled={!!questionEdit || index === 0}
+                                onClick={() => move(index, -1)}
+                            >
+                                Move quiz up
+                            </button>
+                            <button
+                                type="button"
+                                disabled={!!questionEdit || index === drafts.length - 1}
+                                onClick={() => move(index, 1)}
+                            >
+                                Move quiz down
+                            </button>
+                            <button
+                                type="button"
+                                disabled={!!questionEdit}
+                                onClick={() =>
+                                    setDrafts((items) => items.filter((q) => q.key !== draft.key))
+                                }
+                            >
+                                Remove quiz
+                            </button>
+                        </div>
+                    </fieldset>
+                </details>
             ))}
             {error ? (
                 <p role="alert" className="error-text">

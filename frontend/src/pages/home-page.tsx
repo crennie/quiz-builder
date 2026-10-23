@@ -15,7 +15,7 @@ export function HomePage() {
                     </div>
                 </div>
                 <h1 className="brand-wordmark">
-                    Quiz <span>Builder</span>
+                    Quiz<span>Builder</span>
                 </h1>
             </div>
             <p className="hero-copy">Choose where you want to start.</p>

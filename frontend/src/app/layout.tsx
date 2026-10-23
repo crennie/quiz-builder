@@ -11,9 +11,12 @@ export function AppLayout() {
         select: (state) => /^\/quizzes(?:\/|$)/u.test(state.location.pathname),
     });
     const pathname = useRouterState({ select: (state) => state.location.pathname });
+    const lessonWorkspace = /^\/courses\/[^/]+\/lessons\/[^/]+\/?$/u.test(pathname);
     const queryClient = useQueryClient();
     return (
-        <div className={`app-shell${quizWorkspace ? " quiz-workspace" : ""}`}>
+        <div
+            className={`app-shell${quizWorkspace ? " quiz-workspace" : ""}${lessonWorkspace ? " lesson-workspace" : ""}`}
+        >
             <header className="site-header">
                 <Link className={`brand${pathname === "/" ? " brand-home" : ""}`} to="/">
                     <span className="brand-mascot" aria-hidden="true">

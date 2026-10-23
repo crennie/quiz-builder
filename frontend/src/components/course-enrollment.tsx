@@ -37,8 +37,8 @@ export function CourseEnrollment({
         );
     if (progress.data.enrollment)
         return (
-            <p role="status" className="learning-status learning-status-complete">
-                <span aria-hidden="true">✓</span> Enrolled
+            <p role="status" className="learning-status muted">
+                Enrolled
                 {showMyCoursesLink ? (
                     <>
                         {" "}

@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useIsMutating, useMutation, useQueryClient } from "@tanstack/react-query";
 import { setLessonProgress } from "../api/courses";
 import { useCourseProgress } from "../api/use-course-progress";
 import { useAuth } from "../auth/auth-state";
@@ -7,20 +7,23 @@ export function LessonCompletion({
     courseId,
     lessonId,
     archived,
-    statusOnly = false,
+    compact = false,
 }: {
     courseId: string;
     lessonId: string;
     archived: boolean;
-    statusOnly?: boolean;
+    compact?: boolean;
 }) {
     const { session } = useAuth();
     const progress = useCourseProgress(courseId);
     const client = useQueryClient();
     const completed =
         progress.data?.completedLessons.some((lesson) => lesson.lessonId === lessonId) ?? false;
+    const mutationKey = ["lesson-completion", session?.user.id, lessonId];
+    const saving = useIsMutating({ mutationKey }) > 0;
     const save = useMutation({
-        mutationFn: () => setLessonProgress(lessonId, !completed),
+        mutationKey,
+        mutationFn: (checked: boolean) => setLessonProgress(lessonId, checked),
         onSuccess: async () => {
             await Promise.all([
                 client.invalidateQueries({
@@ -31,33 +34,32 @@ export function LessonCompletion({
         },
     });
     if (!session || !progress.data?.enrollment) return null;
-    const status = (
-        <p
-            role="status"
-            className={`learning-status ${completed ? "learning-status-complete" : "learning-status-incomplete"}`}
-        >
-            <span aria-hidden="true">{completed ? "✓" : "○"}</span>
-            {completed ? "Lesson complete" : "Lesson not completed"}
-        </p>
-    );
-    if (statusOnly) return status;
     return (
-        <section className="lesson-completion-panel" aria-label="Lesson completion">
-            {status}
-            <button
-                type="button"
-                disabled={archived || save.isPending || progress.isError}
-                onClick={() => save.mutate()}
+        <section
+            className={compact ? undefined : "lesson-completion-panel"}
+            aria-label="Lesson completion"
+        >
+            <label
+                className={`checkbox-row learning-status ${completed ? "learning-status-complete" : ""}`}
             >
-                {save.isPending
-                    ? "Saving…"
-                    : completed
-                      ? "Mark as incomplete"
-                      : "Mark lesson complete"}
-            </button>
-            <p className="muted small">
-                You decide when this lesson is complete. Quiz results do not change this status.
-            </p>
+                <input
+                    type="checkbox"
+                    checked={completed}
+                    disabled={archived || saving || progress.isError}
+                    onChange={(event) => save.mutate(event.target.checked)}
+                />
+                Lesson complete
+            </label>
+            {saving ? (
+                <span role="status" className="muted small">
+                    Saving…
+                </span>
+            ) : null}
+            {!compact ? (
+                <p className="muted small">
+                    You decide when this lesson is complete. Quiz results do not change this status.
+                </p>
+            ) : null}
             {save.isError ? <p role="alert">{save.error.message}</p> : null}
         </section>
     );

@@ -758,3 +758,9 @@ h1 {
 .lesson-completion-panel > :last-child {
     margin-bottom: 0;
 }
+
+.lesson-workspace .page-content {
+    width: 100%;
+    max-width: none;
+    padding-inline: clamp(1rem, 3vw, 3rem);
+}

@@ -462,20 +462,24 @@ function ResultView({
                     Submitted{" "}
                     {attempt.completedAt ? new Date(attempt.completedAt).toLocaleString() : "—"}
                 </p>
-                <p className="result-score">
-                    {score
-                        ? `${score.pointsAwarded} / ${score.pointsPossible} points`
-                        : "Score unavailable"}
-                </p>
-                <p className={styles.percentage}>
-                    {percentage !== null
-                        ? `${Number(percentage.toFixed(2))}%`
-                        : "Percentage unavailable"}
-                </p>
-                <p className={styles.grade}>
-                    <span className="sr-only">Letter grade: </span>
-                    {percentage !== null ? letterGrade(percentage) : "Not graded"}
-                </p>
+                <div className={styles.resultContent}>
+                    <div className={styles.gradeColumn}>
+                        <p className={styles.grade}>
+                            <span className="sr-only">Letter grade: </span>
+                            {percentage !== null ? letterGrade(percentage) : "Not graded"}
+                        </p>
+                        <p className={styles.percentage}>
+                            {percentage !== null
+                                ? `${Number(percentage.toFixed(2))}%`
+                                : "Percentage unavailable"}
+                        </p>
+                    </div>
+                    <p className="result-score">
+                        {score
+                            ? `${score.pointsAwarded} / ${score.pointsPossible} points`
+                            : "Score unavailable"}
+                    </p>
+                </div>
             </section>
             <section aria-label="Question review">
                 <h2>Question review</h2>

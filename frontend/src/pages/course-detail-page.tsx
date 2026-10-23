@@ -1,8 +1,9 @@
+import { usePlatformAdmin } from "../api/use-platform-admin";
 import { useState } from "react";
 import { useCourseProgress } from "../api/use-course-progress";
 import { CourseEnrollment } from "../components/course-enrollment";
 import { ArchiveCourseButton } from "../components/archive-course-button";
-import type { Lesson } from "@quiz-builder/contracts";
+import type { LessonSummary } from "@quiz-builder/contracts";
 import { listLessonAttempts } from "../api/attempts";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
@@ -16,6 +17,7 @@ export function CourseDetailPage() {
     return <CourseDetailContent key={`${courseId}:${session?.user.id ?? "anonymous"}`} />;
 }
 function CourseDetailContent() {
+    const isPlatformAdmin = usePlatformAdmin();
     const { courseId } = useParams({ from: "/courses/$courseId" });
     const { session } = useAuth();
     const [editing, setEditing] = useState(false);
@@ -28,6 +30,8 @@ function CourseDetailContent() {
         enabled: course.isSuccess,
     });
     const progress = useCourseProgress(courseId);
+    const canRead =
+        isPlatformAdmin || (!!session && !!progress.data?.enrollment && !progress.isError);
     const items = lessons.data?.pages.flatMap((page) => page.items) ?? [];
     return (
         <div className="page-stack">
@@ -45,7 +49,7 @@ function CourseDetailContent() {
                         <p className="eyebrow">Course overview</p>
                         <div className={styles.titleRow}>
                             <h1 title={course.data.title}>{course.data.title}</h1>
-                            {session && !course.data.archivedAt ? (
+                            {isPlatformAdmin && !course.data.archivedAt ? (
                                 <button
                                     type="button"
                                     className="text-button"
@@ -70,11 +74,11 @@ function CourseDetailContent() {
                             </p>
                         ) : null}
                         <CourseEnrollment course={course.data} />
-                        {session ? <ArchiveCourseButton course={course.data} /> : null}
+                        {isPlatformAdmin ? <ArchiveCourseButton course={course.data} /> : null}
                         {course.data.description ? (
                             <p className={styles.description}>{course.data.description}</p>
                         ) : null}
-                        {items[0] ? (
+                        {canRead && items[0] ? (
                             <Link
                                 className="button"
                                 to="/courses/$courseId/lessons/$lessonId"
@@ -87,7 +91,7 @@ function CourseDetailContent() {
                     <section className="page-stack" aria-labelledby="course-lessons-title">
                         <div className="section-heading">
                             <h2 id="course-lessons-title">Lessons</h2>
-                            {session && editing && !course.data.archivedAt ? (
+                            {isPlatformAdmin && editing && !course.data.archivedAt ? (
                                 <Link to="/courses/$courseId/import" params={{ courseId }}>
                                     Import lessons
                                 </Link>
@@ -105,46 +109,52 @@ function CourseDetailContent() {
                                 <p>This course has no lessons yet.</p>
                             </div>
                         ) : null}
+                        {!canRead ? (
+                            <p className="muted">Enroll in this course to read its lessons.</p>
+                        ) : null}
                         <ol className={styles.lessonList}>
                             {items.map((lesson, index) => (
                                 <li key={lesson.id}>
-                                    <Link
-                                        className={styles.lessonCard}
-                                        to="/courses/$courseId/lessons/$lessonId"
-                                        params={{ courseId, lessonId: lesson.id }}
-                                    >
-                                        <span className={styles.lessonNumber} aria-hidden="true">
-                                            {String(index + 1).padStart(2, "0")}
-                                        </span>
-                                        <div>
-                                            <h3>{lesson.title}</h3>
-                                            {lesson.description ? (
-                                                <p className={styles.excerpt}>
-                                                    {lesson.description}
-                                                </p>
-                                            ) : null}
-                                            <span className="muted small">
-                                                {Math.max(
-                                                    1,
-                                                    Math.ceil(
-                                                        lesson.content.split(/\s+/u).length / 200,
-                                                    ),
-                                                )}{" "}
-                                                min read
+                                    {canRead ? (
+                                        <Link
+                                            className={styles.lessonCard}
+                                            to="/courses/$courseId/lessons/$lessonId"
+                                            params={{ courseId, lessonId: lesson.id }}
+                                        >
+                                            <span
+                                                className={styles.lessonNumber}
+                                                aria-hidden="true"
+                                            >
+                                                {String(index + 1).padStart(2, "0")}
                                             </span>
-                                            {progress.data?.enrollment ? (
-                                                <p className="small">
-                                                    {progress.data.completedLessons.some(
-                                                        (item) => item.lessonId === lesson.id,
-                                                    )
-                                                        ? "✓ Lesson complete"
-                                                        : "Lesson not completed"}
-                                                </p>
-                                            ) : null}
-                                            <LessonQuizProgress lesson={lesson} />
+                                            <div>
+                                                <h3>{lesson.title}</h3>
+                                                {lesson.description ? (
+                                                    <p className={styles.excerpt}>
+                                                        {lesson.description}
+                                                    </p>
+                                                ) : null}
+                                                {progress.data?.enrollment ? (
+                                                    <p className="small">
+                                                        {progress.data.completedLessons.some(
+                                                            (item) => item.lessonId === lesson.id,
+                                                        )
+                                                            ? "✓ Lesson complete"
+                                                            : "Lesson not completed"}
+                                                    </p>
+                                                ) : null}
+                                                <LessonQuizProgress lesson={lesson} />
+                                            </div>
+                                            <span aria-hidden="true">→</span>
+                                        </Link>
+                                    ) : (
+                                        <div className={styles.lessonCard}>
+                                            <span className={styles.lessonNumber}>
+                                                {String(index + 1).padStart(2, "0")}
+                                            </span>
+                                            <h3>{lesson.title}</h3>
                                         </div>
-                                        <span aria-hidden="true">→</span>
-                                    </Link>
+                                    )}
                                 </li>
                             ))}
                         </ol>
@@ -164,10 +174,10 @@ function CourseDetailContent() {
     );
 }
 
-function LessonQuizProgress({ lesson }: { lesson: Lesson }) {
+function LessonQuizProgress({ lesson }: { lesson: LessonSummary }) {
     const { session } = useAuth();
     const quizzes = useQuery({
-        queryKey: ["lesson-quizzes", lesson.id, lesson.updatedAt],
+        queryKey: ["lesson-quizzes", lesson.id, session?.user.id, lesson.updatedAt],
         queryFn: () => listLessonQuizzes(lesson.id),
     });
     const attempts = useQuery({

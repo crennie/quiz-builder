@@ -1,3 +1,4 @@
+import { usePlatformAdmin } from "../api/use-platform-admin";
 import { useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -15,6 +16,7 @@ import { Modal } from "../components/modal";
 import styles from "./course-pages.module.css";
 
 export function ImportCoursePage({ courseId }: { courseId?: string }) {
+    const isPlatformAdmin = usePlatformAdmin();
     const navigate = useNavigate();
     const client = useQueryClient();
     const course = useQuery({
@@ -111,6 +113,9 @@ export function ImportCoursePage({ courseId }: { courseId?: string }) {
             setBusy(false);
         }
     }
+
+    if (!isPlatformAdmin)
+        return <p>Platform administrator access is required to import courses or lessons.</p>;
 
     return (
         <div className="page-stack narrow">

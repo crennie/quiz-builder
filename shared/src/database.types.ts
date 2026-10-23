@@ -123,12 +123,15 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
+                    is_platform_admin: boolean;
                     "avatar_url": string | null,"created_at": string,"display_name": string,"id": string,"updated_at": string
                   }
                   Insert: {
+                    is_platform_admin?: boolean;
                     "avatar_url"?: string | null,"created_at"?: string,"display_name": string,"id": string,"updated_at"?: string
                   }
                   Update: {
+                    is_platform_admin?: boolean;
                     "avatar_url"?: string | null,"created_at"?: string,"display_name"?: string,"id"?: string,"updated_at"?: string
                   }
                   Relationships: [

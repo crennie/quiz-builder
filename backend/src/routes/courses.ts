@@ -14,6 +14,8 @@ import {
     lessonListResponseSchema,
     lessonQuizListResponseSchema,
 } from "@quiz-builder/contracts";
+import { requirePlatformAdmin } from "../middleware/platform-admin.ts";
+import { pool } from "../db/index.ts";
 import { Router } from "express";
 import { validateRequest } from "../api/request.ts";
 import { sendResponse } from "../api/response.ts";
@@ -30,6 +32,7 @@ import {
     getCourse,
     listCourseLessons,
     getLessonDetail,
+    getLesson,
     listLessonQuizzes,
 } from "../db/courses.ts";
 import { importCourseContent } from "../db/course-imports.ts";
@@ -37,6 +40,7 @@ import { requireAuthentication, optionalAuthentication } from "../middleware/aut
 import { AppError } from "../errors/app-error.ts";
 import { saveLesson } from "../db/lesson-editing.ts";
 import {
+    assertCourseEnrollment,
     enrollInCourse,
     getCourseProgress,
     listEnrolledCourses,
@@ -82,47 +86,72 @@ courseRouter.put("/lessons/:lessonId/progress", requireAuthentication, async (re
 });
 
 // Writes authenticate before public read middleware to avoid verifying tokens twice.
-courseRouter.post("/courses/import", requireAuthentication, async (req, res) => {
-    const { body } = validateRequest(req, { body: courseImportBodySchema });
-    const userId = req.authenticatedUser?.id;
-    if (!userId) throw new Error("Authenticated user is missing");
-    sendResponse(
-        res,
-        201,
-        courseImportResultSchema,
-        await importCourseContent(userId, body.importKey, body.content),
-    );
-});
-courseRouter.post("/courses/:courseId/lessons/import", requireAuthentication, async (req, res) => {
-    const { params, body } = validateRequest(req, {
-        params: courseParamsSchema,
-        body: lessonImportBodySchema,
-    });
-    const userId = req.authenticatedUser?.id;
-    if (!userId) throw new Error("Authenticated user is missing");
-    sendResponse(
-        res,
-        201,
-        courseImportResultSchema,
-        await importCourseContent(userId, body.importKey, body.content, params.courseId),
-    );
-});
-courseRouter.put("/lessons/:lessonId", requireAuthentication, async (req, res) => {
-    const { params, body } = validateRequest(req, {
-        params: lessonParamsSchema,
-        body: saveLessonBodySchema,
-    });
-    const userId = req.authenticatedUser?.id;
-    if (!userId) throw new Error("Authenticated user is missing");
-    sendResponse(res, 200, lessonDetailSchema, await saveLesson(params.lessonId, userId, body));
-});
-courseRouter.put("/courses/:courseId/archive", requireAuthentication, async (req, res) => {
-    const { params, body } = validateRequest(req, {
-        params: courseParamsSchema,
-        body: courseArchiveBodySchema,
-    });
-    sendResponse(res, 200, courseSchema, await setCourseArchived(params.courseId, body.archived));
-});
+courseRouter.post(
+    "/courses/import",
+    requireAuthentication,
+    requirePlatformAdmin,
+    async (req, res) => {
+        const { body } = validateRequest(req, { body: courseImportBodySchema });
+        const userId = req.authenticatedUser?.id;
+        if (!userId) throw new Error("Authenticated user is missing");
+        sendResponse(
+            res,
+            201,
+            courseImportResultSchema,
+            await importCourseContent(userId, body.importKey, body.content),
+        );
+    },
+);
+courseRouter.post(
+    "/courses/:courseId/lessons/import",
+    requireAuthentication,
+    requirePlatformAdmin,
+    async (req, res) => {
+        const { params, body } = validateRequest(req, {
+            params: courseParamsSchema,
+            body: lessonImportBodySchema,
+        });
+        const userId = req.authenticatedUser?.id;
+        if (!userId) throw new Error("Authenticated user is missing");
+        sendResponse(
+            res,
+            201,
+            courseImportResultSchema,
+            await importCourseContent(userId, body.importKey, body.content, params.courseId),
+        );
+    },
+);
+courseRouter.put(
+    "/lessons/:lessonId",
+    requireAuthentication,
+    requirePlatformAdmin,
+    async (req, res) => {
+        const { params, body } = validateRequest(req, {
+            params: lessonParamsSchema,
+            body: saveLessonBodySchema,
+        });
+        const userId = req.authenticatedUser?.id;
+        if (!userId) throw new Error("Authenticated user is missing");
+        sendResponse(res, 200, lessonDetailSchema, await saveLesson(params.lessonId, userId, body));
+    },
+);
+courseRouter.put(
+    "/courses/:courseId/archive",
+    requireAuthentication,
+    requirePlatformAdmin,
+    async (req, res) => {
+        const { params, body } = validateRequest(req, {
+            params: courseParamsSchema,
+            body: courseArchiveBodySchema,
+        });
+        sendResponse(
+            res,
+            200,
+            courseSchema,
+            await setCourseArchived(params.courseId, body.archived),
+        );
+    },
+);
 courseRouter.use(["/courses", "/lessons"], optionalAuthentication);
 courseRouter.get("/courses", async (req, res) => {
     const { query } = validateRequest(req, { query: courseListQuerySchema });
@@ -148,6 +177,7 @@ courseRouter.get("/courses/:courseId/lessons", async (req, res) => {
 });
 courseRouter.get("/lessons/:lessonId", async (req, res) => {
     const { params } = validateRequest(req, { params: lessonParamsSchema });
+    await assertLessonReadAccess(params.lessonId, req.currentProfile);
     sendResponse(res, 200, lessonDetailSchema, await getLessonDetail(params.lessonId));
 });
 courseRouter.get("/lessons/:lessonId/quizzes", async (req, res) => {
@@ -155,6 +185,7 @@ courseRouter.get("/lessons/:lessonId/quizzes", async (req, res) => {
         params: lessonParamsSchema,
         query: contentListQuerySchema,
     });
+    await assertLessonReadAccess(params.lessonId, req.currentProfile);
     sendResponse(
         res,
         200,
@@ -162,3 +193,13 @@ courseRouter.get("/lessons/:lessonId/quizzes", async (req, res) => {
         await listLessonQuizzes(params.lessonId, req.authenticatedUser?.id ?? null, query),
     );
 });
+
+async function assertLessonReadAccess(
+    lessonId: string,
+    profile: { id: string; isPlatformAdmin: boolean } | undefined,
+) {
+    if (profile?.isPlatformAdmin) return;
+    if (!profile) throw new AppError(401, "UNAUTHORIZED", "Sign in and enroll to read this lesson");
+    const lesson = await getLesson(lessonId);
+    await assertCourseEnrollment(lesson.courseId, profile.id, pool);
+}

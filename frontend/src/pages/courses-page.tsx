@@ -1,3 +1,4 @@
+import { usePlatformAdmin } from "../api/use-platform-admin";
 import { CourseEnrollment } from "../components/course-enrollment";
 import { useState } from "react";
 import { ArchiveCourseButton } from "../components/archive-course-button";
@@ -8,6 +9,7 @@ import { useAuth } from "../auth/auth-state";
 import styles from "./course-pages.module.css";
 
 export function CoursesPage() {
+    const isPlatformAdmin = usePlatformAdmin();
     const { session } = useAuth();
     const [showArchived, setShowArchived] = useState(false);
     const archived = !!session && showArchived;
@@ -28,7 +30,7 @@ export function CoursesPage() {
                         Make room for a new idea. Explore a course, one lesson at a time.
                     </p>
                 </div>
-                {session ? (
+                {isPlatformAdmin ? (
                     <Link className="button" to="/courses/import">
                         Import course
                     </Link>
@@ -64,12 +66,7 @@ export function CoursesPage() {
             {courses.isSuccess && !items.length ? (
                 <div className="message-panel">
                     <h2>A place for your next discovery</h2>
-                    <p>
-                        {archived
-                            ? "No archived courses."
-                            : "No courses yet. Import a course to share something worth learning."}
-                    </p>
-                    {!session ? <Link to="/sign-in">Sign in to import a course</Link> : null}
+                    <p>{archived ? "No archived courses." : "No courses yet. Check back soon."}</p>
                 </div>
             ) : null}
             <ul className={styles.grid} aria-label="Courses">
@@ -91,7 +88,7 @@ export function CoursesPage() {
                         </Link>
                         <div className={styles.cardActions}>
                             <CourseEnrollment course={course} />
-                            {session ? <ArchiveCourseButton course={course} /> : null}
+                            {isPlatformAdmin ? <ArchiveCourseButton course={course} /> : null}
                         </div>
                     </li>
                 ))}

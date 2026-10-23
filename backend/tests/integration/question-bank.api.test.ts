@@ -63,6 +63,7 @@ describe("question bank API", () => {
         vi.mocked(verifyAccessToken).mockResolvedValue({ id: userId, userMetadata: {} });
         vi.mocked(getOrCreateProfile).mockResolvedValue({
             id: userId,
+            isPlatformAdmin: false,
             displayName: "Test User",
             avatarUrl: null,
             createdAt: new Date(timestamp),

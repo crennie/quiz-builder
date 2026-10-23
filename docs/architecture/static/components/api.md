@@ -12,7 +12,7 @@ same integrity boundary for direct SQL. Deadlocks reject a transaction without w
 
 `evaluation/deterministic.ts` grades validated snapshots synchronously. Feedback recipient joins use
 attempt/quiz/question identities directly. Course reads use title/UUID or position ordering and
-pagination. Signed-in JSON imports create courses or append lessons atomically. OpenAPI registers
+pagination. Platform admin JSON imports create courses or append lessons atomically. OpenAPI registers
 only active operations.
 
 Quiz archive/restore uses `PUT /quizzes/:quizId/archive` with `{ archived: boolean }` for owned
@@ -22,7 +22,7 @@ Attempt answer saves replace earlier responses and re-evaluate them until the at
 
 `POST /courses/import` accepts `{ importKey, content: { title, description?, lessons? } }`.
 `POST /courses/:courseId/lessons/import` accepts `{ importKey, content: { lessons } }`.
-Both return `{ courseId, lessonIds }` and allow any verified signed-in user. Retrying the same key
+Both return `{ courseId, lessonIds }` and require a verified platform admin. Retrying the same key
 and normalized payload reuses the receipt; changed payloads return 409. Strict schemas reject quiz
 attachments. `GET /lessons/:lessonId` includes previous/next lesson links for reading navigation.
 
@@ -32,7 +32,7 @@ standalone attempt and is rejected for lesson-associated quizzes. Existing bodyl
 clients remain supported. Removed lesson quizzes cannot start new attempts.
 
 `PUT /lessons/:lessonId` accepts lesson `title`, `description`, `content`, `expectedUpdatedAt`, and
-an ordered `quizzes` array. Any authenticated user may save any lesson. Entries use either
+an ordered `quizzes` array. Only platform admins may save lessons. Entries use either
 `{ import: LessonQuizContent }` for inline JSON imports or `{ id, content: LessonQuizContent }`
 for an existing active association in that lesson. Arbitrary quiz IDs cannot be attached.
 Quiz documents include title, description, settings, and ordered questions with validated full
@@ -58,3 +58,7 @@ not a throughput guarantee. Existing schema limits still apply: 100 lessons per 
 For larger courses, append lessons in separate imports. Revisit the byte and aggregate
 content-count limits using measured import latency and concurrent memory/database load
 before increasing them further.
+
+Course and lesson summary reads remain public. Lesson summaries omit `content`; full lesson and
+lesson quiz reads require enrollment or platform admin access. `/me` exposes read-only
+`isPlatformAdmin`; no API can change this database-managed flag. See ADR-015.

@@ -259,13 +259,17 @@ describe("HTTP and database core workflows", () => {
             "INSERT INTO public.lessons(course_id,title,position) VALUES($1,'Second',1),($1,'First',0) RETURNING id",
             [id],
         );
+        const summaries = await call<Page<{ title: string }>>("get", `/courses/${id}/lessons`);
+        expect(summaries.status).toBe(200);
+        expect(summaries.body.items.map((lesson) => lesson.title)).toEqual(["First", "Second"]);
+        expect(summaries.body.items[0]).not.toHaveProperty("content");
+        expect((await call("get", `/lessons/${lessons.rows[0].id}`)).status).toBe(401);
+        expect((await call("get", `/lessons/${lessons.rows[0].id}`, "learner")).status).toBe(403);
+        expect((await call("put", `/courses/${id}/enrollment`, "learner")).status).toBe(200);
+        expect((await call("get", `/lessons/${lessons.rows[0].id}`, "learner")).status).toBe(200);
         expect(
-            (await call<Page<{ title: string }>>("get", `/courses/${id}/lessons`)).body.items.map(
-                (l) => l.title,
-            ),
-        ).toEqual(["First", "Second"]);
-        expect((await call("get", `/lessons/${lessons.rows[0].id}`)).status).toBe(200);
-        expect((await call("get", `/lessons/${lessons.rows[0].id}/quizzes`)).status).toBe(200);
+            (await call("get", `/lessons/${lessons.rows[0].id}/quizzes`, "learner")).status,
+        ).toBe(200);
         expect((await call("get", "/courses?limit=1")).status).toBe(200);
         expect((await call("get", `/courses/${id}`)).status).toBe(200);
         expect((await call("post", "/courses", "author", { title: "Write" })).status).toBe(404);

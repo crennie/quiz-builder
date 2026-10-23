@@ -5,6 +5,7 @@ import { pool } from "./index.ts";
 export type Profile = Readonly<{
     id: string;
     displayName: string;
+    isPlatformAdmin: boolean;
     avatarUrl: string | null;
     createdAt: Date;
     updatedAt: Date;
@@ -13,6 +14,7 @@ export type Profile = Readonly<{
 type ProfileRow = {
     id: string;
     display_name: string;
+    is_platform_admin: boolean;
     avatar_url: string | null;
     created_at: Date;
     updated_at: Date;
@@ -50,7 +52,7 @@ export async function getOrCreateProfile(user: AuthenticatedUser): Promise<Profi
     );
 
     const result = await pool.query<ProfileRow>(
-        `SELECT id, display_name, avatar_url, created_at, updated_at
+        `SELECT id, display_name, is_platform_admin, avatar_url, created_at, updated_at
          FROM public.profiles
          WHERE id = $1`,
         [user.id],
@@ -62,6 +64,7 @@ export async function getOrCreateProfile(user: AuthenticatedUser): Promise<Profi
     return {
         id: row.id,
         displayName: row.display_name,
+        isPlatformAdmin: row.is_platform_admin,
         avatarUrl: row.avatar_url,
         createdAt: row.created_at,
         updatedAt: row.updated_at,

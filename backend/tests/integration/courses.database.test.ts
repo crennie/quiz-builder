@@ -13,6 +13,23 @@ describe("public course hierarchy", () => {
         s = await testDatabase();
     });
     afterAll(async () => s.db.close());
+    it("defaults profiles to non-admin and permits explicit database administration", async () => {
+        expect(
+            (
+                await s.sql.query("SELECT is_platform_admin FROM public.profiles WHERE id=$1", [
+                    owner,
+                ])
+            ).rows[0],
+        ).toEqual({ is_platform_admin: false });
+        await s.sql.query("UPDATE public.profiles SET is_platform_admin=true WHERE id=$1", [owner]);
+        expect(
+            (
+                await s.sql.query("SELECT is_platform_admin FROM public.profiles WHERE id=$1", [
+                    owner,
+                ])
+            ).rows[0],
+        ).toEqual({ is_platform_admin: true });
+    });
     it("enforces course ownership of ordered lessons, movement, reuse, and public quiz associations", async () => {
         const { db, sql } = s;
         const courses = await sql.query<{ id: string }>(
@@ -79,6 +96,9 @@ describe("public course hierarchy", () => {
         expect(
             (await listCourseLessons(a, { limit: 50, offset: 0 }, sql)).items.map((l) => l.id),
         ).toEqual([first]);
+        expect(
+            (await listCourseLessons(a, { limit: 50, offset: 0 }, sql)).items[0],
+        ).not.toHaveProperty("content");
         expect(
             (await listLessonQuizzes(second, null, { limit: 50, offset: 0 }, sql)).items[0],
         ).toMatchObject({ quizId: quiz.id, position: 0, quiz: { isOwner: false } });

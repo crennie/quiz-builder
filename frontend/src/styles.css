@@ -12,6 +12,7 @@
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     color-scheme: light dark;
+    --site-texture: url("/brand/study-weave.svg");
     --layout-max-width: 100rem;
     --page-gutter: clamp(1rem, 3vw, 3rem);
     --ink: light-dark(#18201d, #cec6d8);
@@ -31,6 +32,13 @@
 
 :root[data-theme="dark"] {
     color-scheme: dark;
+    --site-texture: none;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --site-texture: none;
+    }
 }
 
 * {
@@ -40,6 +48,8 @@ body {
     margin: 0;
     min-width: 320px;
     min-height: 100vh;
+    background-image: var(--site-texture);
+    background-size: 360px 300px;
 }
 a {
     color: var(--accent);
@@ -133,40 +143,53 @@ a:focus-visible {
 .site-header nav {
     display: flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: clamp(1rem, 2vw, 2rem);
     flex-wrap: wrap;
 }
 .site-header .nav-link {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     min-height: 2.75rem;
-    padding: 0.65rem 0.95rem;
-    border: 1px solid transparent;
-    border-radius: 0.65rem;
+    padding: 0.65rem 0.1rem;
     color: var(--muted);
     font-size: 0.9rem;
-    font-weight: 650;
+    font-weight: 600;
+    letter-spacing: 0.01em;
     line-height: 1.2;
     text-decoration: none;
     white-space: nowrap;
+    transition: color 180ms ease;
+}
+.site-header .nav-link::after {
+    content: "";
+    position: absolute;
+    inset: auto 0.1rem 0.1rem;
+    height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    opacity: 0;
     transition:
-        color 160ms ease,
-        background-color 160ms ease,
-        border-color 160ms ease;
+        transform 180ms ease,
+        opacity 180ms ease;
 }
-.site-header .nav-link:hover {
-    color: var(--ink);
-    background: var(--highlight);
-}
+.site-header .nav-link:hover,
+.site-header .nav-link:focus-visible,
 .site-header .nav-link[data-status="active"] {
     color: var(--accent);
-    background: var(--highlight);
-    border-color: var(--border);
-    box-shadow: inset 0 -2px 0 var(--accent);
+}
+.site-header .nav-link:hover::after,
+.site-header .nav-link:focus-visible::after {
+    transform: scaleX(0.4);
+    opacity: 0.45;
+}
+.site-header .nav-link[data-status="active"]::after {
+    transform: scaleX(1);
+    opacity: 1;
 }
 .site-header .nav-sign-in {
-    border-color: var(--border);
     color: var(--accent);
 }
 .brand {
@@ -731,10 +754,8 @@ h1 {
 @media (max-width: 48rem) {
     .site-header nav {
         width: 100%;
-        gap: 0.25rem;
-    }
-    .site-header .nav-link {
-        padding-inline: 0.65rem;
+        column-gap: 1rem;
+        row-gap: 0.25rem;
     }
 }
 
@@ -857,7 +878,8 @@ h1 {
     .brand-mascot,
     .brand-mascot img,
     .theme-switch::before,
-    .site-header .nav-link {
+    .site-header .nav-link,
+    .site-header .nav-link::after {
         transition: none;
     }
     .brand-mascot::before,

@@ -310,3 +310,28 @@
     flex-shrink: 0;
     font-size: 0.9rem;
 }
+
+.articleHeader {
+    display: flow-root;
+}
+.lessonEdit {
+    float: right;
+    margin: 0 0 0.75rem 1rem;
+    font-size: 0.9rem;
+}
+.articleHeader h1 {
+    clear: both;
+}
+.learningStatus {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.5rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 0.8rem;
+    background: var(--surface);
+}
+.learningStatus p {
+    margin: 0;
+}

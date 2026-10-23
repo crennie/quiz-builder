@@ -636,37 +636,72 @@ h1 {
     display: none;
 }
 
-/* Keep the mascot mounted to animate route changes in both directions. */
+/* Reserve the mascot's space so the wordmark stays still on route changes. */
 .brand-mascot {
+    position: relative;
     display: block;
+    flex: 0 0 48px;
     width: 48px;
+    height: 48px;
     margin-right: 0.55rem;
     overflow: hidden;
-    opacity: 1;
-    transition:
-        width 240ms ease,
-        margin-right 240ms ease;
+}
+.brand-mascot::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 8%;
+    width: 12px;
+    height: 84%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, #000c, #0006 45%, transparent 72%);
+    opacity: 0;
+    animation: mascot-opening-out 480ms ease-in-out;
+}
+.brand-home .brand-mascot::before {
+    animation-name: mascot-opening-in;
 }
 .brand-mascot img {
+    position: relative;
     transform: translateX(0);
     transition:
-        opacity 180ms ease,
-        transform 240ms ease;
-}
-.brand-home .brand-mascot {
-    width: 0;
-    margin-right: 0;
-    transition-delay: 180ms;
+        opacity 240ms ease 80ms,
+        transform 320ms ease 80ms;
 }
 .brand-home .brand-mascot img {
     opacity: 0;
     transform: translateX(-100%);
+}
+@keyframes mascot-opening-in {
+    0%,
+    100% {
+        opacity: 0;
+        transform: scaleY(0.2);
+    }
+    20%,
+    75% {
+        opacity: 1;
+        transform: scaleY(1);
+    }
+}
+@keyframes mascot-opening-out {
+    0%,
+    100% {
+        opacity: 0;
+        transform: scaleY(0.2);
+    }
+    20%,
+    75% {
+        opacity: 1;
+        transform: scaleY(1);
+    }
 }
 @media (prefers-reduced-motion: reduce) {
     .brand-mascot,
     .brand-mascot img {
         transition: none;
     }
+    .brand-mascot::before,
     .hero-mascot-rise,
     .hero-mascot img,
     .hero-mascot-shadow {
@@ -692,4 +727,34 @@ h1 {
 .lesson-quiz-completed {
     color: var(--accent);
     font-weight: 600;
+}
+
+.learning-status {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.9rem;
+    font-weight: 650;
+}
+.learning-status-complete {
+    color: light-dark(#22653b, #8ed5a5);
+}
+.learning-status-incomplete {
+    color: light-dark(#795219, #e5bd77);
+}
+.learning-status > span[aria-hidden] {
+    font-size: 1.2rem;
+}
+.lesson-completion-panel {
+    margin-top: 2rem;
+    padding: 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 0.8rem;
+    background: var(--highlight);
+}
+.lesson-completion-panel > :first-child {
+    margin-top: 0;
+}
+.lesson-completion-panel > :last-child {
+    margin-bottom: 0;
 }

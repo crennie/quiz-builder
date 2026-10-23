@@ -188,7 +188,12 @@ a:focus-visible {
     inset: auto 7% 3%;
     height: 14%;
     border-radius: 50%;
-    background: radial-gradient(ellipse, rgb(0 0 0 / 32%), rgb(0 0 0 / 12%) 45%, transparent 72%);
+    background: radial-gradient(
+        ellipse,
+        light-dark(rgb(0 0 0 / 32%), rgb(0 0 0 / 90%)),
+        light-dark(rgb(0 0 0 / 12%), rgb(0 0 0 / 55%)) 45%,
+        transparent 72%
+    );
     transform: scale(0.85);
     opacity: 0.65;
     animation:
@@ -643,7 +648,7 @@ h1 {
         margin-right 240ms ease;
 }
 .brand-mascot img {
-    transform: translateY(0);
+    transform: translateX(0);
     transition:
         opacity 180ms ease,
         transform 240ms ease;
@@ -655,7 +660,7 @@ h1 {
 }
 .brand-home .brand-mascot img {
     opacity: 0;
-    transform: translateY(100%);
+    transform: translateX(-100%);
 }
 @media (prefers-reduced-motion: reduce) {
     .brand-mascot,

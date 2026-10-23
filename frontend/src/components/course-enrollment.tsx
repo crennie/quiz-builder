@@ -5,7 +5,13 @@ import { enrollInCourse } from "../api/courses";
 import { useCourseProgress } from "../api/use-course-progress";
 import { useAuth } from "../auth/auth-state";
 
-export function CourseEnrollment({ course }: { course: Course }) {
+export function CourseEnrollment({
+    course,
+    showMyCoursesLink = true,
+}: {
+    course: Course;
+    showMyCoursesLink?: boolean;
+}) {
     const { session } = useAuth();
     const progress = useCourseProgress(course.id);
     const client = useQueryClient();
@@ -31,8 +37,14 @@ export function CourseEnrollment({ course }: { course: Course }) {
         );
     if (progress.data.enrollment)
         return (
-            <p role="status">
-                Enrolled · <Link to="/courses/mine">My Courses</Link>
+            <p role="status" className="learning-status learning-status-complete">
+                <span aria-hidden="true">✓</span> Enrolled
+                {showMyCoursesLink ? (
+                    <>
+                        {" "}
+                        · <Link to="/courses/mine">My Courses</Link>
+                    </>
+                ) : null}
             </p>
         );
     if (course.archivedAt) return <p className="muted">Restore this course to enroll.</p>;

@@ -86,53 +86,54 @@ function LessonPageContent() {
                     This course is archived. Existing attempts and results remain available.
                 </p>
             ) : null}
+            <div className={styles.learningStatus} aria-label="Your learning status">
+                {course.data ? (
+                    <CourseEnrollment course={course.data} showMyCoursesLink={false} />
+                ) : null}
+                <LessonCompletion
+                    courseId={courseId}
+                    lessonId={lessonId}
+                    archived={!course.data || !!course.data.archivedAt}
+                    statusOnly
+                />
+            </div>
             <div className={styles.readingLayout}>
                 <article className={`panel ${styles.article}`} aria-labelledby="lesson-title">
                     <header className={styles.articleHeader}>
+                        {session ? (
+                            <button
+                                type="button"
+                                className={`text-button ${styles.lessonEdit}`}
+                                aria-label="Edit lesson"
+                                disabled={
+                                    !course.data ||
+                                    !!course.data.archivedAt ||
+                                    playing ||
+                                    !quizzes.data ||
+                                    quizzes.isFetching ||
+                                    lesson.isFetching
+                                }
+                                onClick={() => {
+                                    if (quizzes.data)
+                                        setEditing({ lesson: data, quizzes: quizzes.data });
+                                }}
+                            >
+                                <span aria-hidden="true">✎</span> Edit
+                            </button>
+                        ) : (
+                            <p className="muted small">Sign in to edit this lesson.</p>
+                        )}
+
                         <p className="eyebrow">
                             Lesson {data.position + 1} <span aria-hidden="true">·</span> {minutes}{" "}
                             min read
                         </p>
-                        <div className={styles.titleRow}>
-                            <h1 id="lesson-title" title={data.title}>
-                                {data.title}
-                            </h1>{" "}
-                            {session ? (
-                                <button
-                                    type="button"
-                                    className="text-button"
-                                    aria-label="Edit lesson"
-                                    disabled={
-                                        !course.data ||
-                                        !!course.data.archivedAt ||
-                                        playing ||
-                                        !quizzes.data ||
-                                        quizzes.isFetching ||
-                                        lesson.isFetching
-                                    }
-                                    onClick={() => {
-                                        if (quizzes.data)
-                                            setEditing({ lesson: data, quizzes: quizzes.data });
-                                    }}
-                                >
-                                    <span aria-hidden="true">✎</span> Edit
-                                </button>
-                            ) : (
-                                <p className="muted small">Sign in to edit this lesson.</p>
-                            )}
-                        </div>
+                        <h1 id="lesson-title">{data.title}</h1>
                         {data.description ? (
                             <p className={styles.description}>{data.description}</p>
                         ) : null}
                     </header>
                     <LessonContent content={data.content} headingIdPrefix="lesson" />
-                    {course.data ? <CourseEnrollment course={course.data} /> : null}
-                    <LessonCompletion
-                        key={lessonId}
-                        courseId={courseId}
-                        lessonId={lessonId}
-                        archived={!course.data || !!course.data.archivedAt}
-                    />
                     {quizzes.isPending ? <p role="status">Loading quizzes…</p> : null}
                     {quizzes.isError ? (
                         <div role="alert">
@@ -151,6 +152,12 @@ function LessonPageContent() {
                             onPlaying={setPlaying}
                         />
                     ) : null}
+                    <LessonCompletion
+                        key={lessonId}
+                        courseId={courseId}
+                        lessonId={lessonId}
+                        archived={!course.data || !!course.data.archivedAt}
+                    />
                     <nav className={styles.lessonNavigation} aria-label="Lesson navigation">
                         {data.previousLesson ? (
                             <Link

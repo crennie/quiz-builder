@@ -7,10 +7,12 @@ export function LessonCompletion({
     courseId,
     lessonId,
     archived,
+    statusOnly = false,
 }: {
     courseId: string;
     lessonId: string;
     archived: boolean;
+    statusOnly?: boolean;
 }) {
     const { session } = useAuth();
     const progress = useCourseProgress(courseId);
@@ -29,9 +31,19 @@ export function LessonCompletion({
         },
     });
     if (!session || !progress.data?.enrollment) return null;
+    const status = (
+        <p
+            role="status"
+            className={`learning-status ${completed ? "learning-status-complete" : "learning-status-incomplete"}`}
+        >
+            <span aria-hidden="true">{completed ? "✓" : "○"}</span>
+            {completed ? "Lesson complete" : "Lesson not completed"}
+        </p>
+    );
+    if (statusOnly) return status;
     return (
-        <section aria-label="Lesson completion">
-            <p role="status">{completed ? "Lesson complete" : "Lesson not completed"}</p>
+        <section className="lesson-completion-panel" aria-label="Lesson completion">
+            {status}
             <button
                 type="button"
                 disabled={archived || save.isPending || progress.isError}

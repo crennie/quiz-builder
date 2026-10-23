@@ -25,14 +25,26 @@ export function AppLayout() {
                             <img src="/brand/quiz-builder.png" alt="" width="48" height="48" />
                         </span>
                         <span className="brand-wordmark">
-                            Quiz <span>Builder</span>
+                            Quiz<span>Builder</span>
                         </span>
                     </Link>
                     <nav aria-label="Primary navigation">
-                        <Link to="/">Home</Link>
-                        <Link to="/quizzes">My Quizzes</Link>
-                        <Link to="/courses/mine">My Courses</Link>
-                        <Link to="/courses">Courses</Link>
+                        <Link className="nav-link" to="/" activeOptions={{ exact: true }}>
+                            Home
+                        </Link>
+                        <Link className="nav-link" to="/quizzes">
+                            My Quizzes
+                        </Link>
+                        <Link
+                            className="nav-link"
+                            to="/courses/mine"
+                            activeOptions={{ exact: true }}
+                        >
+                            My Courses
+                        </Link>
+                        <Link className="nav-link" to="/courses" activeOptions={{ exact: true }}>
+                            Courses
+                        </Link>
                         {session ? (
                             <ProfileMenu
                                 key={pathname}
@@ -58,7 +70,9 @@ export function AppLayout() {
                         ) : (
                             <>
                                 <ThemeToggle />
-                                <Link to="/sign-in">Sign in</Link>
+                                <Link className="nav-link nav-sign-in" to="/sign-in">
+                                    Sign in
+                                </Link>
                             </>
                         )}
                     </nav>

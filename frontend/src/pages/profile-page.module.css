@@ -1,0 +1,16 @@
+.details {
+    display: grid;
+    gap: 1.5rem;
+    margin: 0;
+}
+
+.details dt {
+    color: var(--muted);
+    font-size: 0.875rem;
+}
+
+.details dd {
+    margin: 0.35rem 0 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}

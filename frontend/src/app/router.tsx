@@ -1,6 +1,7 @@
 import { createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
 
 import { AppLayout } from "./layout";
+import { ProfilePage } from "../pages/profile-page";
 import { HomePage } from "../pages/home-page";
 import { NotFoundPage } from "../pages/not-found-page";
 import { SignInPage } from "../pages/sign-in-page";
@@ -27,6 +28,15 @@ const signInRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/sign-in",
     component: SignInPage,
+});
+const profileRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/profile",
+    component: () => (
+        <RequireAuth>
+            <ProfilePage />
+        </RequireAuth>
+    ),
 });
 const myQuestionsRoute = createRoute({
     getParentRoute: () => rootRoute,
@@ -165,6 +175,7 @@ export const router = createRouter({
     routeTree: rootRoute.addChildren([
         homeRoute,
         signInRoute,
+        profileRoute,
         myQuestionsRoute,
         newQuestionRoute,
         questionBatchRoute,

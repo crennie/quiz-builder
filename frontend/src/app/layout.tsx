@@ -31,6 +31,7 @@ export function AppLayout() {
                     <Link to="/quizzes">My Quizzes</Link>
                     <Link to="/courses/mine">My Courses</Link>
                     <Link to="/courses">Courses</Link>
+                    {session ? <Link to="/profile">Profile</Link> : null}
                     <ThemeToggle />
                     {session ? (
                         <button

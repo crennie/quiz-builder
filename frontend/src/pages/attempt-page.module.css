@@ -133,14 +133,28 @@
     }
 }
 
+.resultContent {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    align-items: center;
+    gap: clamp(1rem, 4vw, 2.5rem);
+    overflow-wrap: anywhere;
+}
+
+.gradeColumn {
+    display: grid;
+    gap: 0.25rem;
+    text-align: center;
+}
+
 .percentage {
-    margin: 0.5rem 0;
+    margin: 0;
     font-size: 1.5rem;
     font-variant-numeric: tabular-nums;
 }
 
 .grade {
-    margin: 0.5rem 0 0;
+    margin: 0;
     color: var(--accent);
     font-size: 2.5rem;
     font-weight: 750;

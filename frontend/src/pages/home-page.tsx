@@ -7,6 +7,7 @@ export function HomePage() {
             <div className="hero-brand">
                 <div className="hero-mascot" aria-hidden="true">
                     <div className="hero-mascot-shadow" />
+                    <div className="hero-mascot-hole" />
                     <div className="hero-mascot-opening">
                         <div className="hero-mascot-rise">
                             <img src="/brand/quiz-builder.png" alt="" width="160" height="160" />

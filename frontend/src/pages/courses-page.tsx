@@ -35,14 +35,24 @@ export function CoursesPage() {
                 ) : null}
             </header>
             {session ? (
-                <label>
-                    <input
-                        type="checkbox"
-                        checked={archived}
-                        onChange={(event) => setShowArchived(event.target.checked)}
-                    />{" "}
-                    Show archived courses
-                </label>
+                <div className={styles.views} aria-label="Course views">
+                    <button
+                        type="button"
+                        className="secondary"
+                        aria-pressed={!archived}
+                        onClick={() => setShowArchived(false)}
+                    >
+                        Active courses
+                    </button>
+                    <button
+                        type="button"
+                        className="secondary"
+                        aria-pressed={archived}
+                        onClick={() => setShowArchived(true)}
+                    >
+                        Archived courses
+                    </button>
+                </div>
             ) : null}
             {courses.isPending ? <p role="status">Loading courses…</p> : null}
             {courses.isError ? (
@@ -64,9 +74,9 @@ export function CoursesPage() {
             ) : null}
             <ul className={styles.grid} aria-label="Courses">
                 {items.map((course) => (
-                    <li key={course.id}>
+                    <li key={course.id} className={styles.courseCard}>
                         <Link
-                            className={styles.card}
+                            className={styles.cardLink}
                             to="/courses/$courseId"
                             params={{ courseId: course.id }}
                         >
@@ -79,8 +89,10 @@ export function CoursesPage() {
                                 Explore course <span aria-hidden="true">→</span>
                             </span>
                         </Link>
-                        <CourseEnrollment course={course} />
-                        {session ? <ArchiveCourseButton course={course} /> : null}
+                        <div className={styles.cardActions}>
+                            <CourseEnrollment course={course} />
+                            {session ? <ArchiveCourseButton course={course} /> : null}
+                        </div>
                     </li>
                 ))}
             </ul>

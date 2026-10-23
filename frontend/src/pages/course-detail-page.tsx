@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useCourseProgress } from "../api/use-course-progress";
 import { CourseEnrollment } from "../components/course-enrollment";
 import { ArchiveCourseButton } from "../components/archive-course-button";
@@ -12,6 +13,12 @@ import styles from "./course-pages.module.css";
 export function CourseDetailPage() {
     const { courseId } = useParams({ from: "/courses/$courseId" });
     const { session } = useAuth();
+    return <CourseDetailContent key={`${courseId}:${session?.user.id ?? "anonymous"}`} />;
+}
+function CourseDetailContent() {
+    const { courseId } = useParams({ from: "/courses/$courseId" });
+    const { session } = useAuth();
+    const [editing, setEditing] = useState(false);
     const course = useQuery({ queryKey: ["course", courseId], queryFn: () => getCourse(courseId) });
     const lessons = useInfiniteQuery({
         queryKey: ["course-lessons", courseId],
@@ -36,7 +43,26 @@ export function CourseDetailPage() {
                 <>
                     <header className={`panel ${styles.overview}`}>
                         <p className="eyebrow">Course overview</p>
-                        <h1>{course.data.title}</h1>
+                        <div className={styles.titleRow}>
+                            <h1 title={course.data.title}>{course.data.title}</h1>
+                            {session && !course.data.archivedAt ? (
+                                <button
+                                    type="button"
+                                    className="text-button"
+                                    aria-label={editing ? "Done editing course" : "Edit course"}
+                                    aria-pressed={editing}
+                                    onClick={() => setEditing(!editing)}
+                                >
+                                    {editing ? (
+                                        "Done"
+                                    ) : (
+                                        <>
+                                            <span aria-hidden="true">✎</span> Edit
+                                        </>
+                                    )}
+                                </button>
+                            ) : null}
+                        </div>
                         {course.data.archivedAt ? (
                             <p role="status">
                                 This course is archived. Restore it to edit lessons or start new
@@ -61,7 +87,7 @@ export function CourseDetailPage() {
                     <section className="page-stack" aria-labelledby="course-lessons-title">
                         <div className="section-heading">
                             <h2 id="course-lessons-title">Lessons</h2>
-                            {session && !course.data.archivedAt ? (
+                            {session && editing && !course.data.archivedAt ? (
                                 <Link to="/courses/$courseId/import" params={{ courseId }}>
                                     Import lessons
                                 </Link>

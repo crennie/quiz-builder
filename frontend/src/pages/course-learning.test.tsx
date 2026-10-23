@@ -164,3 +164,17 @@ it("shows saved manual completion on the course overview independently of quiz p
     expect(await screen.findByText("✓ Lesson complete")).toBeInTheDocument();
     expect(await screen.findByText("0 / 1 quizzes completed")).toBeInTheDocument();
 });
+
+it("only offers lesson import while the course is in edit mode", async () => {
+    const user = userEvent.setup();
+    renderAt(`/courses/${courseId}`);
+    await screen.findByRole("heading", { name: course.title });
+    expect(screen.queryByRole("link", { name: "Import lessons" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Edit course" }));
+    expect(screen.getByRole("link", { name: "Import lessons" })).toHaveAttribute(
+        "href",
+        `/courses/${courseId}/import`,
+    );
+    await user.click(screen.getByRole("button", { name: "Done editing course" }));
+    expect(screen.queryByRole("link", { name: "Import lessons" })).not.toBeInTheDocument();
+});

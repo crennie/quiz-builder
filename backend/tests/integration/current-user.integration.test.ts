@@ -13,6 +13,7 @@ import { app } from "../../src/app.ts";
 const userId = "123e4567-e89b-42d3-a456-426614174000";
 const profile = {
     id: userId,
+    isPlatformAdmin: false,
     displayName: "Example User",
     avatarUrl: null,
     createdAt: new Date("2026-09-28T00:00:00.000Z"),
@@ -56,6 +57,7 @@ describe("GET /api/v1/me", () => {
         expect(response.status).toBe(200);
         expect(response.body).toEqual({
             id: userId,
+            isPlatformAdmin: false,
             displayName: "Example User",
             avatarUrl: null,
             createdAt: profile.createdAt.toISOString(),

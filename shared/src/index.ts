@@ -393,6 +393,11 @@ export const lessonSchema = courseSchema
         position: z.number().int().nonnegative(),
     })
     .meta({ id: "Lesson" });
+export const lessonSummarySchema = lessonSchema
+    .omit({ content: true })
+    .strip()
+    .meta({ id: "LessonSummary" });
+export type LessonSummary = z.output<typeof lessonSummarySchema>;
 export const lessonLinkSchema = z.strictObject({ id: z.uuid(), title: z.string() });
 export const lessonDetailSchema = lessonSchema
     .extend({
@@ -438,7 +443,7 @@ export const enrolledCourseListResponseSchema = z.strictObject({
 });
 export type CourseProgress = z.output<typeof courseProgressSchema>;
 export const lessonListResponseSchema = z.strictObject({
-    items: z.array(lessonSchema),
+    items: z.array(lessonSummarySchema),
     nextOffset: z.number().int().nonnegative().nullable(),
 });
 export const lessonQuizListResponseSchema = z.strictObject({

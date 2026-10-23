@@ -63,6 +63,7 @@ describe("attempt API", () => {
         vi.mocked(verifyAccessToken).mockResolvedValue({ id: userId, userMetadata: {} });
         vi.mocked(getOrCreateProfile).mockResolvedValue({
             id: userId,
+            isPlatformAdmin: false,
             displayName: "User",
             avatarUrl: null,
             createdAt: new Date(timestamp),

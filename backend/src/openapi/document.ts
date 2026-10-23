@@ -580,21 +580,21 @@ for (const [path, params, query, schema, summary] of [
         courseParamsSchema,
         contentListQuerySchema,
         lessonListResponseSchema,
-        "List ordered course lessons",
+        "List ordered course lesson summaries (without content)",
     ],
     [
         "/api/v1/lessons/{lessonId}",
         lessonParamsSchema,
         undefined,
         lessonDetailSchema,
-        "Get a public lesson",
+        "Get full lesson content (enrollment or platform admin required)",
     ],
     [
         "/api/v1/lessons/{lessonId}/quizzes",
         lessonParamsSchema,
         contentListQuerySchema,
         lessonQuizListResponseSchema,
-        "List ordered lesson quizzes",
+        "List ordered lesson quizzes (enrollment or platform admin required)",
     ],
 ] as const)
     registry.registerPath({
@@ -602,6 +602,7 @@ for (const [path, params, query, schema, summary] of [
         path,
         tags: ["Courses"],
         summary,
+        security: path.startsWith("/api/v1/lessons/") ? [{ BearerAuth: [] }] : undefined,
         request: { params, query },
         responses: {
             200: {
@@ -617,13 +618,13 @@ for (const [path, params, schema, summary] of [
         "/api/v1/courses/import",
         undefined,
         courseImportBodySchema,
-        "Import a new public course and its ordered lessons",
+        "Import a new public course and its ordered lessons (platform admin only)",
     ],
     [
         "/api/v1/courses/{courseId}/lessons/import",
         courseParamsSchema,
         lessonImportBodySchema,
-        "Append public lessons to an existing course",
+        "Append public lessons to an existing course (platform admin only)",
     ],
 ] as const)
     registry.registerPath({
@@ -653,7 +654,7 @@ registry.registerPath({
     method: "put",
     path: "/api/v1/lessons/{lessonId}",
     tags: ["Courses"],
-    summary: "Save lesson content and ordered imported quizzes atomically (any signed-in user)",
+    summary: "Save lesson content and ordered imported quizzes atomically (platform admin only)",
     security: [{ BearerAuth: [] }],
     request: {
         params: lessonParamsSchema,
@@ -675,7 +676,7 @@ registry.registerPath({
     method: "put",
     path: "/api/v1/courses/{courseId}/archive",
     tags: ["Courses"],
-    summary: "Archive or restore a course (any signed-in user)",
+    summary: "Archive or restore a course (platform admin only)",
     security: [{ BearerAuth: [] }],
     request: {
         params: courseParamsSchema,

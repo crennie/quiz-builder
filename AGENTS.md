@@ -16,7 +16,7 @@ runtime scenarios, decisions, and quality expectations.
 - The backend has Supabase Auth token verification, a current-user profile endpoint, direct
   question/tag, quiz, attempt, feedback, private batch import, and public course/lesson read APIs.
   Questions lock on first quiz use; quizzes lock on any attempt. The frontend supports sign-in,
-  personal content management, batch import, attempts, results, and feedback. Any signed-in user may edit lessons and manage imported lesson quizzes; broader course authoring is deferred.
+  personal content management, batch import, attempts, results, and feedback. Only platform admins may edit courses/lessons and manage imported lesson quizzes. Full lesson reads require enrollment or admin access; public lesson lists omit content.
 - Keep frontend code in `frontend/`, backend code in `backend/`, and shared contracts in `shared/`.
 
 ## Development environment

@@ -30,7 +30,7 @@ export async function assertCourseEnrollment(
         throw new AppError(
             403,
             "COURSE_ENROLLMENT_REQUIRED",
-            "Enroll in this course to track progress and take quizzes",
+            "Enroll in this course to read lessons, track progress and take quizzes",
         );
 }
 

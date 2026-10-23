@@ -4,6 +4,7 @@ export const currentUserResponseSchema = z
     .object({
         id: z.uuid(),
         displayName: z.string().min(1),
+        isPlatformAdmin: z.boolean(),
         avatarUrl: z.url().nullable(),
         createdAt: z.iso.datetime({ offset: true }),
         updatedAt: z.iso.datetime({ offset: true }),

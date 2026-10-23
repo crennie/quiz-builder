@@ -1,3 +1,4 @@
+import { usePlatformAdmin } from "../api/use-platform-admin";
 import { useCourseProgress } from "../api/use-course-progress";
 import { CourseEnrollment } from "../components/course-enrollment";
 import { LessonCompletion } from "../components/lesson-completion";
@@ -19,6 +20,7 @@ export function LessonPage() {
     return <LessonPageContent key={`${lessonId}:${session?.user.id ?? "anonymous"}`} />;
 }
 function LessonPageContent() {
+    const isPlatformAdmin = usePlatformAdmin();
     const { session } = useAuth();
     const client = useQueryClient();
     const [editing, setEditing] = useState<{ lesson: Lesson; quizzes: LessonQuiz[] } | null>(null);
@@ -26,16 +28,18 @@ function LessonPageContent() {
     const [activeHeading, setActiveHeading] = useState<string | null>(null);
     const { courseId, lessonId } = useParams({ from: "/courses/$courseId/lessons/$lessonId" });
     const progress = useCourseProgress(courseId);
+    const canRead =
+        isPlatformAdmin || (!!session && !!progress.data?.enrollment && !progress.isError);
     const lesson = useQuery({
-        queryKey: ["lesson", lessonId],
+        queryKey: ["lesson", lessonId, session?.user.id],
         queryFn: () => getLesson(lessonId),
-        enabled: !editing && !playing,
+        enabled: canRead && !editing && !playing,
     });
     const course = useQuery({ queryKey: ["course", courseId], queryFn: () => getCourse(courseId) });
     const quizzes = useQuery({
-        queryKey: ["lesson-quizzes", lessonId, lesson.data?.updatedAt],
+        queryKey: ["lesson-quizzes", lessonId, session?.user.id, lesson.data?.updatedAt],
         queryFn: () => listLessonQuizzes(lessonId),
-        enabled: !!lesson.data && !editing && !playing,
+        enabled: canRead && !!lesson.data && !editing && !playing,
     });
     const data = lesson.data;
     useEffect(() => {
@@ -71,7 +75,17 @@ function LessonPageContent() {
             observer.disconnect();
         };
     }, [data, editing]);
-    if (editing)
+    if (!canRead)
+        return (
+            <div className="page-stack">
+                <Link to="/courses/$courseId" params={{ courseId }}>
+                    Back to course
+                </Link>
+                <p>Enroll in this course to read its lessons.</p>
+                {course.data ? <CourseEnrollment course={course.data} /> : null}
+            </div>
+        );
+    if (editing && isPlatformAdmin)
         return (
             <LessonEditor
                 lesson={editing.lesson}
@@ -166,7 +180,7 @@ function LessonPageContent() {
                     </div>
                     <article className={`panel ${styles.article}`} aria-labelledby="lesson-title">
                         <header className={styles.articleHeader}>
-                            {session ? (
+                            {isPlatformAdmin ? (
                                 <button
                                     type="button"
                                     className={`text-button ${styles.lessonEdit}`}
@@ -186,9 +200,7 @@ function LessonPageContent() {
                                 >
                                     <span aria-hidden="true">✎</span> Edit
                                 </button>
-                            ) : (
-                                <p className="muted small">Sign in to edit this lesson.</p>
-                            )}
+                            ) : null}
 
                             <p className="eyebrow">
                                 Lesson {data.position + 1} <span aria-hidden="true">·</span>{" "}

@@ -33,7 +33,7 @@ export async function listCourseLessons(id: string, offset: number) {
     );
 }
 export async function getLesson(id: string) {
-    return lessonDetailSchema.parse(await apiRequest(`/v1/lessons/${id}`));
+    return lessonDetailSchema.parse(await authenticatedRequest(`/v1/lessons/${id}`));
 }
 export async function importCourse(importKey: string, content: CourseImportFile) {
     return courseImportResultSchema.parse(
@@ -61,7 +61,7 @@ export async function listLessonQuizzes(id: string): Promise<LessonQuiz[]> {
     let offset: number | null = 0;
     while (offset !== null) {
         const page = lessonQuizListResponseSchema.parse(
-            await apiRequest(`/v1/lessons/${id}/quizzes?limit=100&offset=${offset}`),
+            await authenticatedRequest(`/v1/lessons/${id}/quizzes?limit=100&offset=${offset}`),
         );
         items.push(...page.items);
         offset = page.nextOffset;

@@ -16,7 +16,9 @@ Keep frontend, backend and contracts in `frontend/`, `backend/` and `shared/` re
 
 ## Domain
 
-Profiles use Supabase Auth UUIDs. Questions contain prompt, type, answer/grading configurations,
+Profiles use Supabase Auth UUIDs. `is_platform_admin` defaults to false and is managed only in SQL,
+never from Auth metadata or API writes. `/me` exposes the read-only role for UI permissions.
+See [ADR-015](docs/architecture/decisions/ADR-015-platform-admin-and-lesson-access.md). Questions contain prompt, type, answer/grading configurations,
 explanation, ownership and private/public visibility directly. Quizzes contain title, description,
 settings and visibility directly; ordered `quiz_questions` reference question IDs with numeric
 points, required flags and optional timing. Repeating a question at different positions is allowed.
@@ -25,13 +27,14 @@ Private quizzes support reversible archiving through `archived_at`; active lists
 new attempts are blocked while archived, and existing attempts and content locks are preserved.
 See [ADR-010](docs/architecture/decisions/ADR-010-quiz-archiving.md).
 
-Courses are public and support reversible archiving by any signed-in user. Active lists exclude
+Course catalogs are public and support reversible archiving by platform admins. Active lists exclude
 archives; archived courses remain readable, while edits, imports and new attempts require restoration.
 See [ADR-013](docs/architecture/decisions/ADR-013-course-archive-and-quiz-import.md). Each ordered
 lesson has exactly one course FK and plain text/Markdown content.
 `lesson_quizzes` gives each lesson quiz exactly one lesson, with ordered active associations.
-Courses and lessons have public read APIs and signed-in JSON imports for new courses or appended
-lessons. Any signed-in user may edit any lesson and import, edit, remove or reorder its quizzes.
+Course and lesson summaries have public read APIs. Full lessons and their quizzes require enrollment
+or platform admin access. Only platform admins may import courses or appended lessons, edit lessons,
+and import, edit, remove or reorder lesson quizzes.
 View is the default; editing uses an atomic save or local cancel. Lesson quizzes are created by
 inline import in the lesson editor or optional per-lesson quiz JSON in course/lesson imports, and
 use public questions. Edited quiz content creates a
@@ -41,8 +44,8 @@ Owner-scoped tags, feedback, batch artifacts and mappings remain core entities.
 
 Learners explicitly enroll in courses and manually mark lessons complete or incomplete. Course quiz
 starts require enrollment; standalone quiz access is unchanged. My Courses lists the learner's
-enrollments and lesson completion counts, including preserved archived progress. Public reading
-remains available. See [ADR-014](docs/architecture/decisions/ADR-014-course-enrollment-and-progress.md).
+enrollments and lesson completion counts, including preserved archived progress. Public course and lesson titles
+remain available; full lesson reading requires enrollment (admins are exempt for authoring). See [ADR-014](docs/architecture/decisions/ADR-014-course-enrollment-and-progress.md).
 
 ## Durable invariants
 
@@ -90,7 +93,7 @@ local stack or approved development environment. CI runs shared, backend, fronte
 
 ## Deferred extensions
 
-Controlled course authoring, restrictive editor permissions, discovery, collaboration, analytics,
+Broader course authoring, discovery, collaboration, analytics,
 manual/fuzzy grading, response/evaluation tables and organizations remain future work. Future
 orchestration may model `WorkItem → operation on Question / Quiz / Lesson / Course` additively.
 V1 contains no dormant work queue, agent, review, publication, lifecycle or version fields.

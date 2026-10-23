@@ -1,6 +1,7 @@
 import {
     courseSchema,
     lessonSchema,
+    lessonSummarySchema,
     lessonDetailSchema,
     lessonQuizSchema,
     type Database,
@@ -64,7 +65,7 @@ export async function listCourseLessons(
         [courseId, page.limit + 1, page.offset],
     );
     return {
-        items: r.rows.slice(0, page.limit).map(mapLesson),
+        items: r.rows.slice(0, page.limit).map((row) => lessonSummarySchema.parse(mapLesson(row))),
         nextOffset: r.rows.length > page.limit ? page.offset + page.limit : null,
     };
 }

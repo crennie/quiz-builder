@@ -19,6 +19,7 @@ currentUserRouter.get(
         sendResponse(response, 200, currentUserResponseSchema, {
             id: profile.id,
             displayName: profile.displayName,
+            isPlatformAdmin: profile.isPlatformAdmin,
             avatarUrl: profile.avatarUrl,
             createdAt: profile.createdAt.toISOString(),
             updatedAt: profile.updatedAt.toISOString(),
